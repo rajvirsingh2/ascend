@@ -1,0 +1,38 @@
+name: RAG Service CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "rag-service/**"
+      - ".github/workflows/rag.yml"
+  pull_request:
+    paths:
+      - "rag-service/**"
+
+jobs:
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        working-directory: rag-service
+        run: |
+          pip install uv
+          uv pip install --system -r requirements.txt
+          uv pip install --system ruff pytest
+
+      - name: Lint
+        working-directory: rag-service
+        run: ruff check .
+
+      - name: Run tests
+        working-directory: rag-service
+        run: pytest -v

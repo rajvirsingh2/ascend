@@ -17,6 +17,7 @@ rag-service/*.egg-info/
 .env
 .env.staging
 .env.production
+.env.example
 
 # OS
 .DS_Store
