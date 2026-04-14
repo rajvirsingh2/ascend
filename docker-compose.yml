@@ -53,7 +53,7 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: postgres
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
       REDIS_URL: redis://redis:6379
       RAG_SERVICE_URL: http://rag-service:8001
     volumes:
