@@ -8,7 +8,11 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rajvirsingh2/ascend-backend/internal/auth"
+	"github.com/rajvirsingh2/ascend-backend/internal/goal"
+	"github.com/rajvirsingh2/ascend-backend/internal/habit"
 	"github.com/rajvirsingh2/ascend-backend/internal/middleware"
+	"github.com/rajvirsingh2/ascend-backend/internal/quest"
+	pgstore "github.com/rajvirsingh2/ascend-backend/internal/store/postgres"
 	"github.com/rajvirsingh2/ascend-backend/pkg/config"
 	"github.com/rajvirsingh2/ascend-backend/pkg/response"
 	"github.com/redis/go-redis/v9"
@@ -67,6 +71,28 @@ func (s *Server) Routes() http.Handler {
 
 			r.Get("/me", s.meHandler())
 			// quest, habit, goal routes added in M5
+			goalHandler := goal.NewHandler(pgstore.NewGoalStore(s.db))
+			r.Route("/goals", func(r chi.Router) {
+				r.Get("/", goalHandler.List)
+				r.Post("/", goalHandler.Create)
+				r.Patch("/{id}", goalHandler.Update)
+				r.Delete("/{id}", goalHandler.Delete)
+			})
+
+			// habits
+			habitHandler := habit.NewHandler(pgstore.NewHabitStore(s.db))
+			r.Route("/habits", func(r chi.Router) {
+				r.Get("/", habitHandler.List)
+				r.Post("/", habitHandler.Create)
+				r.Post("/{id}/complete", habitHandler.Complete)
+			})
+
+			questHandler := quest.NewHandler(pgstore.NewQuestStore(s.db))
+			r.Route("/quests", func(r chi.Router) {
+				r.Get("/", questHandler.ListActive)
+				r.Post("/{id}/complete", questHandler.Complete)
+				r.Post("/{id}/skip", questHandler.Skip)
+			})
 		})
 	})
 
