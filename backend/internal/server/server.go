@@ -70,8 +70,8 @@ func (s *Server) Routes() http.Handler {
 			r.Use(middleware.JWTGuard(s.cfg.JWTSecret))
 
 			r.Get("/me", s.meHandler())
-			// quest, habit, goal routes added in M5
-			goalHandler := goal.NewHandler(pgstore.NewGoalStore(s.db))
+			//goals
+			goalHandler := goal.NewHandler(pgstore.NewGoalStore(s.db), s.rdb)
 			r.Route("/goals", func(r chi.Router) {
 				r.Get("/", goalHandler.List)
 				r.Post("/", goalHandler.Create)
@@ -80,14 +80,15 @@ func (s *Server) Routes() http.Handler {
 			})
 
 			// habits
-			habitHandler := habit.NewHandler(pgstore.NewHabitStore(s.db))
+			habitHandler := habit.NewHandler(pgstore.NewHabitStore(s.db, s.rdb))
 			r.Route("/habits", func(r chi.Router) {
 				r.Get("/", habitHandler.List)
 				r.Post("/", habitHandler.Create)
 				r.Post("/{id}/complete", habitHandler.Complete)
 			})
 
-			questHandler := quest.NewHandler(pgstore.NewQuestStore(s.db))
+			// quests
+			questHandler := quest.NewHandler(pgstore.NewQuestStore(s.db, s.rdb))
 			r.Route("/quests", func(r chi.Router) {
 				r.Get("/", questHandler.ListActive)
 				r.Post("/{id}/complete", questHandler.Complete)

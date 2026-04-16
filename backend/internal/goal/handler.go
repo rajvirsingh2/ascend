@@ -5,15 +5,22 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/rajvirsingh2/ascend-backend/internal/ingestion"
 	"github.com/rajvirsingh2/ascend-backend/internal/middleware"
 	"github.com/rajvirsingh2/ascend-backend/internal/models"
 	"github.com/rajvirsingh2/ascend-backend/internal/store"
 	"github.com/rajvirsingh2/ascend-backend/pkg/response"
+	"github.com/redis/go-redis/v9"
 )
 
-type Handler struct{ store store.GoalStore }
+type Handler struct {
+	store store.GoalStore
+	rdb   *redis.Client
+}
 
-func NewHandler(s store.GoalStore) *Handler { return &Handler{store: s} }
+func NewHandler(s store.GoalStore, rdb *redis.Client) *Handler {
+	return &Handler{store: s, rdb: rdb}
+}
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
@@ -31,6 +38,21 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, http.StatusInternalServerError, "failed to create goal")
 		return
 	}
+	// publish goal for RAG ingestion
+	go ingestion.Publish(r.Context(), h.rdb, ingestion.Job{
+		EventType: ingestion.EventGoalCreated,
+		UserID:    userID,
+		Payload: map[string]any{
+			"id":          g.ID,
+			"title":       g.Title,
+			"description": g.Description,
+			"skill_area":  g.SkillArea,
+			"category":    g.Category,
+			"priority":    g.Priority,
+			"progress":    g.Progress,
+			"status":      g.Status,
+		},
+	})
 	response.JSON(w, http.StatusCreated, g)
 }
 

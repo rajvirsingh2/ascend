@@ -7,6 +7,7 @@ import (
 
 	"github.com/rajvirsingh2/ascend-backend/internal/quest"
 	"github.com/rajvirsingh2/ascend-backend/internal/server"
+	"github.com/rajvirsingh2/ascend-backend/internal/store/postgres"
 	pgstore "github.com/rajvirsingh2/ascend-backend/internal/store/postgres"
 	redisstore "github.com/rajvirsingh2/ascend-backend/internal/store/redis"
 	"github.com/rajvirsingh2/ascend-backend/pkg/config"
@@ -20,7 +21,7 @@ func main() {
 
 	ctx := context.Background()
 
-	db, err := pgstore.NewPool(ctx, cfg.DatabaseURL)
+	db, err := postgres.NewPool(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("connecting to postgres: %v", err)
 	}
@@ -34,10 +35,10 @@ func main() {
 
 	srv := server.New(cfg, db, rdb)
 
-	log.Printf("starting ascend backend on %s [%s]", srv.Addr(), cfg.AppEnv)
 	// start background workers
-	questStore := pgstore.NewQuestStore(db)
+	questStore := pgstore.NewQuestStore(db, rdb)
 	go quest.StartExpiryWorker(ctx, questStore)
+	log.Printf("starting ascend backend on %s [%s]", srv.Addr(), cfg.AppEnv)
 	if err := http.ListenAndServe(srv.Addr(), srv.Routes()); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
