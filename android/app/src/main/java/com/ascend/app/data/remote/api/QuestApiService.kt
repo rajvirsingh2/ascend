@@ -6,12 +6,14 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 
+import com.ascend.app.data.remote.dto.CompletionResponse
+
 interface QuestApiService {
     @GET("quests")
     suspend fun getActiveQuests(): ApiEnvelope<List<QuestResponse>>
 
     @POST("quests/{id}/complete")
-    suspend fun completeQuest(@Path("id") id: String): ApiEnvelope<Map<String, Int>>
+    suspend fun completeQuest(@Path("id") id: String): ApiEnvelope<CompletionResponse>
 
     @POST("quests/{id}/skip")
     suspend fun skipQuest(@Path("id") id: String): ApiEnvelope<Unit>

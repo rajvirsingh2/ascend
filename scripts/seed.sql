@@ -6,7 +6,7 @@ INSERT INTO users (id, email, password_hash, username, level, total_xp, current_
 VALUES (
     '00000000-0000-0000-0000-000000000001',
     'test@ascend.app',
-    '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    '$2a$12$oDf1zfczE3pdA6VJ/L.A1eqm82fPlm6VVqRql2jBGCmMhKkx.qRFm',
     'testuser',
     3,
     450,

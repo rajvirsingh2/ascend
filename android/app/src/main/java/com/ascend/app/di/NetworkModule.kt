@@ -3,6 +3,7 @@ package com.ascend.app.di
 import com.ascend.app.BuildConfig
 import com.ascend.app.data.remote.AuthInterceptor
 import com.ascend.app.data.remote.api.AuthApiService
+import com.ascend.app.data.remote.api.GoalApiService
 import com.ascend.app.data.remote.api.HabitApiService
 import com.ascend.app.data.remote.api.QuestApiService
 import com.squareup.moshi.Moshi
@@ -67,4 +68,9 @@ object NetworkModule {
     @Singleton
     fun provideHabitApiService(retrofit: Retrofit): HabitApiService =
         retrofit.create(HabitApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideGoalApiService(retrofit: Retrofit): GoalApiService =
+        retrofit.create(GoalApiService::class.java)
 }
