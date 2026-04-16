@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rajvirsingh2/ascend-backend/internal/ai"
 	"github.com/rajvirsingh2/ascend-backend/internal/auth"
 	"github.com/rajvirsingh2/ascend-backend/internal/goal"
 	"github.com/rajvirsingh2/ascend-backend/internal/habit"
@@ -19,13 +20,14 @@ import (
 )
 
 type Server struct {
-	cfg *config.Config
-	db  *pgxpool.Pool
-	rdb *redis.Client
+	cfg      *config.Config
+	db       *pgxpool.Pool
+	rdb      *redis.Client
+	aiClient *ai.Client
 }
 
 func New(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *Server {
-	return &Server{cfg: cfg, db: db, rdb: rdb}
+	return &Server{cfg: cfg, db: db, rdb: rdb, aiClient: ai.NewClient(cfg.RAGServiceURL)}
 }
 
 func (s *Server) Routes() http.Handler {
@@ -93,6 +95,8 @@ func (s *Server) Routes() http.Handler {
 				r.Get("/", questHandler.ListActive)
 				r.Post("/{id}/complete", questHandler.Complete)
 				r.Post("/{id}/skip", questHandler.Skip)
+				generateHandler := quest.NewGenerateHandler(s.db, s.rdb, s.aiClient)
+				r.Post("/generate", generateHandler.Generate)
 			})
 		})
 	})
