@@ -11,15 +11,14 @@ services:
     numInstances: 1
     healthCheckPath: /health
     autoDeploy: true
-    envVarGroups:
-      - ascend-shared
     envVars:
       - key: APP_ENV
         value: production
       - key: APP_PORT
         value: "8080"
       - key: ALLOWED_ORIGINS
-        value: "https://ascend.app"   # update to your real frontend URL
+        value: "https://ascend.app"
+      - fromGroup: ascend-shared
 
   # ── XP Worker ─────────────────────────────────────────────────────────────
   - type: worker
@@ -30,13 +29,12 @@ services:
     region: singapore
     plan: starter
     autoDeploy: true
-    envVarGroups:
-      - ascend-shared
     envVars:
       - key: APP_ENV
         value: production
       - key: WORKER_TYPE
         value: xp
+      - fromGroup: ascend-shared
 
   # ── Outbox Relay Worker ───────────────────────────────────────────────────
   - type: worker
@@ -47,13 +45,12 @@ services:
     region: singapore
     plan: starter
     autoDeploy: true
-    envVarGroups:
-      - ascend-shared
     envVars:
       - key: APP_ENV
         value: production
       - key: WORKER_TYPE
         value: outbox
+      - fromGroup: ascend-shared
 
   # ── RAG Service ───────────────────────────────────────────────────────────
   - type: web
@@ -66,22 +63,31 @@ services:
     numInstances: 1
     healthCheckPath: /health
     autoDeploy: true
-    envVarGroups:
-      - ascend-shared
     envVars:
       - key: APP_ENV
         value: production
+      - fromGroup: ascend-shared
 
-# ── Shared env-var group ──────────────────────────────────────────────────
-# Create this group in Render Dashboard → Env Groups → "ascend-shared"
-# and add the following secrets there (do NOT commit real values here):
-#
-#   DATABASE_URL   → your Render Postgres internal connection string
-#   REDIS_URL      → your Render Redis internal connection string
-#   JWT_SECRET     → strong random secret
-#   JWT_EXPIRY_MINUTES → 15
-#   REFRESH_TOKEN_EXPIRY_DAYS → 7
-#   OPEN_API_KEY   → your OpenAI key
-#   KAFKA_BROKERS  → comma-separated broker addresses
-#   RAG_SERVICE_URL → internal URL of ascend-rag service
-#   POD_ID         → set per-service if needed (or use Render's RENDER_INSTANCE_ID)
+# ── Shared env-var group definition ──────────────────────────────────────────
+# Render will create this group automatically from the Blueprint.
+# Sync: false means values must be set manually in the Render Dashboard
+# (never commit real secrets to this file).
+envVarGroups:
+  - name: ascend-shared
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRY_MINUTES
+        value: "15"
+      - key: REFRESH_TOKEN_EXPIRY_DAYS
+        value: "7"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: KAFKA_BROKERS
+        sync: false
+      - key: RAG_SERVICE_URL
+        sync: false
