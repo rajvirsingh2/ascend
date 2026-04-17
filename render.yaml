@@ -1,0 +1,87 @@
+services:
+
+  # ── API Server ────────────────────────────────────────────────────────────
+  - type: web
+    name: ascend-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: singapore
+    plan: starter
+    numInstances: 1
+    healthCheckPath: /health
+    autoDeploy: true
+    envVarGroups:
+      - ascend-shared
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_PORT
+        value: "8080"
+      - key: ALLOWED_ORIGINS
+        value: "https://ascend.app"   # update to your real frontend URL
+
+  # ── XP Worker ─────────────────────────────────────────────────────────────
+  - type: worker
+    name: ascend-xp-worker
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile.worker
+    dockerContext: ./backend
+    region: singapore
+    plan: starter
+    autoDeploy: true
+    envVarGroups:
+      - ascend-shared
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: WORKER_TYPE
+        value: xp
+
+  # ── Outbox Relay Worker ───────────────────────────────────────────────────
+  - type: worker
+    name: ascend-outbox-relay
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile.worker
+    dockerContext: ./backend
+    region: singapore
+    plan: starter
+    autoDeploy: true
+    envVarGroups:
+      - ascend-shared
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: WORKER_TYPE
+        value: outbox
+
+  # ── RAG Service ───────────────────────────────────────────────────────────
+  - type: web
+    name: ascend-rag
+    runtime: docker
+    dockerfilePath: ./rag-service/Dockerfile
+    dockerContext: ./rag-service
+    region: singapore
+    plan: starter
+    numInstances: 1
+    healthCheckPath: /health
+    autoDeploy: true
+    envVarGroups:
+      - ascend-shared
+    envVars:
+      - key: APP_ENV
+        value: production
+
+# ── Shared env-var group ──────────────────────────────────────────────────
+# Create this group in Render Dashboard → Env Groups → "ascend-shared"
+# and add the following secrets there (do NOT commit real values here):
+#
+#   DATABASE_URL   → your Render Postgres internal connection string
+#   REDIS_URL      → your Render Redis internal connection string
+#   JWT_SECRET     → strong random secret
+#   JWT_EXPIRY_MINUTES → 15
+#   REFRESH_TOKEN_EXPIRY_DAYS → 7
+#   OPEN_API_KEY   → your OpenAI key
+#   KAFKA_BROKERS  → comma-separated broker addresses
+#   RAG_SERVICE_URL → internal URL of ascend-rag service
+#   POD_ID         → set per-service if needed (or use Render's RENDER_INSTANCE_ID)

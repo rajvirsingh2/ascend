@@ -21,6 +21,15 @@ android {
         buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/api/v1/\"")
     }
 
+    signingConfigs{
+        create("release"){
+            storeFile=file(System.getenv("KEYSTORE_PATH")?:"keystore/debug.jks")
+            storePassword=System.getenv("KEYSTORE_PASSWORD")?:"android"
+            keyAlias=System.getenv("KEY_ALIAS")?:"androiddebugkey"
+            keyPassword=System.getenv("KEY_PASSWORD")?:"android"
+        }
+    }
+
     buildTypes {
         debug {
             isDebuggable = true
@@ -28,6 +37,8 @@ android {
         }
         release {
             isMinifyEnabled = true
+            isShrinkResources=true
+            signingConfig=signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

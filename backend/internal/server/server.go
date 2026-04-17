@@ -36,7 +36,7 @@ func (s *Server) Routes() http.Handler {
 	// global middleware
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
-	r.Use(chimiddleware.Logger)
+	r.Use(middleware.RequestLogger)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.CORS(s.cfg.AllowedOrigins))

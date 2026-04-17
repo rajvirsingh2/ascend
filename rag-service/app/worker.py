@@ -1,6 +1,8 @@
+from itertools import starmap
 import asyncio
 import json
 import logging
+import sys
 
 import redis.asyncio as aioredis
 
@@ -55,6 +57,15 @@ async def process_job(job: dict, embedder) -> None:
         memory_id, doc.doc_type, user_id
     )
 
+def setup_logging(env: str)->None:
+    fmt="%(asctime)s %(levelname)s %(name)s %(message)s"
+    level=logging.DEBUG if env!="production" else logging.INFO
+    logging.basicConfig(
+        stream=sys.stdout,
+        format=fmt,
+        level=level,
+        force=True
+    )
 
 async def run_worker() -> None:
     """

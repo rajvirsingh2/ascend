@@ -105,3 +105,25 @@ jobs:
 
       - name: Build backend image
         run: docker build -f backend/Dockerfile.dev -t ascend-backend:${{ github.sha }} backend/
+  
+  build:
+      name: Build production image
+      runs-on: ubuntu-latest
+      needs: test
+      if: github.ref=='refs/heads/main'
+      steps:
+        -uses: actions/checkout@v4
+        -name: Build production backend image
+        run: |
+          docker build \
+            -f backend/Dockerfile
+            -t ascend-backend;${{github.sha}} \
+            -t ascend-backend:latest
+            backend/
+        
+        -name: Verify image size under 50MB
+        run: |
+          SIZE=$(docker image inspect ascend-backend:latest \
+            --format='{{.Size}}')
+          echo "Image size: $SIZE bytes"
+          ["$SIZE" -lt 52428800] || (echo "Image too large" && exit 1) 

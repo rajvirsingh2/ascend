@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -15,6 +16,8 @@ type Config struct {
 	DatabaseURL string
 
 	RedisURL string
+
+	KafkaBrokers []string
 
 	JWTSecret         string
 	JWTExpiryMinutes  int
@@ -46,6 +49,7 @@ func Load() (*Config, error) {
 		AppPort:           getEnv("APP_PORT", "8080"),
 		DatabaseURL:       requireEnv("DATABASE_URL"),
 		RedisURL:          requireEnv("REDIS_URL"),
+		KafkaBrokers:      strings.Split(getEnv("KAFKA_BROKERS", "localhost:9092"), ","),
 		JWTSecret:         requireEnv("JWT_SECRET"),
 		JWTExpiryMinutes:  jwtExpiry,
 		RefreshExpiryDays: refreshExpiry,

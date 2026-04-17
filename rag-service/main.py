@@ -9,7 +9,8 @@ from app.database import init_pool, close_pool
 from app.routes import router
 from app.worker import run_worker
 
-logging.basicConfig(level=logging.INFO)
+
+setup_logging(settings.app_env)
 logger = logging.getLogger(__name__)
 
 

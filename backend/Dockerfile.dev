@@ -2,7 +2,7 @@ FROM golang:1.25-alpine
 
 RUN apk add --no-cache git curl
 
-WORKDIR /backend
+WORKDIR /app
 
 RUN go install github.com/air-verse/air@latest
 

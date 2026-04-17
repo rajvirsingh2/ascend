@@ -5,12 +5,15 @@ import (
 	"log"
 	"net/http"
 
+	"log/slog"
+
 	"github.com/rajvirsingh2/ascend-backend/internal/quest"
 	"github.com/rajvirsingh2/ascend-backend/internal/server"
 	"github.com/rajvirsingh2/ascend-backend/internal/store/postgres"
 	pgstore "github.com/rajvirsingh2/ascend-backend/internal/store/postgres"
 	redisstore "github.com/rajvirsingh2/ascend-backend/internal/store/redis"
 	"github.com/rajvirsingh2/ascend-backend/pkg/config"
+	logger "github.com/rajvirsingh2/ascend-backend/pkg/logger"
 )
 
 func main() {
@@ -18,6 +21,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("loading config: %v", err)
 	}
+
+	logger.Init(cfg.AppEnv)
+	slog.Info("ascend backend starting",
+		"env", cfg.AppEnv,
+		"port", cfg.AppPort,
+	)
 
 	ctx := context.Background()
 
