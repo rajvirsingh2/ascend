@@ -7,7 +7,7 @@ from typing import Any
 from app.config import settings
 from app.context_builder import UserContext, format_user_context_for_prompt
 from app.retriever import RetrievedMemory, format_memories_for_prompt
-from app.providers.base import ProviderConfig
+from app.providers import ProviderConfig
 from app.providers.factory import build_provider
 
 logger = logging.getLogger(__name__)

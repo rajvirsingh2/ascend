@@ -5,21 +5,23 @@ import (
 	"log/slog"
 	"net/http"
 
+	"ascend-backend/internal/ai"
+	"ascend-backend/internal/auth"
+	"ascend-backend/internal/events"
+	"ascend-backend/internal/goal"
+	"ascend-backend/internal/habit"
+	"ascend-backend/internal/keyvault"
+	"ascend-backend/internal/middleware"
+	"ascend-backend/internal/quest"
+	"ascend-backend/internal/settings"
+	pgstore "ascend-backend/internal/store/postgres"
+
+	"ascend-backend/pkg/config"
+	"ascend-backend/pkg/response"
+
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rajvirsingh2/ascend-backend/internal/ai"
-	"github.com/rajvirsingh2/ascend-backend/internal/auth"
-	"github.com/rajvirsingh2/ascend-backend/internal/events"
-	"github.com/rajvirsingh2/ascend-backend/internal/goal"
-	"github.com/rajvirsingh2/ascend-backend/internal/habit"
-	"github.com/rajvirsingh2/ascend-backend/internal/keyvault"
-	"github.com/rajvirsingh2/ascend-backend/internal/middleware"
-	"github.com/rajvirsingh2/ascend-backend/internal/quest"
-	"github.com/rajvirsingh2/ascend-backend/internal/settings"
-	pgstore "github.com/rajvirsingh2/ascend-backend/internal/store/postgres"
-	"github.com/rajvirsingh2/ascend-backend/pkg/config"
-	"github.com/rajvirsingh2/ascend-backend/pkg/response"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -67,12 +69,7 @@ func (s *Server) Routes() http.Handler {
 	// API v1
 	r.Route("/api/v1", func(r chi.Router) {
 
-		settingsHandler := settings.NewHandler(s.vault)
-		r.Route("/settings", func(r chi.Router) {
-			r.Post("/api-key", settingsHandler.SaveAPIKey)
-			r.Get("/api-key/status", settingsHandler.GetKeyStatus)
-			r.Delete("/api-key", settingsHandler.DeleteAPIKey)
-		})
+
 
 		// auth — rate limited, no JWT required
 		authHandler := auth.NewHandler(
@@ -96,6 +93,14 @@ func (s *Server) Routes() http.Handler {
 			r.Use(middleware.JWTGuard(s.cfg.JWTSecret))
 
 			r.Get("/me", s.meHandler())
+
+			// settings
+			settingsHandler := settings.NewHandler(s.vault)
+			r.Route("/settings", func(r chi.Router) {
+				r.Post("/api-key", settingsHandler.SaveAPIKey)
+				r.Get("/api-key/status", settingsHandler.GetKeyStatus)
+				r.Delete("/api-key", settingsHandler.DeleteAPIKey)
+			})
 			//goals
 			goalHandler := goal.NewHandler(pgstore.NewGoalStore(s.db), s.rdb)
 			r.Route("/goals", func(r chi.Router) {

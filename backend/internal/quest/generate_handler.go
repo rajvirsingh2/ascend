@@ -8,14 +8,16 @@ import (
 	"net/http"
 	"time"
 
+	"ascend-backend/internal/ai"
+	"ascend-backend/internal/keyvault"
+	"ascend-backend/internal/middleware"
+	"ascend-backend/internal/store"
+	"ascend-backend/internal/store/postgres"
+
+	"ascend-backend/pkg/response"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rajvirsingh2/ascend-backend/internal/ai"
-	"github.com/rajvirsingh2/ascend-backend/internal/keyvault"
-	"github.com/rajvirsingh2/ascend-backend/internal/middleware"
-	"github.com/rajvirsingh2/ascend-backend/internal/store"
-	"github.com/rajvirsingh2/ascend-backend/internal/store/postgres"
-	"github.com/rajvirsingh2/ascend-backend/pkg/response"
 	"github.com/redis/go-redis/v9"
 )
 

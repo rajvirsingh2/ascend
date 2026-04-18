@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"ascend-backend/internal/ingestion"
+	"ascend-backend/internal/middleware"
+	"ascend-backend/internal/models"
+	"ascend-backend/internal/store"
+
+	"ascend-backend/pkg/response"
+
 	"github.com/go-chi/chi/v5"
-	"github.com/rajvirsingh2/ascend-backend/internal/ingestion"
-	"github.com/rajvirsingh2/ascend-backend/internal/middleware"
-	"github.com/rajvirsingh2/ascend-backend/internal/models"
-	"github.com/rajvirsingh2/ascend-backend/internal/store"
-	"github.com/rajvirsingh2/ascend-backend/pkg/response"
 	"github.com/redis/go-redis/v9"
 )
 

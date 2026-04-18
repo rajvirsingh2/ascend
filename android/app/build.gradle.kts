@@ -33,7 +33,13 @@ android {
     buildTypes {
         debug {
             isDebuggable = true
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/api/v1/\"")
+            buildConfigField("String", "BASE_URL",
+                "\"http://10.0.2.2:8080/api/v1/\"")
+        }
+        create("ngrok"){
+            initWith(getByName("debug"))
+            buildConfigField("String","BASE_URL",
+                "\"https://delay-demote-pulse.ngrok-free.dev/api/v1\"")
         }
         release {
             isMinifyEnabled = true
@@ -43,7 +49,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"https://api.ascend.app/api/v1/\"")
+            buildConfigField("String", "BASE_URL",
+                "\"https://ascend-backend-production-5fad.up.railway.app/api/v1\"")
         }
     }
 

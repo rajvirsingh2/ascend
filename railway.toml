@@ -9,6 +9,7 @@ name = "ascend-backend"
 
 [services.build]
 dockerfilePath = "backend/Dockerfile"
+context = "backend"
 
 [services.deploy]
 startCommand = "/ascend"
@@ -35,4 +36,18 @@ healthcheckPath = "/health"
 healthcheckTimeout = 30
 
 [services.variables]
+APP_ENV = "production"
+
+[[services]]
+name = "ascend-xp-worker"
+
+[services.build]
+context = "backend"
+dockerfilePath = "Dockerfile"
+
+[services.deploy]
+startCommand = "/ascend-worker"
+
+[services.variables]
+WORKER_TYPE = "xp"
 APP_ENV = "production"

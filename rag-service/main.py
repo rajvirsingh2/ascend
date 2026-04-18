@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from app.config import settings
 from app.database import init_pool, close_pool
 from app.routes import router
-from app.worker import run_worker
+from app.worker import run_worker, setup_logging
 
 
 setup_logging(settings.app_env)

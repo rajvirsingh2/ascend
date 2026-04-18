@@ -7,11 +7,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/rajvirsingh2/ascend-backend/internal/events"
-	"github.com/rajvirsingh2/ascend-backend/internal/store/postgres"
-	redisstore "github.com/rajvirsingh2/ascend-backend/internal/store/redis"
-	"github.com/rajvirsingh2/ascend-backend/pkg/config"
-	"github.com/rajvirsingh2/ascend-backend/pkg/logger"
+	"ascend-backend/internal/events"
+	"ascend-backend/internal/store/postgres"
+	redisstore "ascend-backend/internal/store/redis"
+
+	"ascend-backend/pkg/config"
+	"ascend-backend/pkg/logger"
 )
 
 func main() {

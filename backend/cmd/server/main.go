@@ -7,13 +7,14 @@ import (
 
 	"log/slog"
 
-	"github.com/rajvirsingh2/ascend-backend/internal/quest"
-	"github.com/rajvirsingh2/ascend-backend/internal/server"
-	"github.com/rajvirsingh2/ascend-backend/internal/store/postgres"
-	pgstore "github.com/rajvirsingh2/ascend-backend/internal/store/postgres"
-	redisstore "github.com/rajvirsingh2/ascend-backend/internal/store/redis"
-	"github.com/rajvirsingh2/ascend-backend/pkg/config"
-	logger "github.com/rajvirsingh2/ascend-backend/pkg/logger"
+	"ascend-backend/internal/quest"
+	"ascend-backend/internal/server"
+	"ascend-backend/internal/store/postgres"
+	pgstore "ascend-backend/internal/store/postgres"
+	redisstore "ascend-backend/internal/store/redis"
+
+	"ascend-backend/pkg/config"
+	logger "ascend-backend/pkg/logger"
 )
 
 func main() {
@@ -41,6 +42,10 @@ func main() {
 		log.Fatalf("connecting to redis: %v", err)
 	}
 	defer rdb.Close()
+
+	if err := postgres.RunMigrations(cfg.DatabaseURL); err != nil {
+		log.Fatalf("running database migrations: %v", err)
+	}
 
 	srv := server.New(cfg, db, rdb)
 

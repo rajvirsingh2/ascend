@@ -4,9 +4,10 @@ import (
 	"context"
 	"log/slog"
 
+	"ascend-backend/internal/events"
+	"ascend-backend/internal/game"
+
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rajvirsingh2/ascend-backend/internal/events"
-	"github.com/rajvirsingh2/ascend-backend/internal/game"
 	"github.com/redis/go-redis/v9"
 )
 

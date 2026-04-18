@@ -1,12 +1,12 @@
 package postgres
 
 import (
+	"ascend-backend/internal/models"
 	"context"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rajvirsingh2/ascend-backend/internal/models"
 )
 
 type GoalStore struct{ db *pgxpool.Pool }

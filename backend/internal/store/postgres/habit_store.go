@@ -4,11 +4,12 @@ import (
 	"context"
 	"time"
 
+	"ascend-backend/internal/events"
+	"ascend-backend/internal/game"
+	"ascend-backend/internal/models"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rajvirsingh2/ascend-backend/internal/events"
-	"github.com/rajvirsingh2/ascend-backend/internal/game"
-	"github.com/rajvirsingh2/ascend-backend/internal/models"
 	"github.com/redis/go-redis/v9"
 )
 

@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rajvirsingh2/ascend-backend/pkg/response"
+	"ascend-backend/pkg/response"
 	"github.com/redis/go-redis/v9"
 )
 

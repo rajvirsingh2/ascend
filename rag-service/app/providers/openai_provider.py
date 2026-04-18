@@ -1,5 +1,5 @@
 import logging
-from app.providers.base import BaseLLMProvider, ProviderConfig
+from app.providers import BaseLLMProvider, ProviderConfig
 
 logger = logging.getLogger(__name__)
 

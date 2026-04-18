@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/rajvirsingh2/ascend-backend/internal/store"
+	"ascend-backend/internal/store"
 )
 
 // StartExpiryWorker runs in a goroutine and marks overdue quests expired every hour.

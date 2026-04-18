@@ -2,11 +2,13 @@ package settings
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
-	"github.com/rajvirsingh2/ascend-backend/internal/keyvault"
-	"github.com/rajvirsingh2/ascend-backend/internal/middleware"
-	"github.com/rajvirsingh2/ascend-backend/pkg/response"
+	"ascend-backend/internal/keyvault"
+	"ascend-backend/internal/middleware"
+
+	"ascend-backend/pkg/response"
 )
 
 type Handler struct {
@@ -18,9 +20,9 @@ func NewHandler(vault *keyvault.Vault) *Handler {
 }
 
 type saveKeyRequest struct {
-	Provider string `json:"provider"` // "openai" | "claude" | "gemini"
+	Provider string `json:"provider"`
 	APIKey   string `json:"api_key"`
-	Model    string `json:"model"` // optional override e.g. "gpt-4o-mini"
+	Model    string `json:"model"`
 }
 
 func (h *Handler) SaveAPIKey(w http.ResponseWriter, r *http.Request) {

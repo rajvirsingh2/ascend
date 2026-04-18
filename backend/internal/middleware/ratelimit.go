@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rajvirsingh2/ascend-backend/pkg/response"
+	"ascend-backend/pkg/response"
 	"github.com/redis/go-redis/v9"
 )
 

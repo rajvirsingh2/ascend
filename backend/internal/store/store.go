@@ -3,8 +3,9 @@ package store
 import (
 	"context"
 
-	"github.com/rajvirsingh2/ascend-backend/internal/game"
-	"github.com/rajvirsingh2/ascend-backend/internal/models"
+	"ascend-backend/internal/game"
+
+	"ascend-backend/internal/models"
 )
 
 type GoalStore interface {

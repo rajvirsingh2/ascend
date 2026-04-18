@@ -1,5 +1,5 @@
 import json
-from app.providers.base import BaseLLMProvider, ProviderConfig
+from app.providers import BaseLLMProvider, ProviderConfig
 
 
 class MockProvider(BaseLLMProvider):

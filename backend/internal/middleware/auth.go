@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/rajvirsingh2/ascend-backend/internal/auth"
-	"github.com/rajvirsingh2/ascend-backend/pkg/response"
+	"ascend-backend/internal/auth"
+
+	"ascend-backend/pkg/response"
 )
 
 type contextKey string
