@@ -1,7 +1,5 @@
 services:
 
-  # ── Infrastructure ────────────────────────────────────────────────────────
-
   postgres:
     image: pgvector/pgvector:pg16
     container_name: ascend_postgres
@@ -32,33 +30,6 @@ services:
       timeout: 3s
       retries: 10
 
-  kafka:
-    image: apache/kafka:3.7.0
-    container_name: ascend_kafka
-    ports:
-      - "9092:9092"
-    environment:
-      # KRaft mode — no Zookeeper needed
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_LOG_DIRS: /var/lib/kafka/data
-    volumes:
-      - kafka_data:/var/lib/kafka/data
-    healthcheck:
-      test: [ "CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list" ]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 20s
-
   migrate:
     image: migrate/migrate
     container_name: ascend_migrate
@@ -72,8 +43,6 @@ services:
     profiles:
       - tools
 
-  # ── Dev profile ───────────────────────────────────────────────────────────
-
   backend:
     build:
       context: ./backend
@@ -84,9 +53,8 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
+      DB_HOST: postgres
       REDIS_URL: redis://redis:6379
-      KAFKA_BROKERS: kafka:9092
       RAG_SERVICE_URL: http://rag-service:8001
     volumes:
       - ./backend:/app
@@ -95,11 +63,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
     restart: unless-stopped
-    profiles:
-      - dev
 
   rag-service:
     build:
@@ -119,152 +83,30 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
-    profiles:
-      - dev
 
+  # XP worker — consumes Redis Streams, awards XP
   xp-worker:
     build:
       context: ./backend
-      dockerfile: Dockerfile.worker
+      dockerfile: Dockerfile.dev
     container_name: ascend_xp_worker
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
+      DB_HOST: postgres
       REDIS_URL: redis://redis:6379
-      KAFKA_BROKERS: kafka:9092
+      WORKER_MODE: "true"
       WORKER_TYPE: xp
+    volumes:
+      - ./backend:/app
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      kafka:
         condition: service_healthy
     restart: unless-stopped
-    profiles:
-      - dev
-
-  outbox-worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.worker
-    container_name: ascend_outbox_worker
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
-      REDIS_URL: redis://redis:6379
-      KAFKA_BROKERS: kafka:9092
-      WORKER_TYPE: outbox
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    restart: unless-stopped
-    profiles:
-      - dev
-
-  # ── Prod profile ──────────────────────────────────────────────────────────
-
-  backend-prod:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: ascend_backend_prod
-    ports:
-      - "8080:8080"
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
-      REDIS_URL: redis://redis:6379
-      KAFKA_BROKERS: kafka:9092
-      RAG_SERVICE_URL: http://rag-service-prod:8001
-      APP_ENV: production
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    profiles:
-      - prod
-
-  rag-service-prod:
-    build:
-      context: ./rag-service
-      dockerfile: Dockerfile
-    container_name: ascend_rag_prod
-    ports:
-      - "8001:8001"
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
-      REDIS_URL: redis://redis:6379
-      APP_ENV: production
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    profiles:
-      - prod
-
-  xp-worker-prod:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.worker
-    container_name: ascend_xp_worker_prod
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
-      REDIS_URL: redis://redis:6379
-      KAFKA_BROKERS: kafka:9092
-      WORKER_TYPE: xp
-      APP_ENV: production
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    restart: unless-stopped
-    profiles:
-      - prod
-
-  outbox-worker-prod:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.worker
-    container_name: ascend_outbox_worker_prod
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
-      REDIS_URL: redis://redis:6379
-      KAFKA_BROKERS: kafka:9092
-      WORKER_TYPE: outbox
-      APP_ENV: production
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    restart: unless-stopped
-    profiles:
-      - prod
+    command: [ "air", "-c", ".air.worker.toml" ]
 
 volumes:
   postgres_data:
   redis_data:
-  kafka_data:

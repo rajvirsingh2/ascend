@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rajvirsingh2/ascend-backend/internal/events"
 	"github.com/rajvirsingh2/ascend-backend/internal/game"
-	"github.com/rajvirsingh2/ascend-backend/internal/ingestion"
 	"github.com/rajvirsingh2/ascend-backend/internal/models"
 	"github.com/redis/go-redis/v9"
 )
@@ -14,10 +14,15 @@ import (
 type QuestStore struct {
 	db  *pgxpool.Pool
 	rdb *redis.Client
+	pub *events.Publisher
 }
 
 func NewQuestStore(db *pgxpool.Pool, rdb *redis.Client) *QuestStore {
-	return &QuestStore{db: db, rdb: rdb}
+	return &QuestStore{
+		db:  db,
+		rdb: rdb,
+		pub: events.NewPublisher(rdb),
+	}
 }
 
 func (s *QuestStore) ListActive(ctx context.Context, userID string) ([]*models.Quest, error) {
@@ -84,20 +89,23 @@ func (s *QuestStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 		return nil, err
 	}
 
-	go ingestion.Publish(context.Background(), s.rdb, ingestion.Job{
-		EventType: ingestion.EventQuestCompleted,
-		UserID:    userID,
-		Payload: map[string]any{
-			"id":              q.ID,
-			"title":           q.Title,
-			"skill_area":      q.SkillArea,
-			"difficulty":      q.Difficulty,
-			"type":            q.Type,
-			"xp_reward":       q.XPReward,
-			"status":          "completed",
-			"is_ai_generated": q.IsAIGenerated,
-		},
-	})
+	// publish to Redis Stream (fire and forget)
+	if s.pub != nil {
+		go s.pub.Publish(context.Background(), events.StreamQuestCompleted, events.Event{
+			UserID: userID,
+			Type:   "QuestCompleted",
+			Payload: map[string]any{
+				"quest_id":        q.ID,
+				"xp_reward":       q.XPReward,
+				"skill_area":      q.SkillArea,
+				"difficulty":      q.Difficulty,
+				"type":            q.Type,
+				"is_ai_generated": q.IsAIGenerated,
+				"title":           q.Title,
+				"status":          "completed",
+			},
+		})
+	}
 
 	return game.AwardXP(ctx, s.db, userID, "quest", id, "quest_completed", q.XPReward)
 

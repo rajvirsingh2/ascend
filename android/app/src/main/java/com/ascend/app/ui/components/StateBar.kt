@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.sp
 import com.ascend.app.ui.theme.DarkColors
 import androidx.compose.ui.graphics.Color
 
-
 @Composable
 fun StatBar(
     label: String,

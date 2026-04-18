@@ -7,6 +7,8 @@ from typing import Any
 from app.config import settings
 from app.context_builder import UserContext, format_user_context_for_prompt
 from app.retriever import RetrievedMemory, format_memories_for_prompt
+from app.providers.base import ProviderConfig
+from app.providers.factory import build_provider
 
 logger = logging.getLogger(__name__)
 
@@ -82,47 +84,33 @@ def _get_llm():
 
 
 async def run_quest_chain(
-    ctx: UserContext,
-    memories: list[RetrievedMemory],
-) -> dict[str, Any]:
+    ctx: "UserContext",
+    memories: list,
+    provider_config: ProviderConfig | None = None
+) -> dict:
     """
-    Runs the full LangChain generation pipeline.
-    Falls back to temperature=0.3 on parse failure.
-    Returns parsed quest dict.
+    Runs the full generation pipeline using whichever provider is configured.
+    Falls back to mock if no config provided.
     """
     prompt_text = _build_prompt_text(ctx, memories)
-    llm = _get_llm()
+    provider=build_provider(provider_config)
+    system_prompt, user_prompt=_split_prompt(prompt_text)
 
     for attempt in range(1, 3):  # max 2 attempts
         try:
-            if hasattr(llm, "ainvoke"):
-                # MockLLM path
-                raw = await llm.ainvoke(prompt_text)
-            else:
-                # real LangChain LLM
-                from langchain_core.messages import HumanMessage
-                response = await llm.ainvoke([HumanMessage(content=prompt_text)])
-                raw = response.content
-
-            parsed = json.loads(raw)
+            raw=await provider.complete(system_prompt, user_prompt)
+            parsed=json.loads(raw)
             _validate_quests(parsed)
             return parsed
-
         except (json.JSONDecodeError, ValueError, KeyError) as e:
-            if attempt == 1:
-                logger.warning(
-                    "quest chain parse failed attempt %d: %s — retrying at lower temp",
-                    attempt, e
+            if attempt == 2:
+                logger.error(
+                    "quest chain failed after 2 attempts: %s",
+                    e
                 )
-                # retry with lower temperature for more deterministic JSON
-                if hasattr(llm, "temperature"):
-                    llm.temperature = 0.3
-            else:
-                logger.error("quest chain failed after 2 attempts: %s", e)
                 raise
-
+            logger.warning("attempt %d failed: %s — retrying", attempt, e)
     raise RuntimeError("quest generation failed")
-
 
 def _validate_quests(parsed: dict) -> None:
     """Raises ValueError if the LLM output does not match expected schema."""
@@ -142,3 +130,14 @@ def _validate_quests(parsed: dict) -> None:
             raise ValueError(f"difficulty out of range: {q['difficulty']}")
         if not (15 <= q["xp_reward"] <= 150):
             raise ValueError(f"xp_reward out of range: {q['xp_reward']}")
+
+def _split_prompt(full_prompt: str) -> tuple[str, str]:
+    """
+    Splits the monolithic prompt file into system + user parts.
+    The prompt file uses --- as a separator between system and user sections.
+    """
+    if "---USER---" in full_prompt:
+        parts=full_prompt.split("---USER---",1)
+        return parts[0].strip(), parts[1].strip()
+    return full_prompt,"Generate Quests Now."
+    

@@ -31,3 +31,7 @@ Respond ONLY with valid JSON. No prose. No markdown fences. No explanation.
     }}
   ]
 }}
+
+---USER---
+Generate {requested_n} {generate_for} quests for this user based on the profile and history above. 
+Respond only with valid JSON.

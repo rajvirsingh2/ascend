@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rajvirsingh2/ascend-backend/internal/events"
 	"github.com/rajvirsingh2/ascend-backend/internal/game"
-	"github.com/rajvirsingh2/ascend-backend/internal/ingestion"
 	"github.com/rajvirsingh2/ascend-backend/internal/models"
 	"github.com/redis/go-redis/v9"
 )
@@ -15,10 +15,11 @@ import (
 type HabitStore struct {
 	db  *pgxpool.Pool
 	rdb *redis.Client
+	pub *events.Publisher
 }
 
-func NewHabitStore(db *pgxpool.Pool, rdb *redis.Client) *HabitStore {
-	return &HabitStore{db: db, rdb: rdb}
+func NewHabitStore(db *pgxpool.Pool, rdb *redis.Client, pub *events.Publisher) *HabitStore {
+	return &HabitStore{db: db, rdb: rdb, pub: pub}
 }
 
 func (s *HabitStore) Create(ctx context.Context, h *models.Habit) error {
@@ -121,20 +122,19 @@ func (s *HabitStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 		return nil, err
 	}
 
-	// publish habit milestone every 5 streak days
-	if newStreak%5 == 0 {
-		go ingestion.Publish(context.Background(), s.rdb, ingestion.Job{
-			EventType: ingestion.EventHabitMilestone,
-			UserID:    userID,
+	if newStreak%5 == 0 && s.pub != nil {
+		go s.pub.Publish(context.Background(), events.StreamHabitCompleted, events.Event{
+			UserID: userID,
 			Payload: map[string]any{
-				"id":             id,
-				"title":          h.Title,
-				"frequency":      h.Frequency,
+				"id":             h.ID,
 				"xp_reward":      h.XPReward,
+				"frequency":      h.Frequency,
 				"current_streak": newStreak,
 				"longest_streak": newLongest,
+				"title":          h.Title,
 			},
 		})
+
 	}
 
 	return game.AwardXP(ctx, s.db, userID, "habit", id, "habit_completed", h.XPReward)

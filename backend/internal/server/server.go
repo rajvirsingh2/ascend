@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -9,10 +10,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rajvirsingh2/ascend-backend/internal/ai"
 	"github.com/rajvirsingh2/ascend-backend/internal/auth"
+	"github.com/rajvirsingh2/ascend-backend/internal/events"
 	"github.com/rajvirsingh2/ascend-backend/internal/goal"
 	"github.com/rajvirsingh2/ascend-backend/internal/habit"
+	"github.com/rajvirsingh2/ascend-backend/internal/keyvault"
 	"github.com/rajvirsingh2/ascend-backend/internal/middleware"
 	"github.com/rajvirsingh2/ascend-backend/internal/quest"
+	"github.com/rajvirsingh2/ascend-backend/internal/settings"
 	pgstore "github.com/rajvirsingh2/ascend-backend/internal/store/postgres"
 	"github.com/rajvirsingh2/ascend-backend/pkg/config"
 	"github.com/rajvirsingh2/ascend-backend/pkg/response"
@@ -23,11 +27,24 @@ type Server struct {
 	cfg      *config.Config
 	db       *pgxpool.Pool
 	rdb      *redis.Client
+	vault    *keyvault.Vault
 	aiClient *ai.Client
+	pub      *events.Publisher
 }
 
 func New(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *Server {
-	return &Server{cfg: cfg, db: db, rdb: rdb, aiClient: ai.NewClient(cfg.RAGServiceURL)}
+	vault, err := keyvault.New(db, cfg.MasterEncryptionKey)
+	if err != nil {
+		slog.Error("vault init failed", "error", err)
+		// non-fatal in dev if key not set — vault will error per-request
+	}
+	return &Server{
+		cfg:      cfg,
+		db:       db,
+		rdb:      rdb,
+		vault:    vault,
+		aiClient: ai.NewClient(cfg.RAGServiceURL),
+	}
 }
 
 func (s *Server) Routes() http.Handler {
@@ -49,6 +66,13 @@ func (s *Server) Routes() http.Handler {
 
 	// API v1
 	r.Route("/api/v1", func(r chi.Router) {
+
+		settingsHandler := settings.NewHandler(s.vault)
+		r.Route("/settings", func(r chi.Router) {
+			r.Post("/api-key", settingsHandler.SaveAPIKey)
+			r.Get("/api-key/status", settingsHandler.GetKeyStatus)
+			r.Delete("/api-key", settingsHandler.DeleteAPIKey)
+		})
 
 		// auth — rate limited, no JWT required
 		authHandler := auth.NewHandler(
@@ -82,7 +106,7 @@ func (s *Server) Routes() http.Handler {
 			})
 
 			// habits
-			habitHandler := habit.NewHandler(pgstore.NewHabitStore(s.db, s.rdb))
+			habitHandler := habit.NewHandler(pgstore.NewHabitStore(s.db, s.rdb, s.pub))
 			r.Route("/habits", func(r chi.Router) {
 				r.Get("/", habitHandler.List)
 				r.Post("/", habitHandler.Create)
@@ -95,7 +119,7 @@ func (s *Server) Routes() http.Handler {
 				r.Get("/", questHandler.ListActive)
 				r.Post("/{id}/complete", questHandler.Complete)
 				r.Post("/{id}/skip", questHandler.Skip)
-				generateHandler := quest.NewGenerateHandler(s.db, s.rdb, s.aiClient)
+				generateHandler := quest.NewGenerateHandler(s.db, s.rdb, s.aiClient, s.vault)
 				r.Post("/generate", generateHandler.Generate)
 			})
 		})

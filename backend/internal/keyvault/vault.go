@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -14,78 +15,92 @@ import (
 
 type Vault struct {
 	db  *pgxpool.Pool
-	mek []byte // master encryption key — 32 bytes from env
+	mek []byte
 }
 
-func New(db *pgxpool.Pool, masterKey []byte) (*Vault, error) {
-	if len(masterKey) != 32 {
-		return nil, errors.New("master key must be exactly 32 bytes")
+func New(db *pgxpool.Pool, masterKeyHex string) (*Vault, error) {
+	mek, err := hex.DecodeString(masterKeyHex)
+	if err != nil || len(mek) != 32 {
+		return nil, errors.New("MASTER_ENCRYPTION_KEY must be 64 hex chars (32 bytes)")
 	}
-	return &Vault{db: db, mek: masterKey}, nil
+	return &Vault{db: db, mek: mek}, nil
 }
 
-// Store encrypts and saves a user's API key using envelope encryption.
-func (v *Vault) Store(ctx context.Context, userID, plaintext string) error {
-	// generate a unique DEK for this user
+type KeyRecord struct {
+	Provider      string
+	ModelOverride string
+}
+
+// Store encrypts and persists a user's API key.
+func (v *Vault) Store(ctx context.Context, userID, provider, model, plaintext string) error {
 	dek := make([]byte, 32)
 	if _, err := io.ReadFull(rand.Reader, dek); err != nil {
 		return fmt.Errorf("generating DEK: %w", err)
 	}
+	defer ZeroBytes(dek)
 
-	// encrypt the plaintext API key with DEK
-	ciphertext, err := aesgcmEncrypt(dek, []byte(plaintext))
+	ciphertext, err := seal(dek, []byte(plaintext))
 	if err != nil {
 		return fmt.Errorf("encrypting key: %w", err)
 	}
 
-	// wrap (encrypt) the DEK with the MEK
-	wrappedDEK, err := aesgcmEncrypt(v.mek, dek)
+	wrappedDEK, err := seal(v.mek, dek)
 	if err != nil {
 		return fmt.Errorf("wrapping DEK: %w", err)
 	}
 
-	// zero the plaintext DEK from memory
-	ZeroBytes(dek)
-
 	_, err = v.db.Exec(ctx,
-		`INSERT INTO user_api_keys (user_id, wrapped_dek, ciphertext, created_at)
-         VALUES ($1, $2, $3, NOW())
-         ON CONFLICT (user_id) DO UPDATE
-         SET wrapped_dek=$2, ciphertext=$3, created_at=NOW()`,
-		userID, wrappedDEK, ciphertext,
+		`INSERT INTO user_api_keys
+		   (user_id, provider, model_override, wrapped_dek, ciphertext, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, NOW())
+		 ON CONFLICT (user_id) DO UPDATE
+		 SET provider=$2, model_override=$3, wrapped_dek=$4,
+		     ciphertext=$5, updated_at=NOW()`,
+		userID, provider, model, wrappedDEK, ciphertext,
 	)
 	return err
 }
 
-// Decrypt returns the plaintext key for one request. Caller must call
-// ZeroBytes() on the returned slice when done.
-func (v *Vault) Decrypt(ctx context.Context, userID string) ([]byte, error) {
+// Decrypt returns the plaintext API key and provider info.
+// Caller MUST call ZeroBytes(key) when done.
+func (v *Vault) Decrypt(ctx context.Context, userID string) (key []byte, rec KeyRecord, err error) {
 	var wrappedDEK, ciphertext []byte
-	err := v.db.QueryRow(ctx,
-		`SELECT wrapped_dek, ciphertext FROM user_api_keys WHERE user_id=$1`,
+	err = v.db.QueryRow(ctx,
+		`SELECT provider, model_override, wrapped_dek, ciphertext
+		 FROM user_api_keys WHERE user_id=$1`,
 		userID,
-	).Scan(&wrappedDEK, &ciphertext)
+	).Scan(&rec.Provider, &rec.ModelOverride, &wrappedDEK, &ciphertext)
 	if err != nil {
-		return nil, fmt.Errorf("key not found for user: %w", err)
+		return nil, rec, fmt.Errorf("key not found: %w", err)
 	}
 
-	// unwrap DEK using MEK
-	dek, err := aesgcmDecrypt(v.mek, wrappedDEK)
+	dek, err := open(v.mek, wrappedDEK)
 	if err != nil {
-		return nil, fmt.Errorf("unwrapping DEK: %w", err)
+		return nil, rec, fmt.Errorf("unwrap DEK: %w", err)
 	}
 	defer ZeroBytes(dek)
 
-	// decrypt API key using DEK
-	plaintext, err := aesgcmDecrypt(dek, ciphertext)
-	if err != nil {
-		return nil, fmt.Errorf("decrypting key: %w", err)
-	}
-
-	return plaintext, nil
+	key, err = open(dek, ciphertext)
+	return key, rec, err
 }
 
-func aesgcmEncrypt(key, plaintext []byte) ([]byte, error) {
+// HasKey returns true if the user has stored an API key.
+func (v *Vault) HasKey(ctx context.Context, userID string) bool {
+	var count int
+	v.db.QueryRow(ctx,
+		`SELECT COUNT(*) FROM user_api_keys WHERE user_id=$1`, userID,
+	).Scan(&count)
+	return count > 0
+}
+
+// Delete removes a user's stored API key.
+func (v *Vault) Delete(ctx context.Context, userID string) error {
+	_, err := v.db.Exec(ctx,
+		`DELETE FROM user_api_keys WHERE user_id=$1`, userID)
+	return err
+}
+
+func seal(key, plaintext []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -98,11 +113,10 @@ func aesgcmEncrypt(key, plaintext []byte) ([]byte, error) {
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, err
 	}
-	// nonce is prepended to ciphertext
 	return gcm.Seal(nonce, nonce, plaintext, nil), nil
 }
 
-func aesgcmDecrypt(key, data []byte) ([]byte, error) {
+func open(key, data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -111,16 +125,13 @@ func aesgcmDecrypt(key, data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	nonceSize := gcm.NonceSize()
-	if len(data) < nonceSize {
+	ns := gcm.NonceSize()
+	if len(data) < ns {
 		return nil, errors.New("ciphertext too short")
 	}
-	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
-	return gcm.Open(nil, nonce, ciphertext, nil)
+	return gcm.Open(nil, data[:ns], data[ns:], nil)
 }
 
-// ZeroBytes overwrites a byte slice with zeros.
-// Call this on any plaintext key material before it goes out of scope.
 func ZeroBytes(b []byte) {
 	for i := range b {
 		b[i] = 0

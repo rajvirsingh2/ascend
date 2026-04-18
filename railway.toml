@@ -1,0 +1,38 @@
+[build]
+builder = "dockerfile"
+
+############################
+# Backend API
+############################
+[[services]]
+name = "ascend-backend"
+
+[services.build]
+dockerfilePath = "backend/Dockerfile"
+
+[services.deploy]
+startCommand = "/ascend"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+
+[services.variables]
+APP_ENV = "production"
+APP_PORT = "8080"
+
+
+############################
+# RAG service
+############################
+[[services]]
+name = "ascend-rag"
+
+[services.build]
+dockerfilePath = "rag-service/Dockerfile"
+
+[services.deploy]
+startCommand = "uvicorn main:app --host 0.0.0.0 --port 8001 --workers 2"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+
+[services.variables]
+APP_ENV = "production"

@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rajvirsingh2/ascend-backend/internal/ai"
+	"github.com/rajvirsingh2/ascend-backend/internal/keyvault"
 	"github.com/rajvirsingh2/ascend-backend/internal/middleware"
 	"github.com/rajvirsingh2/ascend-backend/internal/store"
 	"github.com/rajvirsingh2/ascend-backend/internal/store/postgres"
@@ -28,6 +29,7 @@ type GenerateHandler struct {
 	db         *pgxpool.Pool
 	rdb        *redis.Client
 	aiClient   *ai.Client
+	vault      *keyvault.Vault
 	questStore store.QuestStore
 }
 
@@ -35,11 +37,13 @@ func NewGenerateHandler(
 	db *pgxpool.Pool,
 	rdb *redis.Client,
 	aiClient *ai.Client,
+	vault *keyvault.Vault,
 ) *GenerateHandler {
 	return &GenerateHandler{
 		db:         db,
 		rdb:        rdb,
 		aiClient:   aiClient,
+		vault:      vault,
 		questStore: postgres.NewQuestStore(db, rdb),
 	}
 }
@@ -49,6 +53,12 @@ func (h *GenerateHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// per-user rate limit: 3 calls per 24 hours
+	plaintextKey, rec, err := h.vault.Decrypt(ctx, userID)
+	if err != nil {
+		response.Error(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	defer keyvault.ZeroBytes(plaintextKey)
 	rateLimitKey := fmt.Sprintf("gen_rate:%s", userID)
 	count, err := h.rdb.Incr(ctx, rateLimitKey).Result()
 	if err == nil && count == 1 {
@@ -73,6 +83,9 @@ func (h *GenerateHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	result, err := h.aiClient.GenerateQuests(ctx, ai.GenerateRequest{
 		UserID:      userID,
 		GenerateFor: "daily",
+		Provider:    rec.Provider,
+		APIKey:      string(plaintextKey),
+		Model:       rec.ModelOverride,
 	})
 	if err != nil {
 		log.Printf("ai generation failed for user %s: %v — falling back to seeded quests", userID, err)

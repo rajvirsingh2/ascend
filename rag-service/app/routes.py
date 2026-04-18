@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 async def health():
     return {"status": "ok", "service": "rag"}
 
-
 @router.get("/ready")
 async def ready():
     try:
@@ -29,6 +28,9 @@ async def ready():
 class GenerateQuestsRequest(BaseModel):
     user_id: str
     generate_for: str = "daily"
+    provider: str = "openai"
+    api_key: str = ""
+    model: str|None=None
 
 
 @router.post("/generate")
@@ -38,10 +40,18 @@ async def generate(req: GenerateQuestsRequest):
     Returns generated quests as JSON.
     """
     try:
+        provider_config=None
+        if req.api_key:
+            provider_config=ProviderConig(
+                provider=req.provider,
+                api_key=req.api_key,
+                model=req.model
+            )
         result = await generate_quests(
             GenerateRequest(
                 user_id=req.user_id,
                 generate_for=req.generate_for,
+                provider_config=provider_config
             )
         )
         return result

@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 class GenerateRequest:
     user_id: str
     generate_for: str = "daily"
+    provider_config: "ProviderConfig" | None=None
 
 
 async def generate_quests(req: GenerateRequest) -> dict:
@@ -52,7 +53,7 @@ async def generate_quests(req: GenerateRequest) -> dict:
     )
 
     # step 4 — run LangChain chain
-    result = await run_quest_chain(ctx, memories)
+    result = await run_quest_chain(ctx, memories, req.provider_config)
 
     # step 5 — log generation
     context_hash = hashlib.sha256(

@@ -71,8 +71,11 @@ dependencies {
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
+    implementation(libs.androidx.ui.unit)
+    implementation(libs.androidx.runtime)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
+    implementation(libs.lottie.compose)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

@@ -2,6 +2,8 @@ package com.ascend.app.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ascend.app.data.realtime.WebSocketManager
+import com.ascend.app.data.realtime.WsEvent
 import com.ascend.app.data.repository.HabitRepository
 import com.ascend.app.data.repository.QuestRepository
 import com.ascend.app.data.repository.UserRepository
@@ -20,7 +22,8 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     private val questRepo: QuestRepository,
     private val habitRepo: HabitRepository,
-    private val userRepo: UserRepository
+    private val userRepo: UserRepository,
+    private val wsManager: WebSocketManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardUiState())
@@ -31,6 +34,7 @@ class DashboardViewModel @Inject constructor(
 
     init {
         observeLocalData()
+        observeWebSocketEvents()
         onIntent(DashboardIntent.LoadDashboard)
     }
 
@@ -123,6 +127,29 @@ class DashboardViewModel @Inject constructor(
                 else -> Unit
             }
             _state.update { it.copy(isGeneratingQuest = false) }
+        }
+    }
+
+    private fun observeWebSocketEvents() {
+        viewModelScope.launch {
+            wsManager.events.collect { event ->
+                when (event) {
+                    is WsEvent.LevelUp -> {
+                        userRepo.refresh() // sync new level from API
+                        _effects.send(DashboardEffect.LevelUp(event.newLevel))
+                    }
+                    is WsEvent.XpAwarded -> {
+                        _effects.send(DashboardEffect.ShowSnackbar("+${event.amount} XP"))
+                        userRepo.refresh()
+                    }
+                    is WsEvent.GuildQuestCompleted -> {
+                        _effects.send(DashboardEffect.ShowSnackbar(
+                            "${event.memberName} completed ${event.questTitle}!"
+                        ))
+                    }
+                    is WsEvent.Disconnected -> Unit
+                }
+            }
         }
     }
 }

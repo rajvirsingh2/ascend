@@ -26,6 +26,8 @@ type Config struct {
 	AllowedOrigins []string
 
 	RAGServiceURL string
+
+	MasterEncryptionKey string
 }
 
 func Load() (*Config, error) {
@@ -45,16 +47,17 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		AppEnv:            getEnv("APP_ENV", "development"),
-		AppPort:           getEnv("APP_PORT", "8080"),
-		DatabaseURL:       requireEnv("DATABASE_URL"),
-		RedisURL:          requireEnv("REDIS_URL"),
-		KafkaBrokers:      strings.Split(getEnv("KAFKA_BROKERS", "localhost:9092"), ","),
-		JWTSecret:         requireEnv("JWT_SECRET"),
-		JWTExpiryMinutes:  jwtExpiry,
-		RefreshExpiryDays: refreshExpiry,
-		AllowedOrigins:    []string{getEnv("ALLOWED_ORIGINS", "http://localhost:3000")},
-		RAGServiceURL:     getEnv("RAG_SERVICE_URL", "http://localhost:8001"),
+		AppEnv:              getEnv("APP_ENV", "development"),
+		AppPort:             getEnv("APP_PORT", "8080"),
+		DatabaseURL:         requireEnv("DATABASE_URL"),
+		RedisURL:            requireEnv("REDIS_URL"),
+		KafkaBrokers:        strings.Split(getEnv("KAFKA_BROKERS", "localhost:9092"), ","),
+		JWTSecret:           requireEnv("JWT_SECRET"),
+		JWTExpiryMinutes:    jwtExpiry,
+		RefreshExpiryDays:   refreshExpiry,
+		AllowedOrigins:      []string{getEnv("ALLOWED_ORIGINS", "http://localhost:3000")},
+		RAGServiceURL:       getEnv("RAG_SERVICE_URL", "http://localhost:8001"),
+		MasterEncryptionKey: getEnv("MASTER_ENCRYPTION_KEY", ""),
 	}
 
 	return cfg, nil

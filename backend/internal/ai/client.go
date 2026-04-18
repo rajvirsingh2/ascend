@@ -12,6 +12,9 @@ import (
 type GenerateRequest struct {
 	UserID      string `json:"user_id"`
 	GenerateFor string `json:"generate_for"`
+	Provider    string `json:"provider"` // forwarded from vault
+	APIKey      string `json:"api_key"`  // decrypted per-request
+	Model       string `json:"model"`    // optional
 }
 
 type GeneratedQuest struct {

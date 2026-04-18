@@ -1,4 +1,4 @@
-#include .env
+include .env
 export
 
 .PHONY: dev prod down migrate migrate-down migrate-status test lint
