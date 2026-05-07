@@ -76,26 +76,6 @@ Go API Gateway (port 8080)
 
 ---
 
-## Module Map
-
-The project was built in 11 sequential modules:
-
-| Module | What was built |
-|---|---|
-| M1 | Monorepo structure, Docker Compose, GitHub Actions CI |
-| M2 | Go API core — auth, JWT, bcrypt, CORS, game engine (XP/levelling) |
-| M3 | Android shell — MVI architecture, Navigation Compose, fake data |
-| M4 | Database layer — PostgreSQL schema, pgvector, all migrations |
-| M5 | Quest, habit, goal API endpoints, XP game loop |
-| M6 | Android live integration — repositories, Room cache, full screens |
-| M7 | RAG ingestion pipeline — Python embeddings, Redis queue worker |
-| M8 | AI quest generation — LangChain chain, MMR retrieval, Go bridge |
-| M9 | Observability, production Dockerfiles, deployment |
-| M10 | Redis Streams (replacing Kafka), multi-provider AI adapter, BYOK |
-| M11 | Anime-RPG design system, LevelUpModal, SettingsScreen, WebSocket |
-
----
-
 ## Prerequisites
 
 Install these tools before starting:
