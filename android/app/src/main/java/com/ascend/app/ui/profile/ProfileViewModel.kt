@@ -2,6 +2,8 @@ package com.ascend.app.ui.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ascend.app.data.remote.api.UserApiService
+import com.ascend.app.data.remote.dto.AvatarUploadRequest
 import com.ascend.app.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -14,7 +16,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val userRepo: UserRepository
+    private val userRepo: UserRepository,
+    private val userApi: UserApiService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ProfileUiState())
@@ -23,18 +26,58 @@ class ProfileViewModel @Inject constructor(
     private val _effects = Channel<ProfileEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
+    private val _isUploadingAvatar = MutableStateFlow(false)
+    val isUploadingAvatar = _isUploadingAvatar.asStateFlow()
+
     init {
+        loadProfile()
+    }
+
+    private fun loadProfile() {
         viewModelScope.launch {
-            userRepo.observeUser().collect { user ->
-                _state.update { it.copy(isLoading = false, user = user) }
+            _state.update { it.copy(isLoading = true) }
+
+            try {
+                // Fetch fresh data from network
+                userRepo.refresh()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            // Launch database observation in a separate job so it doesn't block remaining work
+            viewModelScope.launch {
+                userRepo.observeUser().collect { user ->
+                    _state.update { it.copy(isLoading = false, user = user) }
+                }
+            }
+
+            try {
+                val achResp = userApi.getAchievements().data ?: emptyList()
+                _state.update { currentState ->
+                    currentState.copy(
+                        achievements = achResp.map {
+                            AchievementItem(it.key, it.title, it.tag, it.icon, it.earned, it.earnedAt)
+                        }
+                    )
+                }
+
+                // OPTIONAL: Fetch completed quest statistics if managed by separate endpoint
+                // val questStats = userApi.getQuestStats().data
+                // _state.update { it.copy(completedQuestCount = questStats.completedTotal) }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _state.update { it.copy(isLoading = false) }
             }
         }
     }
 
+    // Unifies UI events through the standardized pathway
     fun onIntent(intent: ProfileIntent) {
         when (intent) {
-            is ProfileIntent.Load -> Unit
+            is ProfileIntent.Load -> loadProfile()
             is ProfileIntent.Logout -> logout()
+            is ProfileIntent.UploadAvatar -> uploadAvatar(intent.base64Image)
         }
     }
 
@@ -44,4 +87,21 @@ class ProfileViewModel @Inject constructor(
             _effects.send(ProfileEffect.NavigateToLogin)
         }
     }
+
+    private fun uploadAvatar(base64Image: String) {
+        viewModelScope.launch {
+            _isUploadingAvatar.value = true
+            try {
+                val response = userApi.uploadAvatar(AvatarUploadRequest(base64Image))
+                if (response.data != null) {
+                    userRepo.refresh()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isUploadingAvatar.value = false
+            }
+        }
+    }
 }
+

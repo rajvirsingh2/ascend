@@ -7,11 +7,14 @@ import (
 
 	"log/slog"
 
+	"ascend-backend/internal/notifications"
 	"ascend-backend/internal/quest"
 	"ascend-backend/internal/server"
 	"ascend-backend/internal/store/postgres"
 	pgstore "ascend-backend/internal/store/postgres"
 	redisstore "ascend-backend/internal/store/redis"
+	"ascend-backend/internal/user"
+	"ascend-backend/internal/workers"
 
 	"ascend-backend/pkg/config"
 	logger "ascend-backend/pkg/logger"
@@ -49,9 +52,23 @@ func main() {
 
 	srv := server.New(cfg, db, rdb)
 
+	fcmNotifier, err := notifications.NewFCMNotifier(ctx, cfg, db)
+	if err != nil {
+		log.Printf("failed to initialize FCM notifier: %v", err)
+	}
+
 	// start background workers
 	questStore := pgstore.NewQuestStore(db, rdb)
 	go quest.StartExpiryWorker(ctx, questStore)
+	go user.PurgeScheduled(ctx, db)
+	go notifications.RunDailyReminder(ctx, db, fcmNotifier)
+	go workers.RunXPWorker(ctx, workers.XPWorkerConfig{
+		Redis:    rdb,
+		DB:       db,
+		Notifier: fcmNotifier,
+		Config:   cfg,
+	})
+
 	log.Printf("starting ascend backend on %s [%s]", srv.Addr(), cfg.AppEnv)
 	if err := http.ListenAndServe(srv.Addr(), srv.Routes()); err != nil {
 		log.Fatalf("server error: %v", err)

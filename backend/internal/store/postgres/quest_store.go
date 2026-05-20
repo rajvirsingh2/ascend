@@ -58,6 +58,39 @@ func (s *QuestStore) ListActive(ctx context.Context, userID string) ([]*models.Q
 	return quests, nil
 }
 
+func (s *QuestStore) ListHistory(ctx context.Context, userID string) ([]*models.Quest, error) {
+	rows, err := s.db.Query(ctx,
+		`SELECT id, user_id, goal_id, title, description, type, difficulty,
+		        xp_reward, status, is_ai_generated, skill_area, expires_at,
+		        completed_at, created_at
+		 FROM quests
+		 WHERE user_id=$1 AND status IN ('completed', 'skipped', 'expired')
+		 ORDER BY completed_at DESC NULLS LAST, created_at DESC
+		 LIMIT 50`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var quests []*models.Quest
+	for rows.Next() {
+		q := &models.Quest{}
+		err := rows.Scan(
+			&q.ID, &q.UserID, &q.GoalID, &q.Title, &q.Description,
+			&q.Type, &q.Difficulty, &q.XPReward, &q.Status,
+			&q.IsAIGenerated, &q.SkillArea, &q.ExpiresAt,
+			&q.CompletedAt, &q.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		quests = append(quests, q)
+	}
+	return quests, nil
+}
+
 func (s *QuestStore) GetByID(ctx context.Context, id, userID string) (*models.Quest, error) {
 	q := &models.Quest{}
 	err := s.db.QueryRow(ctx,

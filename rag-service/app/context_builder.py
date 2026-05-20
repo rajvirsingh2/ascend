@@ -14,6 +14,7 @@ class UserContext:
     level: int
     skills: list[dict]       # [{skill_name, skill_level, xp_in_skill}]
     active_goals: list[dict] # [{id, title, skill_area, priority, progress}]
+    interests: list[dict]    # [{category, subcategory, custom_goal}]
     generate_for: str        # "daily" | "weekly"
 
 
@@ -50,6 +51,16 @@ async def build_user_context(user_id: str, generate_for: str = "daily") -> UserC
             (user_id,)
         )
         goal_rows = await cur_goals.fetchall()
+        
+        # interests
+        cur_interests = await conn.execute(
+            """SELECT category, subcategory, custom_goal
+               FROM user_interests
+               WHERE user_id = %s
+               ORDER BY priority ASC""",
+            (user_id,)
+        )
+        interest_rows = await cur_interests.fetchall()
 
     return UserContext(
         user_id=user_id,
@@ -63,6 +74,10 @@ async def build_user_context(user_id: str, generate_for: str = "daily") -> UserC
             {"id": r[0], "title": r[1], "skill_area": r[2],
              "priority": r[3], "progress": r[4]}
             for r in (goal_rows or [])
+        ],
+        interests=[
+            {"category": r[0], "subcategory": r[1], "custom_goal": r[2]}
+            for r in (interest_rows or [])
         ],
         generate_for=generate_for,
     )
@@ -91,4 +106,61 @@ def format_user_context_for_prompt(ctx: UserContext) -> str:
                 f"{g['progress']}% complete"
             )
 
+    if ctx.interests:
+        lines.append("Interests (use these to theme the quests):")
+        for i in ctx.interests:
+            cg = f" (goal: {i['custom_goal']})" if i['custom_goal'] else ""
+            lines.append(f"  - {i['category']} / {i['subcategory']}{cg}")
+
     return "\n".join(lines)
+
+async def build_physique_context(user_id:str, db_pool)->str:
+    """
+    Fetches physique profile and formats it for the LLM prompt.
+    """
+
+    try:
+        async with db_pool.connection() as conn:
+            cur = await conn.execute(
+                """
+                SELECT age, sex, height_cm, weight_kg, target_weight_kg, body_goal, activity_level, fitness_level, bmi, bmr, tdee FROM physique_profiles WHERE user_id=%s
+                """, (user_id,)
+            )
+            row = await cur.fetchone()
+        if not row:
+            return "No physique profile set up-generate generic quests only"
+        
+        age, sex, height, weight, target, goal, activity, fitness, bmi, bmr, tdee = row
+
+        goal_labels={
+            "lean_athletic": "Lean & Athletic",
+            "bulky_muscular": "Bulky & Muscular",
+            "powerlifter":    "Powerlifter (max strength)",
+            "endurance":      "Endurance Athlete",
+            "maintain":       "Maintain current physique",
+            "lose_fat":       "Lose fat",
+        }
+
+        bmi_cat = "normal"
+        if bmi < 18.5:   bmi_cat = "underweight"
+        elif bmi < 25:   bmi_cat = "normal"
+        elif bmi < 30:   bmi_cat = "overweight"
+        else:            bmi_cat = "obese"
+
+        goal_cals = tdee
+        if goal == "lose_fat":          goal_cals = tdee - 500
+        elif goal == "lean_athletic":   goal_cals = tdee - 200
+        elif goal in ("bulky_muscular", "powerlifter"): goal_cals = tdee + 300
+
+        return (
+            f"Age: {age}, Sex: {sex}\n"
+            f"Height: {height}cm, Current weight: {weight}kg\n"
+            f"Target weight: {target}kg\n"
+            f"BMI: {bmi} ({bmi_cat})\n"
+            f"Body goal: {goal_labels.get(goal, goal)}\n"
+            f"Fitness level: {fitness}\n"
+            f"Activity level: {activity}\n"
+            f"BMR: {bmr} kcal | TDEE: {tdee} kcal | Goal intake: {goal_cals} kcal/day\n"
+        )
+    except Exception as e:
+        return f"Physique data unavailable: {e}"

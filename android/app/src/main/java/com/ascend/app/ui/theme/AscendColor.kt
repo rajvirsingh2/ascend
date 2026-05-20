@@ -1,5 +1,6 @@
 package com.ascend.app.ui.theme
 
+import android.annotation.SuppressLint
 import androidx.compose.ui.graphics.Color
 
 // ── Dark theme ────────────────────────────────────────────────
@@ -16,6 +17,7 @@ object DarkColors {
     val Crimson     = Color(0xFFFF2D78)   // rare quest
     val TextPrimary = Color(0xFFE8E8FF)
     val TextMuted   = Color(0xFF7B7BAA)
+    val TextHint    = Color(0xFF4A4A70)
 }
 
 // ── Light theme ───────────────────────────────────────────────
@@ -39,29 +41,37 @@ object Gradients {
     val LegendaryFlame = listOf(Color(0xFFFFD700), Color(0xFFFF6B35), Color(0xFFFF2D78))
     val VoidRift       = listOf(Color(0xFF7B61FF), Color(0xFFFF2D78))
     val ShadowCard     = listOf(Color(0xFF1C1C3A), Color(0xFF252550))
+    val GoldShimmer    = listOf(
+        Color(0xFFFFD700), Color(0xFFFFF0A0),
+        Color(0xFFFFD700), Color(0xFFFF9900)
+    )
 }
 
 // ── Rarity system ─────────────────────────────────────────────
 enum class QuestRarity(
     val label: String,
     val gradient: List<Color>,
-    val borderColor: Color
+    val borderColor: Color,
+    val rank: String,
+    val glowColor: Color
 ) {
     D_RANK("D-Rank · Common",
         listOf(Color(0xFF555555), Color(0xFF888888)),
-        Color(0xFF888888)),
+        Color(0xFF888888), "D", Color(0xFF888844)),
+    @SuppressLint("InvalidColorHexValue")
     C_RANK("C-Rank · Uncommon",
         listOf(Color(0xFF1A6B1A), Color(0xFF39FF14)),
-        Color(0xFF39FF14)),
+        Color(0xFF39FF14), "C", Color(0xFF39FF1444)),
+    @SuppressLint("InvalidColorHexValue")
     B_RANK("B-Rank · Rare",
         listOf(Color(0xFF00A3CC), Color(0xFF00D4FF)),
-        Color(0xFF00D4FF)),
+        Color(0xFF00D4FF), "B", Color(0xFF00D4FF44)),
     A_RANK("A-Rank · Epic",
         listOf(Color(0xFF5B3FFF), Color(0xFFFF2D78)),
-        Color(0xFFFF2D78)),
+        Color(0xFFFF2D78), "A", Color(0xFF5B3FFF)),
     S_RANK("S-Rank · Legendary",
         listOf(Color(0xFFFFD700), Color(0xFFFF6B35), Color(0xFFFF2D78)),
-        Color(0xFFFFD700))
+        Color(0xFFFFD700), "S", Color(0xFFFFD700))
 }
 
 fun Int.toRarity(): QuestRarity = when (this) {

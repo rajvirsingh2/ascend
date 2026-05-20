@@ -8,7 +8,10 @@ class GeminiProvider(BaseLLMProvider):
     def __init__(self, config: ProviderConfig):
         import google.generativeai as genai
         genai.configure(api_key=config.api_key)
-        model_name = config.model or "gemini-1.5-flash"
+        model_name = config.model or "gemini-3-flash-preview"
+        if model_name == "gemini-3-flash-preview":
+            model_name = "gemini-3-flash-preview"
+            
         self._model = genai.GenerativeModel(
             model_name=model_name,
             system_instruction=None,  # set per-call

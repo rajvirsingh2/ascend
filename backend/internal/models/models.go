@@ -29,7 +29,7 @@ type Habit struct {
 	XPReward        int        `json:"xp_reward"`
 	CurrentStreak   int        `json:"current_streak"`
 	LongestStreak   int        `json:"longest_streak"`
-	LastCompletedAt *time.Time `json:"last_completed_at,omitempty"`
+	LastCompletedAt *time.Time `json:"last_completed_at"`
 	IsActive        bool       `json:"is_active"`
 	CreatedAt       time.Time  `json:"created_at"`
 }

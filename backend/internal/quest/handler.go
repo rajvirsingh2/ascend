@@ -1,6 +1,8 @@
 package quest
 
 import (
+	"errors"
+	"log"
 	"net/http"
 
 	"ascend-backend/internal/middleware"
@@ -10,6 +12,7 @@ import (
 	"ascend-backend/pkg/response"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 )
 
 type Handler struct{ store store.QuestStore }
@@ -29,12 +32,30 @@ func (h *Handler) ListActive(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, quests)
 }
 
+func (h *Handler) ListHistory(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	quests, err := h.store.ListHistory(r.Context(), userID)
+	if err != nil {
+		response.Error(w, http.StatusInternalServerError, "failed to fetch quest history")
+		return
+	}
+	if quests == nil {
+		quests = []*models.Quest{}
+	}
+	response.JSON(w, http.StatusOK, quests)
+}
+
 func (h *Handler) Complete(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
 	id := chi.URLParam(r, "id")
 
 	result, err := h.store.Complete(r.Context(), id, userID)
 	if err != nil {
+		log.Printf("[quests] failed to complete quest (id=%s, user=%s): %v", id, userID, err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			response.Error(w, http.StatusNotFound, "quest not found")
+			return
+		}
 		response.Error(w, http.StatusInternalServerError, "failed to complete quest")
 		return
 	}
@@ -50,6 +71,10 @@ func (h *Handler) Skip(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
 	id := chi.URLParam(r, "id")
 	if err := h.store.Skip(r.Context(), id, userID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			response.Error(w, http.StatusNotFound, "quest not found")
+			return
+		}
 		response.Error(w, http.StatusInternalServerError, "failed to skip quest")
 		return
 	}

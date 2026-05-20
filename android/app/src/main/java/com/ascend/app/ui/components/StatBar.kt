@@ -39,27 +39,28 @@ fun StatBar(
     max: Int,
     gradient: List<Color>,
     labelColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    barHeight: Int=8
 ) {
     val animatedFraction by animateFloatAsState(
         targetValue = fraction.coerceIn(0f, 1f),
         animationSpec = tween(durationMillis = 900, easing = EaseOutCubic),
         label = "stat_bar_$label"
     )
-    val transition = rememberInfiniteTransition(label = "shimmer")
+    val transition = rememberInfiniteTransition(label = "shimmer_$label")
     val shimmerOffset by transition.animateFloat(
         initialValue = -300f, targetValue = 300f,
         animationSpec = infiniteRepeatable(tween(2200, easing = LinearEasing)),
-        label = "shimmer_offset"
+        label = "shimmer_offset_$label"
     )
 
     Column(modifier = modifier) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(label, fontSize = 10.sp, letterSpacing = 0.08.sp,
                 color = labelColor, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.weight(1f))
             Text("$current / $max", fontSize = 10.sp, color = DarkColors.TextMuted)
         }
         Spacer(Modifier.height(4.dp))
@@ -70,27 +71,31 @@ fun StatBar(
                 .clip(RoundedCornerShape(2.dp))
                 .background(DarkColors.Deep)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(animatedFraction)
-                    .fillMaxHeight()
-                    .drawWithContent {
-                        drawContent()
-                        // shimmer overlay
-                        drawRect(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.White.copy(alpha=0.18f),
-                                    Color.Transparent
-                                ),
-                                start = Offset(shimmerOffset, 0f),
-                                end = Offset(shimmerOffset + 120f, 0f)
+            if(animatedFraction>0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(animatedFraction)
+                        .fillMaxHeight()
+                        .drawWithContent {
+                            drawContent()
+                            // shimmer overlay
+                            drawRect(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.White.copy(alpha = 0.18f),
+                                        Color.Transparent
+                                    ),
+                                    start = Offset(shimmerOffset, 0f),
+                                    end = Offset(shimmerOffset + 120f, 0f)
+                                )
                             )
+                        }
+                        .background(
+                            Brush.horizontalGradient(gradient)
                         )
-                    }
-                    .background(Brush.horizontalGradient(gradient))
-            )
+                )
+            }
         }
     }
 }

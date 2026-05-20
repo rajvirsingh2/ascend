@@ -48,22 +48,13 @@ fun QuestCard(
     modifier: Modifier=Modifier
 ){
     val rarity=quest.difficulty.toRarity()
-    var flipped by remember { mutableStateOf(false) }
-    val rotation by animateFloatAsState(
-        targetValue = if(flipped) 180f else 0f,
-        animationSpec = tween(500, easing = EaseInOutCubic),
-        label = "card_flip"
-    )
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .graphicsLayer(rotationY = rotation)
             .clip(RoundedCornerShape(12.dp))
             .background(
                 brush = Brush.linearGradient(
-                    colors = listOf(DarkColors.Abyss, DarkColors.Deep),
-                    start = Offset(0f, 0f),
-                    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                    listOf(DarkColors.Abyss, DarkColors.Deep)
                 )
             )
             .border(
@@ -74,45 +65,73 @@ fun QuestCard(
     ){
         Box(modifier
             .width(3.dp)
-            .fillMaxHeight()
+            .height(130.dp)
             .background(Brush.verticalGradient(rarity.gradient))
         )
-        Column(Modifier.padding(
-            start=14.dp, end=12.dp, top=12.dp, bottom=12.dp
-        )) {
-            Row(verticalAlignment = Alignment.CenterVertically){
-                Box(Modifier
-                    .clip(ChamferShape(4.dp))
-                    .background(Brush.horizontalGradient(rarity.gradient))
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                ){
-                    Text(rarity.label, fontSize = 9.sp, color=Color.White, fontWeight = FontWeight.Medium, letterSpacing = 0.06.sp)
-                }
-                if(quest.isAiGenerated){
-                    Spacer(Modifier.width(6.dp))
-                    Text(text="AI Generated", fontSize = 9.sp,
+        Column(Modifier
+            .fillMaxWidth()
+            .padding(start=14.dp, end=12.dp, top=12.dp, bottom=12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RarityBadge(rarity)
+                if (quest.isAiGenerated) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "AI Quest",
+                        fontSize = 9.sp,
                         color = rarity.borderColor.copy(alpha = 0.7f),
-                        letterSpacing = 0.06.sp)
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.06.sp
+                    )
                 }
             }
-            Spacer(Modifier.height(6.dp))
-            Text(quest.title, fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                color = DarkColors.TextPrimary)
-            Text(quest.description, fontSize = 11.sp, color = DarkColors.TextMuted,
-                lineHeight = 16.sp)
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AscendButton("ACCEPT", onComplete,
-                    gradient = rarity.gradient,
-                    modifier = Modifier.weight(1f))
-                OutlinedButton(
-                    onClick = onSkip,
-                    border = BorderStroke(1.dp, rarity.borderColor.copy(.5f)),
-                    shape = RoundedCornerShape(6.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = rarity.borderColor)
-                ) { Text("SKIP", fontSize = 11.sp, letterSpacing = 0.04.sp) }
+
+            Spacer(Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = quest.title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = DarkColors.TextPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "+${quest.xpReward}",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = rarity.borderColor
+                    )
+                    Text(
+                        text = "XP",
+                        fontSize = 9.sp,
+                        color = DarkColors.TextHint,
+                        letterSpacing = 0.06.sp
+                    )
+                }
             }
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = quest.description,
+                fontSize = 11.sp,
+                color = DarkColors.TextMuted,
+                lineHeight = 16.sp
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = quest.description,
+                fontSize = 11.sp,
+                color = DarkColors.TextMuted,
+                lineHeight = 16.sp
+            )
         }
     }
 }

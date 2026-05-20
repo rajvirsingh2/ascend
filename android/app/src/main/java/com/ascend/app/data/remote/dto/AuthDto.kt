@@ -30,11 +30,28 @@ data class UserResponse(
     val level: Int,
     @Json(name = "current_xp") val currentXp: Int,
     @Json(name = "xp_to_next") val xpToNext: Int,
-    @Json(name = "avatar_url") val avatarUrl: String?
+    @Json(name="total_xp") val  totalXp:Int = 0,
+    @Json(name = "avatar_url") val avatarUrl: String?=null
 )
 
 @JsonClass(generateAdapter = true)
 data class ApiEnvelope<T>(
     val data: T?,
     val error: String?
+)
+
+@JsonClass(generateAdapter = true)
+data class VerifyEmailRequest(val email: String, val otp: String)
+
+@JsonClass(generateAdapter = true)
+data class ResendOtpRequest(val email: String)
+
+@JsonClass(generateAdapter = true)
+data class ForgotPasswordRequest(val email: String)
+
+@JsonClass(generateAdapter = true)
+data class ResetPasswordRequest(
+    val email: String,
+    val otp: String,
+    @Json(name = "new_password") val newPassword: String
 )

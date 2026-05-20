@@ -4,6 +4,7 @@ import com.ascend.app.data.local.dao.HabitDao
 import com.ascend.app.data.local.entity.HabitEntity
 import com.ascend.app.data.remote.api.HabitApiService
 import com.ascend.app.data.remote.dto.CompletionResponse
+import com.ascend.app.data.remote.dto.HabitResponse
 import com.ascend.app.data.remote.dto.toDomain
 import com.ascend.app.domain.model.Habit
 import com.ascend.app.domain.model.Result
@@ -54,8 +55,22 @@ private fun HabitEntity.toDomain() = Habit(
     longestStreak = longestStreak, completedToday = completedToday
 )
 
-private fun com.ascend.app.data.remote.dto.HabitResponse.toEntity() = HabitEntity(
-    id = id, title = title, frequency = frequency, xpReward = xpReward,
-    currentStreak = currentStreak, longestStreak = longestStreak,
-    completedToday = false
-)
+private fun HabitResponse.toEntity(): HabitEntity{
+    val completedToday=lastCompletedAt?.let {
+        try{
+            val lastDate=java.time.Instant.parse(it)
+                .atZone(java.time.ZoneId.systemDefault())
+                .toLocalDate()
+            lastDate==java.time.LocalDate.now()
+        }catch (e: Exception){false}
+    }?:false
+    return HabitEntity(
+        id=id,
+        title=title,
+        frequency=frequency,
+        xpReward=xpReward,
+        currentStreak=currentStreak,
+        longestStreak=longestStreak,
+        completedToday=completedToday
+    )
+}

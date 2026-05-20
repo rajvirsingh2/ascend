@@ -2,10 +2,16 @@ package com.ascend.app.di
 
 import com.ascend.app.BuildConfig
 import com.ascend.app.data.remote.AuthInterceptor
+import com.ascend.app.data.remote.HMACInterceptor
 import com.ascend.app.data.remote.api.AuthApiService
 import com.ascend.app.data.remote.api.GoalApiService
 import com.ascend.app.data.remote.api.HabitApiService
+import com.ascend.app.data.remote.api.HistoryApiService
+import com.ascend.app.data.remote.api.InterestsApiService
+import com.ascend.app.data.remote.api.PhysiqueApiService
 import com.ascend.app.data.remote.api.QuestApiService
+import com.ascend.app.data.remote.api.SettingsApiService
+import com.ascend.app.data.remote.api.UserApiService
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.Module
@@ -30,7 +36,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
+    fun provideOkHttpClient(authInterceptor: AuthInterceptor, hmacInterceptor: HMACInterceptor): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG)
                 HttpLoggingInterceptor.Level.BODY
@@ -39,6 +45,7 @@ object NetworkModule {
         }
         return OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
+            .addInterceptor(hmacInterceptor)
             .addInterceptor(logging)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -73,4 +80,29 @@ object NetworkModule {
     @Singleton
     fun provideGoalApiService(retrofit: Retrofit): GoalApiService =
         retrofit.create(GoalApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSettingsApiService(retrofit: Retrofit): SettingsApiService =
+        retrofit.create(SettingsApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideHistoryApiService(retrofit: Retrofit): HistoryApiService =
+        retrofit.create(HistoryApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun providePhysiqueApiService(retrofit: Retrofit): PhysiqueApiService =
+        retrofit.create(PhysiqueApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideUserApiService(retrofit: Retrofit): UserApiService =
+        retrofit.create(UserApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideInterestsApi(retrofit: Retrofit): InterestsApiService=
+        retrofit.create(InterestsApiService::class.java)
 }

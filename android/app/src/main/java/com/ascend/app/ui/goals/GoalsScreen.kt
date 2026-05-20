@@ -42,12 +42,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ascend.app.domain.model.Goal
 
-@OptIn(ExperimentalMaterial3Api::class)
+import com.ascend.app.domain.model.Goal
+import com.ascend.app.ui.navigation.BottomNavItem
+
+// 1. Stateful Wrapper handling ViewModel and Effects
 @Composable
 fun GoalsScreen(viewModel: GoalsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -62,6 +65,25 @@ fun GoalsScreen(viewModel: GoalsViewModel = hiltViewModel()) {
         }
     }
 
+    GoalsScreenContent(
+        isLoading = state.isLoading,
+        goals = state.goals,
+        showCreateDialog = state.showCreateDialog,
+        snackbarHostState = snackbarHostState,
+        onIntent = viewModel::onIntent
+    )
+}
+
+// 2. Stateless UI Composable safe for Previews
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GoalsScreenContent(
+    isLoading: Boolean,
+    goals: List<Goal>,
+    showCreateDialog: Boolean,
+    snackbarHostState: SnackbarHostState,
+    onIntent: (GoalsIntent) -> Unit
+) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -69,13 +91,13 @@ fun GoalsScreen(viewModel: GoalsViewModel = hiltViewModel()) {
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.onIntent(GoalsIntent.ShowCreateDialog) }
+                onClick = { onIntent(GoalsIntent.ShowCreateDialog) }
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add goal")
             }
         }
     ) { padding ->
-        if (state.isLoading) {
+        if (isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
@@ -91,7 +113,7 @@ fun GoalsScreen(viewModel: GoalsViewModel = hiltViewModel()) {
         ) {
             item { Spacer(Modifier.height(4.dp)) }
 
-            if (state.goals.isEmpty()) {
+            if (goals.isEmpty()) {
                 item {
                     Text(
                         "No goals yet. Tap + to add one.",
@@ -101,10 +123,10 @@ fun GoalsScreen(viewModel: GoalsViewModel = hiltViewModel()) {
                 }
             }
 
-            items(state.goals, key = { it.id }) { goal ->
+            items(goals, key = { it.id }) { goal ->
                 GoalCard(
                     goal = goal,
-                    onDelete = { viewModel.onIntent(GoalsIntent.DeleteGoal(goal.id)) }
+                    onDelete = { onIntent(GoalsIntent.DeleteGoal(goal.id)) }
                 )
             }
 
@@ -112,11 +134,11 @@ fun GoalsScreen(viewModel: GoalsViewModel = hiltViewModel()) {
         }
     }
 
-    if (state.showCreateDialog) {
+    if (showCreateDialog) {
         CreateGoalDialog(
-            onDismiss = { viewModel.onIntent(GoalsIntent.DismissDialog) },
+            onDismiss = { onIntent(GoalsIntent.DismissDialog) },
             onCreate = { title, desc, skillArea, priority ->
-                viewModel.onIntent(
+                onIntent(
                     GoalsIntent.CreateGoal(title, desc, skillArea, priority)
                 )
             }
@@ -238,4 +260,66 @@ private fun CreateGoalDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
+}
+
+// --- PREVIEWS ---
+
+@Preview(showBackground = true, name = "1. Goals Screen (Empty)")
+@Composable
+fun GoalsScreenPreview_Empty() {
+    MaterialTheme {
+        GoalsScreenContent(
+            isLoading = false,
+            goals = emptyList(),
+            showCreateDialog = false,
+            snackbarHostState = remember { SnackbarHostState() },
+            onIntent = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "2. Goals Screen (Populated)")
+@Composable
+fun GoalsScreenPreview_Populated() {
+    MaterialTheme {
+        GoalsScreenContent(
+            isLoading = false,
+            goals = listOf(
+                Goal(
+                    id = "g1",
+                    title = "Learn Kotlin Coroutines",
+                    description = "Master asynchronous programming in Android.",
+                    skillArea = "learning",
+                    priority = 1,
+                    status = "IN_PROGRESS",
+                    progress = 45
+                ),
+                Goal(
+                    id = "g2",
+                    title = "Run 50km this month",
+                    description = "Track daily runs to hit the monthly target.",
+                    skillArea = "fitness",
+                    priority = 2,
+                    status = "IN_PROGRESS",
+                    progress = 70
+                )
+            ),
+            showCreateDialog = false,
+            snackbarHostState = remember { SnackbarHostState() },
+            onIntent = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "3. Create Goal Dialog")
+@Composable
+fun CreateGoalDialogPreview() {
+    MaterialTheme {
+        Box(Modifier.fillMaxSize()) {
+            CreateGoalDialog(
+                onDismiss = {},
+                onCreate = { _, _, _, _ -> }
+            )
+        }
+    }
 }

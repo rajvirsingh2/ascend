@@ -4,16 +4,17 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"ascend-backend/internal/ai"
+	"ascend-backend/internal/interests"
 	"ascend-backend/internal/keyvault"
 	"ascend-backend/internal/middleware"
+	"ascend-backend/internal/physique"
 	"ascend-backend/internal/store"
-	"ascend-backend/internal/store/postgres"
-
+	pgstore "ascend-backend/internal/store/postgres"
 	"ascend-backend/pkg/response"
 
 	"github.com/google/uuid"
@@ -21,18 +22,13 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const (
-	generateRateLimitMax    = 10
-	generateRateLimitWindow = 24 * time.Hour
-	dedupWindow             = 7 * 24 * time.Hour
-)
-
 type GenerateHandler struct {
-	db         *pgxpool.Pool
-	rdb        *redis.Client
-	aiClient   *ai.Client
-	vault      *keyvault.Vault
-	questStore store.QuestStore
+	db             *pgxpool.Pool
+	rdb            *redis.Client
+	aiClient       *ai.Client
+	vault          *keyvault.Vault
+	questStore     store.QuestStore
+	interestsStore *interests.Store
 }
 
 func NewGenerateHandler(
@@ -40,13 +36,15 @@ func NewGenerateHandler(
 	rdb *redis.Client,
 	aiClient *ai.Client,
 	vault *keyvault.Vault,
+	interestsStore *interests.Store,
 ) *GenerateHandler {
 	return &GenerateHandler{
-		db:         db,
-		rdb:        rdb,
-		aiClient:   aiClient,
-		vault:      vault,
-		questStore: postgres.NewQuestStore(db, rdb),
+		db:             db,
+		rdb:            rdb,
+		aiClient:       aiClient,
+		vault:          vault,
+		questStore:     pgstore.NewQuestStore(db, rdb),
+		interestsStore: interestsStore,
 	}
 }
 
@@ -55,43 +53,86 @@ func (h *GenerateHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// per-user rate limit: 3 calls per 24 hours
-	plaintextKey, rec, err := h.vault.Decrypt(ctx, userID)
-	if err != nil {
-		response.Error(w, http.StatusInternalServerError, "internal server error")
-		return
-	}
-	defer keyvault.ZeroBytes(plaintextKey)
 	rateLimitKey := fmt.Sprintf("gen_rate:%s", userID)
 	count, err := h.rdb.Incr(ctx, rateLimitKey).Result()
 	if err == nil && count == 1 {
-		h.rdb.Expire(ctx, rateLimitKey, generateRateLimitWindow)
+		h.rdb.Expire(ctx, rateLimitKey, 24*time.Hour)
 	}
-	if count > generateRateLimitMax {
+	if count > 3 {
 		response.Error(w, http.StatusTooManyRequests,
 			"quest generation limit reached (3 per day)")
 		return
 	}
 
-	// context hash dedup — skip AI call if same context was used recently
+	// build AI request — use BYOK key if available, else use mock
+	aiReq := ai.GenerateRequest{
+		UserID:      userID,
+		GenerateFor: "daily",
+		Provider:    "mock",
+		APIKey:      "",
+		Model:       "",
+	}
+
+	if h.vault != nil {
+		plaintextKey, rec, err := h.vault.Decrypt(ctx, userID)
+		if err == nil {
+			aiReq.Provider = rec.Provider
+			aiReq.APIKey = string(plaintextKey)
+			aiReq.Model = rec.ModelOverride
+			defer keyvault.ZeroBytes(plaintextKey)
+		} else {
+			slog.Info("no API key for user — using mock provider", "user_id", userID)
+		}
+	}
+
+	// dedup check
 	contextHash := h.buildContextHash(ctx, userID)
 	if h.isDuplicate(ctx, userID, contextHash) {
-		// return cached quests from DB
 		quests, _ := h.questStore.ListActive(ctx, userID)
 		response.JSON(w, http.StatusOK, quests)
 		return
 	}
 
+	// enrich with user interests — required before generation
+	var userInterests []interests.UserInterest
+	if h.interestsStore != nil {
+		var err error
+		userInterests, err = h.interestsStore.GetByUser(ctx, userID)
+		if err != nil {
+			slog.Warn("interests load error", "user_id", userID, "error", err)
+		}
+	}
+	if len(userInterests) == 0 {
+		response.Error(w, http.StatusBadRequest,
+			"please configure your interests before generating quests")
+		return
+	}
+	aiReq.AdditionalContext = interests.BuildRAGContext(userInterests)
+
+	// inject physique data only if user has a physical interest
+	hasPhysical := false
+	for _, i := range userInterests {
+		if i.Category == "physical" {
+			hasPhysical = true
+			break
+		}
+	}
+	if hasPhysical {
+		if profile, metrics, err := physique.GetProfile(ctx, h.db, userID); err == nil {
+			aiReq.BodyGoal = profile.BodyGoal
+			aiReq.FitnessLevel = profile.FitnessLevel
+			aiReq.BMI = metrics.BMI
+			aiReq.TDEE = metrics.TDEE
+			aiReq.GoalCalories = metrics.GoalCalories
+		}
+	}
+
 	// call RAG service
-	result, err := h.aiClient.GenerateQuests(ctx, ai.GenerateRequest{
-		UserID:      userID,
-		GenerateFor: "daily",
-		Provider:    rec.Provider,
-		APIKey:      string(plaintextKey),
-		Model:       rec.ModelOverride,
-	})
+	result, err := h.aiClient.GenerateQuests(ctx, aiReq)
 	if err != nil {
-		log.Printf("ai generation failed for user %s: %v — falling back to seeded quests", userID, err)
-		h.fallbackToSeeded(ctx, userID, w)
+		slog.Error("AI generation failed", "user_id", userID, "error", err)
+		response.Error(w, http.StatusServiceUnavailable,
+			"quest generation is unavailable — please add your API key in Settings")
 		return
 	}
 
@@ -100,7 +141,6 @@ func (h *GenerateHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	for _, q := range result.Quests {
 		questID := uuid.NewString()
 		expires := time.Now().Add(24 * time.Hour)
-
 		_, dbErr := h.db.Exec(ctx,
 			`INSERT INTO quests
 			   (id, user_id, title, description, type, difficulty, xp_reward,
@@ -111,10 +151,9 @@ func (h *GenerateHandler) Generate(w http.ResponseWriter, r *http.Request) {
 			contextHash, expires, time.Now(),
 		)
 		if dbErr != nil {
-			log.Printf("failed to insert generated quest: %v", dbErr)
+			slog.Error("insert generated quest failed", "error", dbErr)
 			continue
 		}
-
 		inserted = append(inserted, map[string]any{
 			"id":              questID,
 			"title":           q.Title,
@@ -128,34 +167,38 @@ func (h *GenerateHandler) Generate(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	if len(inserted) == 0 {
+		response.Error(w, http.StatusInternalServerError, "failed to save generated quests")
+		return
+	}
+
 	response.JSON(w, http.StatusOK, inserted)
 }
 
 func (h *GenerateHandler) buildContextHash(ctx context.Context, userID string) string {
-	var skills, goals string
-	rows, _ := h.db.Query(ctx,
+	var combined string
+	rows, err := h.db.Query(ctx,
 		`SELECT skill_name FROM user_skills WHERE user_id=$1 ORDER BY skill_level DESC LIMIT 5`,
-		userID,
-	)
-	defer rows.Close()
-	for rows.Next() {
-		var s string
-		rows.Scan(&s)
-		skills += s
+		userID)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var s string
+			rows.Scan(&s)
+			combined += s
+		}
 	}
-
-	gRows, _ := h.db.Query(ctx,
-		`SELECT title FROM goals WHERE user_id=$1 AND status='active' LIMIT 5`,
-		userID,
-	)
-	defer gRows.Close()
-	for gRows.Next() {
-		var g string
-		gRows.Scan(&g)
-		goals += g
+	gRows, err := h.db.Query(ctx,
+		`SELECT title FROM goals WHERE user_id=$1 AND status='active' LIMIT 5`, userID)
+	if err == nil {
+		defer gRows.Close()
+		for gRows.Next() {
+			var g string
+			gRows.Scan(&g)
+			combined += g
+		}
 	}
-
-	raw := fmt.Sprintf("%s:%s:%s:daily", userID, skills, goals)
+	raw := fmt.Sprintf("%s:%s:daily", userID, combined)
 	sum := sha256.Sum256([]byte(raw))
 	return fmt.Sprintf("%x", sum)
 }
@@ -171,13 +214,10 @@ func (h *GenerateHandler) isDuplicate(ctx context.Context, userID, hash string) 
 	return count > 0
 }
 
-func (h *GenerateHandler) fallbackToSeeded(
-	ctx context.Context, userID string, w http.ResponseWriter,
-) {
+func (h *GenerateHandler) fallbackToSeeded(ctx context.Context, userID string, w http.ResponseWriter) {
 	quests, err := h.questStore.ListActive(ctx, userID)
 	if err != nil || len(quests) == 0 {
-		response.Error(w, http.StatusServiceUnavailable,
-			"quest generation unavailable, please try again later")
+		response.JSON(w, http.StatusOK, []any{})
 		return
 	}
 	response.JSON(w, http.StatusOK, quests)

@@ -10,11 +10,17 @@ import (
 )
 
 type GenerateRequest struct {
-	UserID      string `json:"user_id"`
-	GenerateFor string `json:"generate_for"`
-	Provider    string `json:"provider"` // forwarded from vault
-	APIKey      string `json:"api_key"`  // decrypted per-request
-	Model       string `json:"model"`    // optional
+	UserID            string  `json:"user_id"`
+	GenerateFor       string  `json:"generate_for"`
+	Provider          string  `json:"provider"` // forwarded from vault
+	APIKey            string  `json:"api_key"`  // decrypted per-request
+	Model             string  `json:"model"`    // optional
+	BodyGoal          string  `json:"body_goal,omitempty"`
+	FitnessLevel      string  `json:"fitness_level,omitempty"`
+	BMI               float64 `json:"bmi,omitempty"`
+	TDEE              int     `json:"tdee,omitempty"`
+	GoalCalories      int     `json:"goal_calories,omitempty"`
+	AdditionalContext string  `json:"additional_context,omitempty"`
 }
 
 type GeneratedQuest struct {

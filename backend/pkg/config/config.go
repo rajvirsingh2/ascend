@@ -28,6 +28,19 @@ type Config struct {
 	RAGServiceURL string
 
 	MasterEncryptionKey string
+	SMTPHost            string
+	SMTPPort            string
+	SMTPUser            string
+	SMTPPassword        string
+	EmailFrom           string
+
+	CloudinaryCloudName string
+	CloudinaryAPIKey    string
+	CloudinaryAPISecret string
+	FCMServerKey        string
+	FCMCredentialsJSON  string
+	FCMProjectID        string
+	ResendAPIKey        string
 }
 
 func Load() (*Config, error) {
@@ -58,6 +71,18 @@ func Load() (*Config, error) {
 		AllowedOrigins:      []string{getEnv("ALLOWED_ORIGINS", "http://localhost:3000")},
 		RAGServiceURL:       getEnv("RAG_SERVICE_URL", "http://localhost:8001"),
 		MasterEncryptionKey: getEnv("MASTER_ENCRYPTION_KEY", ""),
+		SMTPHost:            getEnv("SMTP_HOST", ""),
+		SMTPPort:            getEnv("SMTP_PORT", "587"),
+		SMTPUser:            getEnv("SMTP_USER", ""),
+		SMTPPassword:        getEnv("SMTP_PASSWORD", ""),
+		EmailFrom:           getEnv("EMAIL_FROM", "noreply@ascend.app"),
+		CloudinaryCloudName: getEnv("CLOUDINARY_CLOUD_NAME", ""),
+		CloudinaryAPIKey:    getEnv("CLOUDINARY_API_KEY", ""),
+		CloudinaryAPISecret: getEnv("CLOUDINARY_API_SECRET", ""),
+		FCMServerKey:        getEnv("FCM_SERVER_KEY", ""),
+		FCMCredentialsJSON:  getEnv("FCM_CREDENTIALS_JSON", ""),
+		FCMProjectID:        getEnv("FCM_PROJECT_ID", ""),
+		ResendAPIKey:        getEnv("RESEND_API_KEY", ""),
 	}
 
 	return cfg, nil

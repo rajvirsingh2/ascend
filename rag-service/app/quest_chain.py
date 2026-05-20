@@ -5,10 +5,11 @@ from pathlib import Path
 from typing import Any
 
 from app.config import settings
-from app.context_builder import UserContext, format_user_context_for_prompt
+from app.context_builder import UserContext, format_user_context_for_prompt, build_physique_context
 from app.retriever import RetrievedMemory, format_memories_for_prompt
 from app.providers import ProviderConfig
 from app.providers.factory import build_provider
+from app.database import get_pool
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +22,16 @@ def _load_prompt(version: str) -> str:
     return path.read_text()
 
 
-def _build_prompt_text(ctx: UserContext, memories: list[RetrievedMemory]) -> str:
+def _build_prompt_text(ctx: UserContext, memories: list[RetrievedMemory], physique_context: str = "") -> str:
     template = _load_prompt(PROMPT_VERSION)
     user_profile = format_user_context_for_prompt(ctx)
     memory_context = format_memories_for_prompt(memories)
     return template.format(
         user_profile=user_profile,
         memory_context=memory_context,
+        physique_context=physique_context or "No physique profile set — generate generic fitness quests.",
+        requested_n=3,
+        generate_for=ctx.generate_for,
     )
 
 
@@ -92,7 +96,15 @@ async def run_quest_chain(
     Runs the full generation pipeline using whichever provider is configured.
     Falls back to mock if no config provided.
     """
-    prompt_text = _build_prompt_text(ctx, memories)
+    # Fetch physique context
+    physique_ctx = ""
+    try:
+        db_pool = get_pool()
+        physique_ctx = await build_physique_context(ctx.user_id, db_pool)
+    except Exception as e:
+        logger.warning("failed to fetch physique context: %s", e)
+
+    prompt_text = _build_prompt_text(ctx, memories, physique_ctx)
     provider=build_provider(provider_config)
     system_prompt, user_prompt=_split_prompt(prompt_text)
 

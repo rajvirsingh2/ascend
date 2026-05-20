@@ -20,4 +20,7 @@ interface QuestDao {
 
     @Query("DELETE FROM quests WHERE status != 'active'")
     suspend fun clearCompleted()
+
+    @Query("DELETE FROM quests")
+    suspend fun clearAll()
 }

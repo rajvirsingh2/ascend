@@ -34,7 +34,7 @@ services:
     image: migrate/migrate
     container_name: ascend_migrate
     volumes:
-      - ./migrations:/migrations
+      - ./backend/internal/store/postgres/migrations:/migrations
     command: >
       -path=/migrations -database=postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable up
     depends_on:
@@ -78,6 +78,8 @@ services:
     environment:
       DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
       REDIS_URL: redis://redis:6379
+    volumes:
+      - ./rag-service:/app
     depends_on:
       postgres:
         condition: service_healthy

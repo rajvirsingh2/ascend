@@ -1,9 +1,10 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    id("com.google.gms.google-services")
+    id("kotlin-parcelize")
 }
 
 android {
@@ -19,6 +20,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/api/v1/\"")
+        buildConfigField("String", "HMAC_SECRET", "\"${System.getenv("HMAC_SECRET")?: "dev_hmac_secret_32bytes_minimum"}\"")
     }
 
     signingConfigs{
@@ -39,28 +41,24 @@ android {
         create("ngrok"){
             initWith(getByName("debug"))
             buildConfigField("String","BASE_URL",
-                "\"https://delay-demote-pulse.ngrok-free.dev/api/v1\"")
+                "\"https://delay-demote-pulse.ngrok-free.dev/api/v1/\"")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources=true
-            signingConfig=signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
             buildConfigField("String", "BASE_URL",
-                "\"https://ascend-backend-production-5fad.up.railway.app/api/v1\"")
+                "\"https://ascend-backend-production-5fad.up.railway.app/api/v1/\"")
+            signingConfig=signingConfigs.getByName("release")
         }
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
     }
 
     buildFeatures {
@@ -74,12 +72,16 @@ dependencies {
     implementation(libs.androidx.activity.compose)
 
     implementation(platform(libs.compose.bom))
+    implementation(libs.androidx.foundation)
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
+    implementation(libs.compose.icons.extended)
     implementation(libs.androidx.ui.unit)
     implementation(libs.androidx.runtime)
+    implementation(libs.firebase.inappmessaging.display)
+    implementation(libs.firebase.messaging)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
     implementation(libs.lottie.compose)
@@ -113,4 +115,8 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
+    implementation(libs.coil.compose)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
 }

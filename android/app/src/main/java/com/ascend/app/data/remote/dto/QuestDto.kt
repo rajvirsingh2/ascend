@@ -23,5 +23,6 @@ data class HabitResponse(
     val frequency: String,
     @Json(name = "xp_reward") val xpReward: Int,
     @Json(name = "current_streak") val currentStreak: Int,
-    @Json(name = "longest_streak") val longestStreak: Int
+    @Json(name = "longest_streak") val longestStreak: Int,
+    @Json(name="last_completed_at") val lastCompletedAt: String?=null
 )

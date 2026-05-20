@@ -25,3 +25,24 @@ class ChamferShape(private val cut: Dp=8.dp): Shape {
         })
     }
 }
+
+class ChamferShapeSymmetric(private val cut: Dp = 8.dp) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val c=with(density){cut.toPx()}
+        return Outline.Generic(Path().apply {
+            moveTo(c,0f)
+            lineTo(size.width - c, 0f)
+            lineTo(size.width, c)
+            lineTo(size.width, size.height - c)
+            lineTo(size.width - c, size.height)
+            lineTo(c, size.height)
+            lineTo(0f, size.height - c)
+            lineTo(0f, c)
+            close()
+        })
+    }
+}

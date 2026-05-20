@@ -1,5 +1,9 @@
 package com.ascend.app.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
 @Composable
@@ -9,16 +13,18 @@ fun AscendTheme(
 ) {
     val colorScheme = if (darkTheme) {
         darkColorScheme(
-            background       = DarkColors.Void,
-            surface          = DarkColors.Abyss,
-            surfaceVariant   = DarkColors.Deep,
-            primary          = DarkColors.Arcane,
-            secondary        = DarkColors.Cyan,
-            tertiary         = DarkColors.Gold,
-            error            = DarkColors.Ember,
-            onBackground     = DarkColors.TextPrimary,
-            onSurface        = DarkColors.TextPrimary,
-            onSurfaceVariant = DarkColors.TextMuted,
+            primary           = PurplePrimary,
+            onPrimary         = TextPrimary,
+            primaryContainer  = PanelDark,
+            secondary         = CyanAccent,
+            onSecondary       = SystemBlack,
+            background        = SystemBlack,
+            onBackground      = TextPrimary,
+            surface           = PanelDark,
+            onSurface         = TextPrimary,
+            surfaceVariant    = PanelMid,
+            outline           = BorderGlow,
+            error             = DangerRed,
         )
     } else {
         lightColorScheme(

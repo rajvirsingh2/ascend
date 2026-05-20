@@ -25,6 +25,7 @@ type HabitStore interface {
 
 type QuestStore interface {
 	ListActive(ctx context.Context, userID string) ([]*models.Quest, error)
+	ListHistory(ctx context.Context, userID string) ([]*models.Quest, error)
 	GetByID(ctx context.Context, id, userID string) (*models.Quest, error)
 	Complete(ctx context.Context, id, userID string) (*game.XPResult, error)
 	Skip(ctx context.Context, id, userID string) error

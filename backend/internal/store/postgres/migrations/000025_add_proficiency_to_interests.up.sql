@@ -1,0 +1,1 @@
+ALTER TABLE user_interests ADD COLUMN IF NOT EXISTS proficiency VARCHAR(50) NOT NULL DEFAULT 'Beginner';

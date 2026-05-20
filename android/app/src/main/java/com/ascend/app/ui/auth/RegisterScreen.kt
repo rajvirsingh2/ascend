@@ -25,13 +25,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 
 @Composable
 fun RegisterScreen(
-    onNavigateToDashboard: () -> Unit,
+    navController: NavController,
     onNavigateToLogin: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
@@ -41,12 +43,44 @@ fun RegisterScreen(
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                is AuthEffect.NavigateToDashboard -> onNavigateToDashboard()
+                is AuthEffect.NavigateToSplash -> {
+                    // after register — go to OTP screen, not dashboard
+                    navController.navigate("otp/${state.email}")
+                }
                 is AuthEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
         }
     }
 
+    RegisterScreenContent(
+        username = state.username,
+        email = state.email,
+        password = state.password,
+        isLoading = state.isLoading,
+        error = state.error,
+        snackbarHostState = snackbarHostState,
+        onUsernameChanged = { viewModel.onRegisterIntent(AuthIntent.UsernameChanged(it)) },
+        onEmailChanged = { viewModel.onRegisterIntent(AuthIntent.EmailChanged(it)) },
+        onPasswordChanged = { viewModel.onRegisterIntent(AuthIntent.PasswordChanged(it)) },
+        onSubmitRegister = { viewModel.onRegisterIntent(AuthIntent.SubmitRegister) },
+        onNavigateToLogin = onNavigateToLogin
+    )
+}
+
+@Composable
+fun RegisterScreenContent(
+    username: String,
+    email: String,
+    password: String,
+    isLoading: Boolean,
+    error: String?,
+    snackbarHostState: SnackbarHostState,
+    onUsernameChanged: (String) -> Unit,
+    onEmailChanged: (String) -> Unit,
+    onPasswordChanged: (String) -> Unit,
+    onSubmitRegister: () -> Unit,
+    onNavigateToLogin: () -> Unit
+) {
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Column(
             modifier = Modifier
@@ -61,8 +95,8 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             OutlinedTextField(
-                value = state.username,
-                onValueChange = { viewModel.onRegisterIntent(AuthIntent.UsernameChanged(it)) },
+                value = username,
+                onValueChange = onUsernameChanged,
                 label = { Text("Username") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -71,8 +105,8 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
-                value = state.email,
-                onValueChange = { viewModel.onRegisterIntent(AuthIntent.EmailChanged(it)) },
+                value = email,
+                onValueChange = onEmailChanged,
                 label = { Text("Email") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth(),
@@ -82,8 +116,8 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
-                value = state.password,
-                onValueChange = { viewModel.onRegisterIntent(AuthIntent.PasswordChanged(it)) },
+                value = password,
+                onValueChange = onPasswordChanged,
                 label = { Text("Password") },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -91,20 +125,23 @@ fun RegisterScreen(
                 singleLine = true
             )
 
-            state.error?.let {
+            error?.let {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(it, color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { viewModel.onRegisterIntent(AuthIntent.SubmitRegister) },
-                enabled = !state.isLoading,
+                onClick = onSubmitRegister,
+                enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                if (state.isLoading) {
+                if (isLoading) {
                     CircularProgressIndicator(
                         color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp,
@@ -121,5 +158,85 @@ fun RegisterScreen(
                 Text("Already have an account? Log in")
             }
         }
+    }
+}
+
+@Preview(showBackground = true, name = "1. Default State")
+@Composable
+fun RegisterScreenPreview_Default() {
+    MaterialTheme {
+        RegisterScreenContent(
+            username = "",
+            email = "",
+            password = "",
+            isLoading = false,
+            error = null,
+            snackbarHostState = remember { SnackbarHostState() },
+            onUsernameChanged = {},
+            onEmailChanged = {},
+            onPasswordChanged = {},
+            onSubmitRegister = {},
+            onNavigateToLogin = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "2. Active Entry State")
+@Composable
+fun RegisterScreenPreview_Active() {
+    MaterialTheme {
+        RegisterScreenContent(
+            username = "SungJinwoo",
+            email = "jinwoo@shadow.com",
+            password = "arise",
+            isLoading = false,
+            error = null,
+            snackbarHostState = remember { SnackbarHostState() },
+            onUsernameChanged = {},
+            onEmailChanged = {},
+            onPasswordChanged = {},
+            onSubmitRegister = {},
+            onNavigateToLogin = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "3. Loading State")
+@Composable
+fun RegisterScreenPreview_Loading() {
+    MaterialTheme {
+        RegisterScreenContent(
+            username = "SungJinwoo",
+            email = "jinwoo@shadow.com",
+            password = "arise",
+            isLoading = true,
+            error = null,
+            snackbarHostState = remember { SnackbarHostState() },
+            onUsernameChanged = {},
+            onEmailChanged = {},
+            onPasswordChanged = {},
+            onSubmitRegister = {},
+            onNavigateToLogin = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "4. Error State")
+@Composable
+fun RegisterScreenPreview_Error() {
+    MaterialTheme {
+        RegisterScreenContent(
+            username = "Sung",
+            email = "invalid-email",
+            password = "123",
+            isLoading = false,
+            error = "Password must be at least 8 characters long",
+            snackbarHostState = remember { SnackbarHostState() },
+            onUsernameChanged = {},
+            onEmailChanged = {},
+            onPasswordChanged = {},
+            onSubmitRegister = {},
+            onNavigateToLogin = {}
+        )
     }
 }

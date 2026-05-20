@@ -2,7 +2,6 @@ package settings
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"ascend-backend/internal/keyvault"

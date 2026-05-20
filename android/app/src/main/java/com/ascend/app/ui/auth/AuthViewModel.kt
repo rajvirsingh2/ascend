@@ -4,8 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ascend.app.data.local.TokenDataStore
 import com.ascend.app.data.remote.api.AuthApiService
+import com.ascend.app.data.remote.api.UserApiService
+import com.ascend.app.data.remote.dto.FCMTokenRequest
+import com.ascend.app.data.remote.dto.ForgotPasswordRequest
 import com.ascend.app.data.remote.dto.LoginRequest
 import com.ascend.app.data.remote.dto.RegisterRequest
+import com.ascend.app.data.remote.dto.ResendOtpRequest
+import com.ascend.app.data.remote.dto.ResetPasswordRequest
+import com.ascend.app.data.remote.dto.VerifyEmailRequest
+import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +25,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authApi: AuthApiService,
-    private val tokenDataStore: TokenDataStore
+    private val tokenDataStore: TokenDataStore,
+    private val userApi: UserApiService
 ) : ViewModel() {
 
     private val _loginState = MutableStateFlow(LoginUiState())
@@ -73,9 +81,15 @@ class AuthViewModel @Inject constructor(
                 )
                 if (response.data != null) {
                     tokenDataStore.saveToken(response.data.accessToken)
-                    _effects.send(AuthEffect.NavigateToDashboard)
+                    _effects.send(AuthEffect.NavigateToSplash)
                 } else {
                     _effects.send(AuthEffect.ShowError(response.error ?: "Login failed"))
+                }
+                FirebaseMessaging.getInstance().token.addOnSuccessListener { fcmToken ->
+                    viewModelScope.launch {
+                        try { userApi.registerFCMToken(FCMTokenRequest(fcmToken)) }
+                        catch (e: Exception) { /* non-fatal */ }
+                    }
                 }
             } catch (e: Exception) {
                 _effects.send(AuthEffect.ShowError(e.message.toString()))
@@ -98,7 +112,7 @@ class AuthViewModel @Inject constructor(
                     )
                 )
                 if (response.data != null) {
-                    _effects.send(AuthEffect.NavigateToDashboard)
+                    _effects.send(AuthEffect.NavigateToSplash)
                 } else {
                     _registerState.update { it.copy(error = response.error ?: "Registration failed") }
                 }
@@ -109,4 +123,44 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
+
+    fun verifyOtp(email:String, code:String, onSuccess: () -> Unit, onError: (String)->Unit){
+        viewModelScope.launch {
+            try {
+                authApi.verifyEmail(VerifyEmailRequest(email = email, otp = code))
+                onSuccess()
+            } catch (e: Exception) {
+                onError("Invalid or expired code")
+            }
+        }
+    }
+
+    fun resendOtp(email: String) {
+        viewModelScope.launch {
+            try {
+                authApi.resendOtp(ResendOtpRequest(email = email))
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun sendResetCode(email: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                authApi.forgotPassword(ForgotPasswordRequest(email))
+                onSuccess()
+            } catch (e: Exception) { onError("Request failed — check your email") }
+        }
+    }
+
+    fun resetPassword(email: String, otp: String, newPass: String,
+                      onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                authApi.resetPassword(ResetPasswordRequest(email, otp, newPass))
+                onSuccess()
+            } catch (e: Exception) { onError("Reset failed — check your code") }
+        }
+    }
+
+
 }

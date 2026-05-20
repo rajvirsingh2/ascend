@@ -28,12 +28,16 @@ class QuestRepository @Inject constructor(
         return try {
             val response = api.getActiveQuests()
             val quests = response.data ?: emptyList()
+            dao.clearAll()                          // wipe stale quests before replacing
             dao.upsertAll(quests.map { it.toEntity() })
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e.message ?: "Network error")
         }
     }
+
+    // call on logout to prevent stale data appearing for next user
+    suspend fun clearLocalCache() = dao.clearAll()
 
 
     suspend fun completeQuest(id: String): Result<CompletionResponse> {
@@ -64,6 +68,7 @@ class QuestRepository @Inject constructor(
         return try {
             val response = api.generateQuests()
             val quests = response.data ?: emptyList()
+            dao.clearAll()                          // wipe old quests before inserting generated ones
             dao.upsertAll(quests.map { it.toEntity() })
             Result.Success(Unit)
         } catch (e: Exception) {
