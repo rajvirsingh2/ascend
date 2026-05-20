@@ -11,8 +11,8 @@ import (
 
 	"ascend-backend/pkg/response"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/redis/go-redis/v9"
+	chi   "github.com/go-chi/chi/v5"
+	redis "github.com/redis/go-redis/v9"
 )
 
 type Handler struct {
