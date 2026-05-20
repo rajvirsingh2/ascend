@@ -1,6 +1,7 @@
 # Go
 backend/bin/
 backend/*.exe
+backend/tmp/
 
 # Android
 android/.gradle/
@@ -10,6 +11,7 @@ android/app/build/
 
 # Python
 rag-service/__pycache__/
+rag-service/**/__pycache__/
 rag-service/.venv/
 rag-service/*.egg-info/
 
@@ -17,6 +19,14 @@ rag-service/*.egg-info/
 .env
 .env.staging
 .env.production
+
+# Secrets
+android/app/google-services.json
+backend/firebase-service-account.json.json
+
+# Misc / scratch
+data.json
+cookies.txt
 
 # OS
 .DS_Store
