@@ -12,7 +12,6 @@ import (
 	"ascend-backend/internal/quest"
 	"ascend-backend/internal/server"
 	"ascend-backend/internal/store/postgres"
-	pgstore "ascend-backend/internal/store/postgres"
 	redisstore "ascend-backend/internal/store/redis"
 	"ascend-backend/internal/user"
 	"ascend-backend/internal/workers"
@@ -58,7 +57,7 @@ func main() {
 	}
 
 	// start background workers
-	questStore := pgstore.NewQuestStore(db, rdb)
+	questStore := postgres.NewQuestStore(db, rdb)
 	go quest.StartExpiryWorker(ctx, questStore)
 	go user.PurgeScheduled(ctx, db)
 
