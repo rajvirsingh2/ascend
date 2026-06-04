@@ -6,8 +6,6 @@ A gamified personal development application inspired by the hit anime "Solo Leve
 
 ## Screenshots
 
-## Screenshots
-
 <p align="center">
   <img src="docs/images/splash.png" width="22%" />
   <img src="docs/images/login.png" width="22%" />
