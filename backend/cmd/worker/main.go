@@ -59,4 +59,3 @@ func runXPWorker(ctx context.Context, rdb interface { /* redis.Client */
 }, db interface{}, publisher *events.Publisher) {
 	// implemented in Step 1.7 below
 }
-

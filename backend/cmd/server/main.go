@@ -1,6 +1,13 @@
 package main
 
 import (
+	"context"
+	"log"
+	"log/slog"
+	"net/http"
+
+	"ascend-backend/internal/interests"
+	"ascend-backend/internal/mlservice"
 	"ascend-backend/internal/notifications"
 	"ascend-backend/internal/quest"
 	"ascend-backend/internal/server"
@@ -9,14 +16,8 @@ import (
 	redisstore "ascend-backend/internal/store/redis"
 	"ascend-backend/internal/user"
 	"ascend-backend/internal/workers"
-	"ascend-backend/internal/interests"
-	"ascend-backend/internal/mlservice"
 	"ascend-backend/pkg/config"
 	logger "ascend-backend/pkg/logger"
-	"context"
-	"log"
-	"log/slog"
-	"net/http"
 )
 
 func main() {

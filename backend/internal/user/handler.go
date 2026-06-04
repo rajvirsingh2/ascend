@@ -23,7 +23,7 @@ func NewHandler(db *pgxpool.Pool) *Handler {
 
 func (h *Handler) RequestDeletion(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
-	
+
 	_, err := h.db.Exec(r.Context(),
 		`UPDATE users SET deleted_at = NOW() + INTERVAL '30 days' WHERE id = $1`,
 		userID,
@@ -37,7 +37,7 @@ func (h *Handler) RequestDeletion(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) CancelDeletion(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
-	
+
 	_, err := h.db.Exec(r.Context(),
 		`UPDATE users SET deleted_at = NULL WHERE id = $1`,
 		userID,

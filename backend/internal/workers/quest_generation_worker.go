@@ -9,6 +9,7 @@ import (
 	"ascend-backend/internal/interests"
 	"ascend-backend/internal/mlservice"
 	"ascend-backend/internal/quest"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -111,7 +112,7 @@ func runGenerationJob(ctx context.Context, cfg QuestGenerationWorkerConfig) {
 		var rank, archetype, goal string
 		_ = cfg.DB.QueryRow(ctx, `SELECT rank, archetype FROM users WHERE id=$1`, userID).Scan(&rank, &archetype)
 		_ = cfg.DB.QueryRow(ctx, `SELECT title FROM goals WHERE user_id=$1 AND status='active' LIMIT 1`, userID).Scan(&goal)
-		
+
 		profile.Rank = rank
 		profile.Archetype = archetype
 		profile.Goal = goal
@@ -132,14 +133,22 @@ func runGenerationJob(ctx context.Context, cfg QuestGenerationWorkerConfig) {
 		}
 
 		// 4. Persist
-		// Since we don't have access to GenerateHandler's private persist logic, 
+		// Since we don't have access to GenerateHandler's private persist logic,
 		// we can write a simple insert here.
 		for _, q := range mlQuests {
 			diff := 1 // map logic omitted
-			if q.Difficulty == "Medium" { diff = 2 }
-			if q.Difficulty == "Hard" { diff = 3 }
-			if q.Difficulty == "Epic" { diff = 4 }
-			if q.Difficulty == "Legendary" { diff = 5 }
+			if q.Difficulty == "Medium" {
+				diff = 2
+			}
+			if q.Difficulty == "Hard" {
+				diff = 3
+			}
+			if q.Difficulty == "Epic" {
+				diff = 4
+			}
+			if q.Difficulty == "Legendary" {
+				diff = 5
+			}
 
 			questType := q.QuestType
 			if questType != "daily" && questType != "weekly" {
@@ -160,7 +169,7 @@ func runGenerationJob(ctx context.Context, cfg QuestGenerationWorkerConfig) {
 				diff, q.XPReward, q.SkillArea, expires,
 			)
 		}
-		
+
 		slog.Info("[quest-generation-worker] success", "user_id", userID, "count", len(mlQuests))
 	}
 }

@@ -131,7 +131,7 @@ func (s *HabitStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	_, err = tx.Exec(ctx,
 		`UPDATE habits
@@ -158,17 +158,19 @@ func (s *HabitStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 	}
 
 	if newStreak%5 == 0 && s.pub != nil {
-		go s.pub.Publish(context.Background(), events.StreamHabitCompleted, events.Event{
-			UserID: userID,
-			Payload: map[string]any{
-				"id":             h.ID,
-				"xp_reward":      h.XPReward,
-				"frequency":      h.Frequency,
-				"current_streak": newStreak,
-				"longest_streak": newLongest,
-				"title":          h.Title,
-			},
-		})
+		go func() {
+			_ = s.pub.Publish(context.Background(), events.StreamHabitCompleted, events.Event{
+				UserID: userID,
+				Payload: map[string]any{
+					"id":             h.ID,
+					"xp_reward":      h.XPReward,
+					"frequency":      h.Frequency,
+					"current_streak": newStreak,
+					"longest_streak": newLongest,
+					"title":          h.Title,
+				},
+			})
+		}()
 
 	}
 

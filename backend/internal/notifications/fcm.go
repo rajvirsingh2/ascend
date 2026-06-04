@@ -9,7 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sync"
+
 	"time"
 
 	"ascend-backend/pkg/config"
@@ -37,7 +37,6 @@ type FCMNotifier struct {
 	tokenSource oauth2.TokenSource
 	db          *pgxpool.Pool
 	httpClient  *http.Client
-	mu          sync.Mutex
 }
 
 // Notification is the payload to send.

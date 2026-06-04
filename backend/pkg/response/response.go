@@ -13,13 +13,13 @@ type envelope struct {
 func JSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(envelope{Data: data})
+	_ = json.NewEncoder(w).Encode(envelope{Data: data})
 }
 
 func Error(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(envelope{Error: message})
+	_ = json.NewEncoder(w).Encode(envelope{Error: message})
 }
 
 func NoContent(w http.ResponseWriter) {

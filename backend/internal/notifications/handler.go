@@ -1,10 +1,11 @@
 package notifications
 
 import (
-	"ascend-backend/internal/models"
-	"ascend-backend/internal/store/postgres"
 	"encoding/json"
 	"net/http"
+
+	"ascend-backend/internal/models"
+	"ascend-backend/internal/store/postgres"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -40,7 +41,7 @@ func (h *Handler) GetNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"data": notifs})
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": notifs})
 }
 
 func (h *Handler) MarkRead(w http.ResponseWriter, r *http.Request) {

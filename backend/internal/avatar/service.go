@@ -148,7 +148,10 @@ func (s *Service) DeleteAvatar(ctx context.Context, publicID string) error {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	_, err = client.Do(req)
+	resp, err := client.Do(req)
+	if err == nil {
+		_ = resp.Body.Close()
+	}
 	return err
 }
 

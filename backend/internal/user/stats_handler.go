@@ -18,17 +18,17 @@ type SkillCount struct {
 }
 
 type StatsResponse struct {
-	TotalXP          int              `json:"total_xp"`
-	Level            int              `json:"level"`
-	TotalQuests      int              `json:"total_quests"`
-	HabitsCompleted  int              `json:"habits_completed"`
-	StreakFreezes    int              `json:"streak_freezes"`
-	BestStreak       int              `json:"best_streak"`
-	XpHistory        []XpHistoryPoint `json:"xp_history"`
+	TotalXP           int              `json:"total_xp"`
+	Level             int              `json:"level"`
+	TotalQuests       int              `json:"total_quests"`
+	HabitsCompleted   int              `json:"habits_completed"`
+	StreakFreezes     int              `json:"streak_freezes"`
+	BestStreak        int              `json:"best_streak"`
+	XpHistory         []XpHistoryPoint `json:"xp_history"`
 	QuestDistribution []SkillCount     `json:"quest_distribution"`
-	QuestsThisWeek   int              `json:"quests_this_week"`
-	QuestsSkipped    int              `json:"quests_skipped"`
-	OnTimePercentage float64          `json:"on_time_percentage"`
+	QuestsThisWeek    int              `json:"quests_this_week"`
+	QuestsSkipped     int              `json:"quests_skipped"`
+	OnTimePercentage  float64          `json:"on_time_percentage"`
 }
 
 func (h *Handler) GetStats(w http.ResponseWriter, r *http.Request) {

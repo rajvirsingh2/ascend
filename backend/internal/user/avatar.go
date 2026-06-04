@@ -91,13 +91,13 @@ func (a *AvatarUploader) uploadToCloudinary(ctx context.Context, userID, base64D
 	// multipart form upload
 	var buf bytes.Buffer
 	mw := multipart.NewWriter(&buf)
-	mw.WriteField("file", base64Data)
-	mw.WriteField("public_id", publicID)
-	mw.WriteField("timestamp", timestamp)
-	mw.WriteField("api_key", a.apiKey)
-	mw.WriteField("signature", sig)
-	mw.WriteField("overwrite", "true")
-	mw.WriteField("transformation", "w_256,h_256,c_fill,g_face,r_max,f_webp")
+	_ = mw.WriteField("file", base64Data)
+	_ = mw.WriteField("public_id", publicID)
+	_ = mw.WriteField("timestamp", timestamp)
+	_ = mw.WriteField("api_key", a.apiKey)
+	_ = mw.WriteField("signature", sig)
+	_ = mw.WriteField("overwrite", "true")
+	_ = mw.WriteField("transformation", "w_256,h_256,c_fill,g_face,r_max,f_webp")
 	mw.Close()
 
 	uploadURL := fmt.Sprintf("https://api.cloudinary.com/v1_1/%s/image/upload", a.cloudName)

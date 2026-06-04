@@ -31,17 +31,17 @@ type Physique struct {
 }
 
 type UserProfile struct {
-	Level            int        `json:"level"`
-	Rank             string     `json:"rank"`
-	Archetype        string     `json:"archetype"`
-	Interests        []Interest `json:"interests"`
-	Goal             string     `json:"goal"`
+	Level           int        `json:"level"`
+	Rank            string     `json:"rank"`
+	Archetype       string     `json:"archetype"`
+	Interests       []Interest `json:"interests"`
+	Goal            string     `json:"goal"`
 	CurrentStreak   int        `json:"current_streak"`
 	QuestsCompleted int        `json:"quests_completed"`
 	CompletionRate  float64    `json:"completion_rate"`
-	Physique         *Physique  `json:"physique,omitempty"`
-	RequestedDaily   int        `json:"requested_daily"`
-	RequestedWeekly  int        `json:"requested_weekly"`
+	Physique        *Physique  `json:"physique,omitempty"`
+	RequestedDaily  int        `json:"requested_daily"`
+	RequestedWeekly int        `json:"requested_weekly"`
 }
 
 type Quest struct {
@@ -69,11 +69,11 @@ type eventResponse struct {
 }
 
 type Client struct {
-	spaceURL   string         
+	spaceURL   string
 	httpClient *http.Client
-	redis      *redis.Client 
+	redis      *redis.Client
 	cacheTTL   time.Duration
-	hfToken    string        
+	hfToken    string
 }
 
 type Config struct {
@@ -86,7 +86,7 @@ func NewClient(cfg Config) *Client {
 	return &Client{
 		spaceURL: cfg.SpaceURL,
 		httpClient: &http.Client{
-			Timeout: 0, 
+			Timeout: 0,
 		},
 		redis:    cfg.Redis,
 		cacheTTL: 24 * time.Hour,
@@ -144,7 +144,7 @@ func (c *Client) callSpace(ctx context.Context, profile UserProfile) ([]Quest, e
 	if c.hfToken != "" {
 		req.Header.Set("Authorization", "Bearer "+c.hfToken)
 	}
-	
+
 	resp, err := c.sendWithRetry(req)
 	if err != nil {
 		return nil, err
@@ -204,7 +204,7 @@ func (c *Client) callSpace(ctx context.Context, profile UserProfile) ([]Quest, e
 
 		if strings.HasPrefix(line, "data: ") && lastEvent == "complete" {
 			dataStr := strings.TrimPrefix(line, "data: ")
-			
+
 			// Gradio 4 complete event data is an array containing the outputs.
 			// e.g. ["[\"json...\"]"]
 			var outputs []string
@@ -214,7 +214,7 @@ func (c *Client) callSpace(ctx context.Context, profile UserProfile) ([]Quest, e
 					return quests, nil
 				}
 			}
-			
+
 			// Fallback: try parsing as raw string if Gradio wrapped it differently
 			var rawStr string
 			if err := json.Unmarshal([]byte(dataStr), &rawStr); err == nil {

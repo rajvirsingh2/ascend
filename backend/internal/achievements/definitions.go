@@ -46,7 +46,7 @@ func CheckAndAward(ctx context.Context, db *pgxpool.Pool, userID string, newXP, 
 	var maxStreak int
 	var aiQuestsCompleted, sRankCompleted bool
 
-	db.QueryRow(ctx,
+	_ = db.QueryRow(ctx,
 		`SELECT
 		   COUNT(*) FILTER (WHERE status='completed') AS total,
 		   COUNT(*) FILTER (WHERE status='completed' AND skill_area='fitness') AS fitness,
@@ -57,12 +57,12 @@ func CheckAndAward(ctx context.Context, db *pgxpool.Pool, userID string, newXP, 
 		userID,
 	).Scan(&totalQuests, &fitnessQuests, &learningQuests, &aiQuestsCompleted, &sRankCompleted)
 
-	db.QueryRow(ctx,
+	_ = db.QueryRow(ctx,
 		`SELECT COALESCE(MAX(longest_streak), 0) FROM habits WHERE user_id=$1`, userID,
 	).Scan(&maxStreak)
 
 	var habitsDone int
-	db.QueryRow(ctx,
+	_ = db.QueryRow(ctx,
 		`SELECT COUNT(*) FROM habits WHERE user_id=$1 AND current_streak > 0`, userID,
 	).Scan(&habitsDone)
 

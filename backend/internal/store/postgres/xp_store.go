@@ -56,7 +56,7 @@ func (s *UserStore) AwardXP(ctx context.Context, userID string, amount int) (int
 	if err != nil {
 		return 0, 0, false, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	var oldLevel, currentXP int
 	err = tx.QueryRow(ctx,

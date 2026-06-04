@@ -12,6 +12,7 @@ import (
 	"ascend-backend/internal/otp"
 	"ascend-backend/pkg/response"
 	"ascend-backend/pkg/validator"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -89,7 +90,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("[register] OTP generate error: %v", err)
 	} else if h.emailSender != nil {
-		go h.emailSender.SendOTP(context.Background(), req.Email, req.Username, code)
+		go func() { _ = h.emailSender.SendOTP(context.Background(), req.Email, req.Username, code) }()
 	}
 
 	response.JSON(w, http.StatusCreated, map[string]string{
@@ -381,7 +382,7 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.emailSender != nil {
-		go h.emailSender.SendPasswordReset(context.Background(), req.Email, username, code)
+		go func() { _ = h.emailSender.SendPasswordReset(context.Background(), req.Email, username, code) }()
 	}
 
 	response.JSON(w, http.StatusOK, map[string]string{

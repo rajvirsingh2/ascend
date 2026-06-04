@@ -11,7 +11,7 @@ import (
 
 	"ascend-backend/pkg/response"
 
-	chi   "github.com/go-chi/chi/v5"
+	chi "github.com/go-chi/chi/v5"
 	redis "github.com/redis/go-redis/v9"
 )
 

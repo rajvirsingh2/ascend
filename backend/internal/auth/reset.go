@@ -26,7 +26,7 @@ func GenerateResetOTP(ctx context.Context, rdb *redis.Client, email string) (str
 
 	// generate 6-digit OTP
 	b := make([]byte, 3)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	code := int(b[0])<<16 | int(b[1])<<8 | int(b[2])
 	codeStr := fmt.Sprintf("%06d", code)
 

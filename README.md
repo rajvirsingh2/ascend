@@ -1,6 +1,6 @@
 # Ascend — Real-Life RPG
 
-A gamified personal development application where you are the character. Complete real-world habits and goals to earn XP, level up, and unlock achievements — powered by a personalised AI quest engine.
+A gamified personal development application inspired by the hit anime "Solo Leveling". Ascend turns your real life into an RPG where you are the main character. Complete real-world habits and goals to earn XP, level up your Hunter Rank, and unlock achievements — all powered by a personalised AI quest engine.
 
 ---
 
@@ -51,13 +51,13 @@ Instead of another boring to-do list, Ascend treats *you* as the main character.
 
 What truly sets Ascend apart is its **Personalised AI Quest Engine**. The system analyses your long-term goals and quest history using advanced Retrieval-Augmented Generation (RAG) to generate daily and weekly challenges tailored specifically to where you are in your journey. 
 
-### ✨ Highlight Features
+### Highlight Features
 
-- **🧠 Memory-Driven AI Quests:** The system remembers your past accomplishments and dynamically adjusts difficulty. It never repeats itself, acting like a true Dungeon Master for your life.
-- **📊 GitHub-Style Heatmaps & Deep Analytics:** Visualize your consistency with beautiful activity heatmaps and track your distribution of effort across Health, Mind, and Wealth domains.
-- **⚡ Offline-First Architecture:** Powered by a robust Room database locally, the app feels instantaneously snappy and seamlessly syncs to the backend in the background.
-- **🤖 Proprietary Custom ML Model:** Powered by a centralized, fine-tuned machine learning pipeline. Your personal data stays entirely within the Ascend ecosystem for complete privacy.
-- **🏆 Dynamic Achievements & Sharing:** Earn stylish diamond badges for your milestones and share your Hunter Card with friends to show off your rank and streaks.
+- **Memory-Driven AI Quests:** The system remembers your past accomplishments and dynamically adjusts difficulty. It never repeats itself, acting like a true Dungeon Master for your life.
+- **GitHub-Style Heatmaps & Deep Analytics:** Visualize your consistency with beautiful activity heatmaps and track your distribution of effort across Health, Mind, and Wealth domains.
+- **Offline-First Architecture:** Powered by a robust Room database locally, the app feels instantaneously snappy and seamlessly syncs to the backend in the background.
+- **Proprietary Custom ML Model:** Powered by a centralized, fine-tuned machine learning pipeline. Your personal data stays entirely within the Ascend ecosystem for complete privacy.
+- **Dynamic Achievements & Sharing:** Earn stylish diamond badges for your milestones and share your Hunter Card with friends to show off your rank and streaks.
 
 **Core loop:**
 1. Set goals (fitness, learning, mindfulness, creativity)

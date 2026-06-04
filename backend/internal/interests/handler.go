@@ -50,7 +50,7 @@ func (h *Handler) SaveInterests(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	
+
 	if len(req.Interests) == 0 || len(req.Interests) > 15 {
 		response.Error(w, http.StatusBadRequest, "interests count must be between 1 and 15")
 		return
@@ -92,7 +92,7 @@ func (h *Handler) SaveInterests(w http.ResponseWriter, r *http.Request) {
 		if proficiency == "" {
 			proficiency = "Beginner"
 		}
-		
+
 		interests = append(interests, UserInterest{
 			UserID:      userID,
 			Category:    inp.Category,

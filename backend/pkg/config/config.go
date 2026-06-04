@@ -5,7 +5,6 @@ import (
 	"os"
 	"strconv"
 
-
 	"github.com/joho/godotenv"
 )
 
@@ -16,16 +15,14 @@ type Config struct {
 	DatabaseURL string
 	RedisURL    string
 
-	OpenAIKey    string
-	GeminiKey    string
+	OpenAIKey string
+	GeminiKey string
 
 	JWTSecret         string
 	JWTExpiryMinutes  int
 	RefreshExpiryDays int
 
 	AllowedOrigins []string
-
-
 
 	MLServiceURL string
 	HFToken      string

@@ -98,7 +98,7 @@ func (h *GenerateHandler) Generate(w http.ResponseWriter, r *http.Request) {
 			if len(inserted) > 0 {
 				slog.Info("quests generated via ML model",
 					"user_id", userID, "count", len(inserted))
-					
+
 				// log for DPO tracking
 				if h.tracker != nil {
 					for _, q := range inserted {
@@ -129,7 +129,7 @@ func (h *GenerateHandler) buildContextHash(ctx context.Context, userID string) s
 		defer rows.Close()
 		for rows.Next() {
 			var s string
-			rows.Scan(&s)
+			_ = rows.Scan(&s)
 			combined += s
 		}
 	}
@@ -139,24 +139,13 @@ func (h *GenerateHandler) buildContextHash(ctx context.Context, userID string) s
 		defer gRows.Close()
 		for gRows.Next() {
 			var g string
-			gRows.Scan(&g)
+			_ = gRows.Scan(&g)
 			combined += g
 		}
 	}
 	raw := fmt.Sprintf("%s:%s:daily", userID, combined)
 	sum := sha256.Sum256([]byte(raw))
 	return fmt.Sprintf("%x", sum)
-}
-
-func (h *GenerateHandler) isDuplicate(ctx context.Context, userID, hash string) bool {
-	var count int
-	h.db.QueryRow(ctx,
-		`SELECT COUNT(*) FROM quest_generation_log
-		 WHERE user_id=$1 AND context_hash=$2
-		   AND created_at > NOW() - INTERVAL '7 days'`,
-		userID, hash,
-	).Scan(&count)
-	return count > 0
 }
 
 func (h *GenerateHandler) fallbackToSeeded(ctx context.Context, userID string, w http.ResponseWriter) {

@@ -14,13 +14,11 @@ import (
 	"ascend-backend/internal/goal"
 	"ascend-backend/internal/habit"
 	"ascend-backend/internal/interests"
-	"ascend-backend/internal/keyvault"
 	"ascend-backend/internal/middleware"
 	"ascend-backend/internal/mlservice"
 	"ascend-backend/internal/notifications"
 	"ascend-backend/internal/physique"
 	"ascend-backend/internal/quest"
-	"ascend-backend/internal/settings"
 	pgstore "ascend-backend/internal/store/postgres"
 	"ascend-backend/internal/user"
 
@@ -37,17 +35,11 @@ type Server struct {
 	cfg      *config.Config
 	db       *pgxpool.Pool
 	rdb      *redis.Client
-	vault    *keyvault.Vault
 	mlClient *mlservice.Client
 	pub      *events.Publisher
 }
 
 func New(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *Server {
-	vault, err := keyvault.New(db, cfg.MasterEncryptionKey)
-	if err != nil {
-		slog.Error("vault init failed", "error", err)
-		// non-fatal in dev if key not set — vault will error per-request
-	}
 	var mlClient *mlservice.Client
 	if cfg.MLServiceURL != "" {
 		mlClient = mlservice.NewClient(mlservice.Config{
@@ -62,7 +54,6 @@ func New(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *Server {
 		cfg:      cfg,
 		db:       db,
 		rdb:      rdb,
-		vault:    vault,
 		mlClient: mlClient,
 	}
 }
@@ -144,13 +135,6 @@ func (s *Server) Routes() http.Handler {
 				r.Post("/generate-quests", s.physiqueQuestHandler())
 			})
 
-			// settings
-			settingsHandler := settings.NewHandler(s.vault)
-			r.Route("/settings", func(r chi.Router) {
-				r.Post("/api-key", settingsHandler.SaveAPIKey)
-				r.Get("/api-key/status", settingsHandler.GetKeyStatus)
-				r.Delete("/api-key", settingsHandler.DeleteAPIKey)
-			})
 			//goals
 			goalHandler := goal.NewHandler(pgstore.NewGoalStore(s.db), s.rdb)
 			r.Route("/goals", func(r chi.Router) {
@@ -302,7 +286,7 @@ func (s *Server) achievementsHandler() http.HandlerFunc {
 		earnedMap := map[string]string{}
 		for rows.Next() {
 			var key, earnedAt string
-			rows.Scan(&key, &earnedAt)
+			_ = rows.Scan(&key, &earnedAt)
 			earnedMap[key] = earnedAt
 		}
 

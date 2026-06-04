@@ -125,20 +125,22 @@ func (s *QuestStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 
 	// publish to Redis Stream (fire and forget)
 	if s.pub != nil {
-		go s.pub.Publish(context.Background(), events.StreamQuestCompleted, events.Event{
-			UserID: userID,
-			Type:   "QuestCompleted",
-			Payload: map[string]any{
-				"quest_id":        q.ID,
-				"xp_reward":       q.XPReward,
-				"skill_area":      q.SkillArea,
-				"difficulty":      q.Difficulty,
-				"type":            q.Type,
-				"is_ai_generated": q.IsAIGenerated,
-				"title":           q.Title,
-				"status":          "completed",
-			},
-		})
+		go func() {
+			_ = s.pub.Publish(context.Background(), events.StreamQuestCompleted, events.Event{
+				UserID: userID,
+				Type:   "QuestCompleted",
+				Payload: map[string]any{
+					"quest_id":        q.ID,
+					"xp_reward":       q.XPReward,
+					"skill_area":      q.SkillArea,
+					"difficulty":      q.Difficulty,
+					"type":            q.Type,
+					"is_ai_generated": q.IsAIGenerated,
+					"title":           q.Title,
+					"status":          "completed",
+				},
+			})
+		}()
 	}
 
 	// award XP synchronously

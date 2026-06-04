@@ -10,6 +10,7 @@ import (
 	"ascend-backend/internal/notifications"
 	"ascend-backend/internal/store"
 	"ascend-backend/internal/store/postgres"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -65,13 +66,13 @@ func checkExpiringQuests(
 
 		// 2. Insert in-app notification
 		notif := &models.Notification{
-			ID:          uuid.New().String(),
-			UserID:      q.UserID,
-			Type:        "SYSTEM",
-			Title:       title,
-			Body:        body,
-			IsRead:      false,
-			CreatedAt:   time.Now().UTC(),
+			ID:        uuid.New().String(),
+			UserID:    q.UserID,
+			Type:      "SYSTEM",
+			Title:     title,
+			Body:      body,
+			IsRead:    false,
+			CreatedAt: time.Now().UTC(),
 		}
 		if err := ns.Insert(ctx, notif); err != nil {
 			log.Printf("[quest-reminder-worker] error inserting notification: %v", err)

@@ -34,7 +34,7 @@ func (s *Store) Save(ctx context.Context, userID string, interests []UserInteres
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Delete existing interests for this user.
 	if _, err := tx.Exec(ctx,
@@ -141,7 +141,7 @@ func BuildRAGContext(interests []UserInterest) string {
 		if interest.CustomGoal != "" {
 			ctx += "User's own goal: \"" + interest.CustomGoal + "\"\n"
 		}
-		
+
 		if interest.Proficiency != "" {
 			ctx += "User's Proficiency in this area: " + interest.Proficiency + "\n"
 		}

@@ -51,7 +51,7 @@ func AwardXP(ctx context.Context, db *pgxpool.Pool, userID, entityType, entityID
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	var currentXP, level, str, agi, mana int
 	err = tx.QueryRow(ctx,
@@ -84,15 +84,23 @@ func AwardXP(ctx context.Context, db *pgxpool.Pool, userID, entityType, entityID
 	if result.LeveledUp {
 		switch skillArea {
 		case "Physical":
-			dStr = 3; dAgi = 2; dMana = 0
+			dStr = 3
+			dAgi = 2
+			dMana = 0
 		case "Mental":
-			dStr = 0; dAgi = 1; dMana = 4
+			dStr = 0
+			dAgi = 1
+			dMana = 4
 		case "Social", "Finance":
-			dStr = 1; dAgi = 1; dMana = 3
+			dStr = 1
+			dAgi = 1
+			dMana = 3
 		default:
-			dStr = 2; dAgi = 2; dMana = 1
+			dStr = 2
+			dAgi = 2
+			dMana = 1
 		}
-		
+
 		result.StatDeltas = []StatDelta{
 			{"STRENGTH", str, str + dStr, dStr},
 			{"AGILITY", agi, agi + dAgi, dAgi},
