@@ -47,14 +47,12 @@ A gamified personal development application inspired by the hit anime "Solo Leve
 
 Instead of another boring to-do list, Ascend treats *you* as the main character. Every task you complete grants Experience Points (XP). Reach XP thresholds to level up your Hunter Rank and unlock achievements.
 
-What truly sets Ascend apart is its **Personalised AI Quest Engine**. The system analyses your long-term goals and quest history using advanced Retrieval-Augmented Generation (RAG) to generate daily and weekly challenges tailored specifically to where you are in your journey. 
+What truly sets Ascend apart is its **Personalised AI Quest Engine**. The system analyses your long-term goals and quest history to generate daily and weekly challenges tailored specifically to where you are in your journey. 
 
 ### Highlight Features
 
-- **Memory-Driven AI Quests:** The system remembers your past accomplishments and dynamically adjusts difficulty. It never repeats itself, acting like a true Dungeon Master for your life.
 - **GitHub-Style Heatmaps & Deep Analytics:** Visualize your consistency with beautiful activity heatmaps and track your distribution of effort across Health, Mind, and Wealth domains.
 - **Offline-First Architecture:** Powered by a robust Room database locally, the app feels instantaneously snappy and seamlessly syncs to the backend in the background.
-- **Proprietary Custom ML Model:** Powered by a centralized, fine-tuned machine learning pipeline. Your personal data stays entirely within the Ascend ecosystem for complete privacy.
 - **Dynamic Achievements & Sharing:** Earn stylish diamond badges for your milestones and share your Hunter Card with friends to show off your rank and streaks.
 
 **Core loop:**
@@ -71,8 +69,8 @@ What truly sets Ascend apart is its **Personalised AI Quest Engine**. The system
 |---|---|
 | Android client | Kotlin · Jetpack Compose · MVI · Room · Retrofit |
 | Go API | Go 1.23 · Chi router · JWT |
-| AI / ML | Python · FastAPI · LangChain · Custom ML Model |
-| Database | PostgreSQL 16 · pgvector (semantic search) |
+| AI / ML | Python · FastAPI · LangChain |
+| Database | PostgreSQL 16 |
 | Cache & streams | Redis 7 · Redis Streams (async event processing) |
 | Containerisation | Docker · Docker Compose |
 | Cloud (free) | Railway (no credit card required) |
@@ -89,21 +87,17 @@ Android app (Kotlin/Compose)
 Go API Gateway (port 8080)
     │  validates, persists, publishes
     ├──► Redis Streams ──► XP Worker (Go) ──► PostgreSQL
-    │                  ──► RAG Worker (Python) ──► pgvector
     │
     ├──► PostgreSQL (users, quests, habits, goals, progress_logs)
     │
-    └──► Python RAG Service (port 8001)
-             │  LangChain + vector similarity search
-             └──► Custom ML Model Inference
+    └──► Python Quest Generation Service (port 8001)
 ```
 
 **Key design decisions:**
 
 - **API-first**: the Go backend is completely decoupled from the Android client via REST contracts
-- **Async by default**: quest completion returns in <15ms; XP calculation, embedding, and notifications are async via Redis Streams
+- **Async by default**: quest completion returns in <15ms; XP calculation and notifications are async via Redis Streams
 - **Offline-first Android**: Room cache serves UI instantly; network sync happens in background
-- **RAG memory**: every completed quest and goal is embedded into pgvector; the AI retrieves semantically relevant history before generating new quests — it never repeats itself
 
 ---
 
@@ -219,65 +213,75 @@ Register → email OTP sent → verify OTP → account active → login → JWT 
 
 ```
 ascend/
-├── backend/                  Go API server
-│   ├── cmd/server/           main.go — entrypoint
-│   ├── cmd/worker/           worker entrypoint (XP consumer)
+├── .github/workflows/        CI/CD pipelines (backend, android, lint, release)
+├── backend/                   Go API server
+│   ├── cmd/
+│   │   ├── server/            main.go — API entrypoint
+│   │   └── worker/            worker entrypoint (XP consumer)
 │   ├── internal/
-│   │   ├── auth/             JWT, bcrypt, session, OTP handlers
-│   │   ├── email/            SMTP sender
-│   │   ├── events/           Redis Streams publisher + consumer
-│   │   ├── game/             XP engine, levelling formula
-│   │   ├── goal/             goal HTTP handlers
-│   │   ├── habit/            habit HTTP handlers
+│   │   ├── achievements/      achievement definitions + unlock logic
+│   │   ├── auth/              JWT, bcrypt, session, OTP handlers
+│   │   ├── avatar/            avatar generation + storage
+│   │   ├── email/             SMTP sender
+│   │   ├── events/            Redis Streams publisher + consumer
+│   │   ├── game/              XP engine, levelling formula
+│   │   ├── goal/              goal HTTP handlers
+│   │   ├── habit/             habit HTTP handlers
+│   │   ├── ingestion/         data ingestion pipeline
+│   │   ├── interests/         user interest categories + onboarding
 │   │   ├── middleware/        CORS, JWT guard, rate limit, HMAC, logger
-│   │   ├── otp/              OTP generate + verify
-│   │   ├── quest/            quest handlers + expiry worker
-│   │   ├── server/           router wiring
-│   │   ├── store/            repository interfaces + Postgres/Redis impls
-│   │   ├── validators/       input validation
-│   │   └── workers/          XP background worker
+│   │   ├── mlservice/         ML service client (quest generation)
+│   │   ├── models/            shared domain models
+│   │   ├── notifications/     push notification dispatch (FCM)
+│   │   ├── otp/               OTP generate + verify
+│   │   ├── physique/          body metrics tracking
+│   │   ├── quest/             quest handlers + expiry worker
+│   │   ├── server/            router wiring
+│   │   ├── store/             repository interfaces + Postgres/Redis impls
+│   │   │   ├── postgres/      SQL stores + migrations
+│   │   │   └── redis/         cache + session stores
+│   │   ├── user/              user profile handlers
+│   │   └── workers/           XP background worker
 │   └── pkg/
-│       ├── config/           env config loader
-│       ├── logger/           structured slog setup
-│       └── response/         JSON envelope helpers
+│       ├── config/            env config loader
+│       ├── logger/            structured slog setup
+│       ├── response/          JSON envelope helpers
+│       └── validator/         input validation helpers
 │
-├── rag-service/              Python AI service
-│   ├── app/
-│   │   ├── model/            Custom ML model inference adapters
-│   │   ├── prompts/          versioned prompt templates
-│   │   ├── context_builder   user context assembler
-│   │   ├── document_builder  quest → embeddable text
-│   │   ├── embedder          embedding model + pgvector store
-│   │   ├── generate          full RAG pipeline
-│   │   ├── retriever         cosine search + MMR reranking
-│   │   └── worker            Redis queue consumer
-│   └── tests/
-│
-├── android/                  Kotlin/Compose app
+├── android/                   Kotlin/Compose app
 │   └── app/src/main/java/com/ascend/app/
 │       ├── data/
-│       │   ├── local/        Room database, DAOs, entities, DataStore
-│       │   ├── realtime/     WebSocketManager
-│       │   ├── remote/       Retrofit services, DTOs, interceptors
-│       │   └── repository/   offline-first repositories
-│       ├── di/               Hilt modules
-│       ├── domain/model/     pure Kotlin domain models
-│       └── ui/
-│           ├── auth/         login, register, OTP screens
-│           ├── components/   shared components (StatBar, QuestCard, etc.)
-│           ├── dashboard/    main game screen
-│           ├── goals/        goal management
-│           ├── levelup/      LevelUpModal with particle system
-│           ├── navigation/   NavGraph, routes, bottom nav
-│           ├── profile/      user profile + logout
-│           ├── splash/       auto-login routing
-│           └── theme/        colors, typography, shapes, gradients
+│       │   ├── local/         Room database, DAOs, entities, DataStore
+│       │   ├── realtime/      WebSocketManager
+│       │   ├── remote/        Retrofit services, DTOs, interceptors
+│       │   └── repository/    offline-first repositories
+│       ├── di/                Hilt modules
+│       ├── domain/model/      pure Kotlin domain models
+│       ├── notification/      FCM + local notification handling
+│       ├── ui/
+│       │   ├── attributes/    character attribute screens
+│       │   ├── auth/          login, register, OTP screens
+│       │   ├── components/    shared components (StatBar, QuestCard, etc.)
+│       │   ├── dashboard/     main game screen
+│       │   ├── goals/         goal management
+│       │   ├── history/       quest + activity history
+│       │   ├── interests/     interest selection onboarding
+│       │   ├── levelup/       LevelUpModal with particle system
+│       │   ├── navigation/    NavGraph, routes, bottom nav
+│       │   ├── physique/      body metrics UI
+│       │   ├── profile/       user profile + logout
+│       │   ├── settings/      app settings
+│       │   ├── splash/        auto-login routing
+│       │   ├── stats/         analytics + heatmaps
+│       │   └── theme/         colors, typography, shapes, gradients
+│       ├── util/              extension functions + helpers
+│       └── workers/           background sync workers
 │
-├── migrations/               numbered SQL migration files (golang-migrate)
-├── scripts/                  seed.sql, dev-tunnel.sh
-├── docker-compose.yml        full local stack
-├── Makefile                  dev task runner
-└── .env.example              environment template
+├── docs/images/               screenshots for README
+├── scripts/                   seed.sql, dev-tunnel.sh, export_preferences.py
+├── docker-compose.yml         full local stack
+├── Makefile                   dev task runner
+└── .env.example               environment template
 ```
 
 ---
