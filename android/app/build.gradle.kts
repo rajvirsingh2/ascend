@@ -40,8 +40,9 @@ android {
         }
         create("ngrok"){
             initWith(getByName("debug"))
+            // Using your host PC's Wi-Fi LAN IP to bypass ngrok timeouts
             buildConfigField("String","BASE_URL",
-                "\"https://delay-demote-pulse.ngrok-free.dev/api/v1/\"")
+                "\"http://10.125.9.14:8080/api/v1/\"")
         }
         release {
             isMinifyEnabled = true
@@ -68,11 +69,14 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.animation.core)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.foundation)
+    implementation(libs.androidx.hilt.common)
+    implementation(libs.androidx.ui.text)
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.ui.tooling.preview)
@@ -82,13 +86,18 @@ dependencies {
     implementation(libs.androidx.runtime)
     implementation(libs.firebase.inappmessaging.display)
     implementation(libs.firebase.messaging)
-    debugImplementation(libs.compose.ui.tooling)
+    implementation(libs.compose.ui.tooling)
+    implementation(libs.foundation)
     debugImplementation(libs.compose.ui.test.manifest)
     implementation(libs.lottie.compose)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.compiler.ext)
+
+    implementation(libs.work.runtime.ktx)
 
     implementation(libs.navigation.compose)
 

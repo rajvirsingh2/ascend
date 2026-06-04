@@ -71,19 +71,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     }
 
     SettingsScreenContent(
-        hasApiKey = state.hasApiKey,
         isDeletingKey = state.isDeleting,
-        selectedProvider = state.selectedProvider,
-        apiKeyInput = state.apiKeyInput,
-        modelInput = state.modelInput,
         error = state.error,
-        isSaving = state.isSaving,
         snackbarHostState = snackbarHostState,
-        onDeleteKey = { viewModel.onIntent(SettingsIntent.DeleteKey) },
-        onProviderChanged = { viewModel.onIntent(SettingsIntent.ProviderChanged(it)) },
-        onApiKeyChanged = { viewModel.onIntent(SettingsIntent.ApiKeyChanged(it)) },
-        onModelChanged = { viewModel.onIntent(SettingsIntent.ModelChanged(it)) },
-        onSaveKey = { viewModel.onIntent(SettingsIntent.SaveKey) },
         onDeleteAccount = { password, onComplete -> viewModel.deleteAccount(password, onComplete) }
     )
 }
@@ -92,19 +82,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreenContent(
-    hasApiKey: Boolean,
     isDeletingKey: Boolean,
-    selectedProvider: String,
-    apiKeyInput: String,
-    modelInput: String,
     error: String?,
-    isSaving: Boolean,
     snackbarHostState: SnackbarHostState,
-    onDeleteKey: () -> Unit,
-    onProviderChanged: (String) -> Unit,
-    onApiKeyChanged: (String) -> Unit,
-    onModelChanged: (String) -> Unit,
-    onSaveKey: () -> Unit,
     onDeleteAccount: (String, () -> Unit) -> Unit
 ) {
     Scaffold(
@@ -134,174 +114,7 @@ fun SettingsScreenContent(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // section header
-            SectionCard(title = "AI QUEST ENGINE") {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-                    Text(
-                        text = "Your API key is encrypted with AES-256-GCM and never stored in plain text. It is decrypted only during quest generation.",
-                        fontSize = 12.sp,
-                        color = DarkColors.TextMuted,
-                        lineHeight = 18.sp
-                    )
-
-                    if (hasApiKey) {
-                        // key already saved
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF0D1A0D))
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "API KEY ACTIVE",
-                                    fontSize = 10.sp,
-                                    color = Color(0xFF39FF14),
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 0.1.sp
-                                )
-                                Text(
-                                    text = "Quest generation is enabled",
-                                    fontSize = 12.sp,
-                                    color = DarkColors.TextMuted
-                                )
-                            }
-                            if (isDeletingKey) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    color = DarkColors.Ember,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                AscendOutlinedButton(
-                                    text = "REMOVE",
-                                    onClick = onDeleteKey,
-                                    borderColor = DarkColors.Ember
-                                )
-                            }
-                        }
-                    }
-
-                    // provider selector
-                    Text(
-                        text = "AI PROVIDER",
-                        fontSize = 10.sp,
-                        color = DarkColors.TextMuted,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.1.sp
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Uses your app's actual providerOptions list!
-                        providerOptions.take(3).forEach { option ->
-                            val selected = selectedProvider == option.id
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        if (selected)
-                                            Brush.horizontalGradient(
-                                                listOf(
-                                                    DarkColors.Arcane.copy(0.3f),
-                                                    DarkColors.Cyan.copy(0.3f)
-                                                )
-                                            )
-                                        else Brush.horizontalGradient(
-                                            listOf(DarkColors.Abyss, DarkColors.Deep)
-                                        )
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (selected) DarkColors.Arcane
-                                        else DarkColors.Dusk,
-                                        RoundedCornerShape(8.dp)
-                                    )
-                                    .clickable { onProviderChanged(option.id) }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = option.label,
-                                    fontSize = 12.sp,
-                                    fontWeight = if (selected) FontWeight.Medium
-                                    else FontWeight.Normal,
-                                    color = if (selected) DarkColors.TextPrimary
-                                    else DarkColors.TextMuted
-                                )
-                            }
-                        }
-                    }
-
-                    // api key input
-                    val currentOption = providerOptions
-                        .firstOrNull { it.id == selectedProvider }
-                        ?: providerOptions.first()
-
-                    OutlinedTextField(
-                        value = apiKeyInput,
-                        onValueChange = onApiKeyChanged,
-                        label = { Text("API Key") },
-                        placeholder = { Text(currentOption.hint,
-                            color = DarkColors.TextHint) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password
-                        ),
-                        isError = error != null,
-                        supportingText = error?.let {
-                            { Text(it, color = DarkColors.Ember) }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor   = DarkColors.Arcane,
-                            unfocusedBorderColor = DarkColors.Dusk,
-                            focusedTextColor     = DarkColors.TextPrimary,
-                            unfocusedTextColor   = DarkColors.TextPrimary,
-                            cursorColor          = DarkColors.Arcane,
-                            focusedLabelColor    = DarkColors.Arcane,
-                            unfocusedLabelColor  = DarkColors.TextMuted,
-                        )
-                    )
-
-                    // optional model override
-                    OutlinedTextField(
-                        value = modelInput,
-                        onValueChange = onModelChanged,
-                        label = { Text("Model (optional)") },
-                        placeholder = {
-                            Text(
-                                "Default: ${currentOption.defaultModel}",
-                                color = DarkColors.TextHint
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor   = DarkColors.Arcane,
-                            unfocusedBorderColor = DarkColors.Dusk,
-                            focusedTextColor     = DarkColors.TextPrimary,
-                            unfocusedTextColor   = DarkColors.TextPrimary,
-                            cursorColor          = DarkColors.Arcane,
-                            focusedLabelColor    = DarkColors.Arcane,
-                            unfocusedLabelColor  = DarkColors.TextMuted,
-                        )
-                    )
-
-                    AscendButton(
-                        text = if (isSaving) "SAVING..." else
-                            if (hasApiKey) "UPDATE KEY" else "SAVE KEY SECURELY",
-                        onClick = onSaveKey,
-                        enabled = !isSaving && apiKeyInput.isNotBlank(),
-                        gradient = Gradients.ArcaneFlow,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
 
             Spacer(Modifier.height(80.dp))
 
@@ -405,70 +218,14 @@ private fun SectionCard(
 
 // --- PREVIEWS ---
 
-@Preview(showBackground = true, name = "1. Default Settings (No Key)")
+@Preview(showBackground = true, name = "1. Default Settings")
 @Composable
 fun SettingsScreenPreview_Default() {
     androidx.compose.material3.MaterialTheme {
         SettingsScreenContent(
-            hasApiKey = false,
             isDeletingKey = false,
-            selectedProvider = "gemini",
-            apiKeyInput = "",
-            modelInput = "",
             error = null,
-            isSaving = false,
             snackbarHostState = remember { SnackbarHostState() },
-            onDeleteKey = {},
-            onProviderChanged = {},
-            onApiKeyChanged = {},
-            onModelChanged = {},
-            onSaveKey = {},
-            onDeleteAccount = { _, _ -> }
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "2. Active Key State")
-@Composable
-fun SettingsScreenPreview_ActiveKey() {
-    androidx.compose.material3.MaterialTheme {
-        SettingsScreenContent(
-            hasApiKey = true,
-            isDeletingKey = false,
-            selectedProvider = "openai",
-            apiKeyInput = "sk-abc123xyz456",
-            modelInput = "",
-            error = null,
-            isSaving = false,
-            snackbarHostState = remember { SnackbarHostState() },
-            onDeleteKey = {},
-            onProviderChanged = {},
-            onApiKeyChanged = {},
-            onModelChanged = {},
-            onSaveKey = {},
-            onDeleteAccount = { _, _ -> }
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "3. Error State")
-@Composable
-fun SettingsScreenPreview_Error() {
-    androidx.compose.material3.MaterialTheme {
-        SettingsScreenContent(
-            hasApiKey = false,
-            isDeletingKey = false,
-            selectedProvider = "anthropic",
-            apiKeyInput = "invalid_key",
-            modelInput = "",
-            error = "Invalid API key format.",
-            isSaving = false,
-            snackbarHostState = remember { SnackbarHostState() },
-            onDeleteKey = {},
-            onProviderChanged = {},
-            onApiKeyChanged = {},
-            onModelChanged = {},
-            onSaveKey = {},
             onDeleteAccount = { _, _ -> }
         )
     }

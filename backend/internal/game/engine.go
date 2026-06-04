@@ -27,6 +27,13 @@ func QuestXPReward(difficulty, userLevel int) int {
 	return int(float64(base) * penalty)
 }
 
+type StatDelta struct {
+	StatName string `json:"stat_name"`
+	Before   int    `json:"before"`
+	After    int    `json:"after"`
+	Delta    int    `json:"delta"`
+}
+
 type XPResult struct {
 	XPAwarded   int
 	XPBefore    int
@@ -34,22 +41,23 @@ type XPResult struct {
 	LevelBefore int
 	LevelAfter  int
 	LeveledUp   bool
+	StatDeltas  []StatDelta
 }
 
 // AwardXP adds xpDelta to the user, handles level-ups, and writes a
 // progress_log entry. Runs in a single transaction.
-func AwardXP(ctx context.Context, db *pgxpool.Pool, userID, entityType, entityID, eventType string, xpDelta int) (*XPResult, error) {
+func AwardXP(ctx context.Context, db *pgxpool.Pool, userID, entityType, entityID, eventType, skillArea string, xpDelta int) (*XPResult, error) {
 	tx, err := db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
 
-	var currentXP, level int
+	var currentXP, level, str, agi, mana int
 	err = tx.QueryRow(ctx,
-		`SELECT current_xp, level FROM users WHERE id = $1 FOR UPDATE`,
+		`SELECT current_xp, level, strength, agility, mana FROM users WHERE id = $1 FOR UPDATE`,
 		userID,
-	).Scan(&currentXP, &level)
+	).Scan(&currentXP, &level, &str, &agi, &mana)
 	if err != nil {
 		return nil, err
 	}
@@ -72,11 +80,32 @@ func AwardXP(ctx context.Context, db *pgxpool.Pool, userID, entityType, entityID
 	result.LevelAfter = newLevel
 	result.LeveledUp = newLevel > level
 
+	var dStr, dAgi, dMana int
+	if result.LeveledUp {
+		switch skillArea {
+		case "Physical":
+			dStr = 3; dAgi = 2; dMana = 0
+		case "Mental":
+			dStr = 0; dAgi = 1; dMana = 4
+		case "Social", "Finance":
+			dStr = 1; dAgi = 1; dMana = 3
+		default:
+			dStr = 2; dAgi = 2; dMana = 1
+		}
+		
+		result.StatDeltas = []StatDelta{
+			{"STRENGTH", str, str + dStr, dStr},
+			{"AGILITY", agi, agi + dAgi, dAgi},
+			{"MANA", mana, mana + dMana, dMana},
+		}
+	}
+
 	_, err = tx.Exec(ctx,
 		`UPDATE users
-		 SET current_xp = $1, level = $2, total_xp = total_xp + $3, updated_at = $4
-		 WHERE id = $5`,
-		newXP, newLevel, xpDelta, time.Now(), userID,
+		 SET current_xp = $1, level = $2, total_xp = total_xp + $3, updated_at = $4,
+		 strength = strength + $5, agility = agility + $6, mana = mana + $7
+		 WHERE id = $8`,
+		newXP, newLevel, xpDelta, time.Now(), dStr, dAgi, dMana, userID,
 	)
 	if err != nil {
 		return nil, err

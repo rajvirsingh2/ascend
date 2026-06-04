@@ -8,10 +8,13 @@ data class User(
     val currentXp: Int,
     val xpToNext: Int,
     val avatarUrl: String?,
-    val totalXp: Int=0,
+    val totalXp: Int = 0,
     val hp: Int = 100,
-    val maxHp: Int = 100
-){
+    val maxHp: Int = 100,
+    val strength: Int = 0,
+    val agility: Int = 0,
+    val mana: Int = 0
+) {
     val xpFraction: Float
         get() = when{
             xpToNext <= 0 -> 0f

@@ -191,7 +191,6 @@ make generate-secrets
 Output:
 ```
 JWT_SECRET=a1b2c3d4...
-MASTER_ENCRYPTION_KEY=e5f6a7b8...
 HMAC_SECRET=c9d0e1f2...
 ```
 
@@ -217,7 +216,6 @@ JWT_EXPIRY_MINUTES=15
 REFRESH_TOKEN_EXPIRY_DAYS=7
 
 # ── Encryption (paste generated values) ──────────────────────────────
-MASTER_ENCRYPTION_KEY=<paste from generate-secrets>
 HMAC_SECRET=<paste from generate-secrets>
 
 # ── App ──────────────────────────────────────────────────────────────
@@ -461,18 +459,7 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/v1/goals
 
 All three should return arrays with 2 items each (seeded data).
 
-### 6.4 — Check API key status
 
-**Windows (PowerShell):**
-```powershell
-Invoke-RestMethod http://localhost:8080/api/v1/settings/api-key/status -Headers $headers
-# → @{data=@{has_key=False}}
-```
-
-**macOS / Linux (Bash):**
-```bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/v1/settings/api-key/status
-```
 
 > [!IMPORTANT]
 > **Backend is fully working if all the above return data.** ✅
@@ -543,26 +530,15 @@ You'll land on the Dashboard showing the hero panel, active quests, and habits.
 
 ---
 
-## PART 8 — Quest generation (AI)
+## PART 8 — Quest generation (ML)
 
-Quest generation uses a BYOK (Bring Your Own Key) model.
+Quests are generated using a custom ML model hosted on HuggingFace Spaces. 
 
-### 8.1 — Get a free API key
+### 8.1 — Configuration
 
-**Google Gemini (recommended — free tier):**
-1. Go to [aistudio.google.com](https://aistudio.google.com)
-2. Sign in → Get API key → Create API key
-3. Copy the key (starts with `AIza...`)
+The backend connects to the ML model via the `ML_SERVICE_URL` variable in your `.env`.
 
-**Alternatives:** OpenAI (`sk-...`) or Anthropic Claude (`sk-ant-...`)
-
-### 8.2 — Add the key in the app
-
-1. Tap **Settings** (bottom nav)
-2. Select your provider (Gemini / OpenAI / Claude)
-3. Paste your API key → tap **SAVE KEY SECURELY**
-
-### 8.3 — Generate quests
+### 8.2 — Generate quests
 
 1. Go to **Dashboard** → tap **"GENERATE NEW QUESTS"**
 2. Wait 2–5 seconds
@@ -570,11 +546,7 @@ Quest generation uses a BYOK (Bring Your Own Key) model.
 
 **If it fails:**
 ```powershell
-docker compose logs rag-service --tail 30
-
-# Check the key was saved
-Invoke-RestMethod http://localhost:8080/api/v1/settings/api-key/status -Headers $headers
-# Should show: has_key = True
+docker compose logs ascend_backend --tail 30
 ```
 
 ---
@@ -618,7 +590,7 @@ curl http://localhost:8080/health
 | `make logs` | Tail logs from all containers |
 | `make clean` | Stop containers + **wipe all data** |
 | `make test` | Run Go unit tests |
-| `make generate-secrets` | Generate fresh JWT/HMAC/encryption keys |
+| `make generate-secrets` | Generate fresh JWT/HMAC keys |
 
 ---
 
@@ -688,7 +660,7 @@ docker exec ascend_redis sh -c "redis-cli FLUSHDB"
 3. Check internet connection (Gradle downloads dependencies)
 
 ### RAG service shows "mock embedder" in logs
-Normal when no OpenAI key is set. Quest generation still works but uses random vectors instead of semantic search. Set a real key via the app Settings for real RAG.
+Normal. The app primarily relies on the custom ML model for quest generation. RAG is available as a fallback.
 
 ### Docker builds are very slow
 First build downloads + compiles everything. Subsequent builds use cache (10–30 seconds).
@@ -725,9 +697,8 @@ railway add --plugin redis
 ```powershell
 # Generate and set in one go
 $jwt = python -c "import secrets; print(secrets.token_hex(32))"
-$enc = python -c "import secrets; print(secrets.token_hex(32))"
 $hmac = python -c "import secrets; print(secrets.token_hex(32))"
-railway variables set JWT_SECRET="$jwt" MASTER_ENCRYPTION_KEY="$enc" HMAC_SECRET="$hmac" APP_ENV="production" ALLOWED_ORIGINS="*"
+railway variables set JWT_SECRET="$jwt" HMAC_SECRET="$hmac" APP_ENV="production" ALLOWED_ORIGINS="*"
 ```
 
 ### 12.5 — Deploy
@@ -779,7 +750,7 @@ In Android Studio: View → Tool Windows → Build Variants → change to `ngrok
 |---|---|
 | [Makefile](file:///d:/rajvir/ascend/Makefile) | Added missing targets: `seed`, `shell-db`, `shell-redis`, `logs`, `clean`, `generate-secrets` |
 | [scripts/seed.sql](file:///d:/rajvir/ascend/scripts/seed.sql) | Fixed: sets `email_verified=true`, correct bcrypt hash, proper cleanup, includes `hp`/`max_hp` |
-| [.env.example](file:///d:/rajvir/ascend/.env.example) | Updated to include all actual env vars (`MASTER_ENCRYPTION_KEY`, `HMAC_SECRET`, `WORKER_TYPE`) |
+| [.env.example](file:///d:/rajvir/ascend/.env.example) | Updated to include all actual env vars (`HMAC_SECRET`, `WORKER_TYPE`) |
 | [.gitignore](file:///d:/rajvir/ascend/.gitignore) | Removed `.env.example` from ignore (it should be tracked) |
 | [server.go](file:///d:/rajvir/ascend/backend/internal/server/server.go) | Fixed physique route: `Save` changed from `GET` to `POST` |
 

@@ -10,7 +10,6 @@ import com.ascend.app.data.remote.api.HistoryApiService
 import com.ascend.app.data.remote.api.InterestsApiService
 import com.ascend.app.data.remote.api.PhysiqueApiService
 import com.ascend.app.data.remote.api.QuestApiService
-import com.ascend.app.data.remote.api.SettingsApiService
 import com.ascend.app.data.remote.api.UserApiService
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -47,8 +46,9 @@ object NetworkModule {
             .addInterceptor(authInterceptor)
             .addInterceptor(hmacInterceptor)
             .addInterceptor(logging)
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(0, TimeUnit.SECONDS)
+            .readTimeout(0, TimeUnit.SECONDS)
+            .writeTimeout(0, TimeUnit.SECONDS)
             .build()
     }
 
@@ -81,10 +81,7 @@ object NetworkModule {
     fun provideGoalApiService(retrofit: Retrofit): GoalApiService =
         retrofit.create(GoalApiService::class.java)
 
-    @Provides
-    @Singleton
-    fun provideSettingsApiService(retrofit: Retrofit): SettingsApiService =
-        retrofit.create(SettingsApiService::class.java)
+
 
     @Provides
     @Singleton
@@ -101,8 +98,15 @@ object NetworkModule {
     fun provideUserApiService(retrofit: Retrofit): UserApiService =
         retrofit.create(UserApiService::class.java)
 
+
+
     @Provides
     @Singleton
     fun provideInterestsApi(retrofit: Retrofit): InterestsApiService=
         retrofit.create(InterestsApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideNotificationApiService(retrofit: Retrofit): com.ascend.app.data.remote.api.NotificationApiService =
+        retrofit.create(com.ascend.app.data.remote.api.NotificationApiService::class.java)
 }

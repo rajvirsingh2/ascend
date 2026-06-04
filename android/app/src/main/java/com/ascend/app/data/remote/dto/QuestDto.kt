@@ -26,3 +26,9 @@ data class HabitResponse(
     @Json(name = "longest_streak") val longestStreak: Int,
     @Json(name="last_completed_at") val lastCompletedAt: String?=null
 )
+
+@JsonClass(generateAdapter = true)
+data class HeatmapPointResponse(
+    val date: String,
+    val count: Int
+)

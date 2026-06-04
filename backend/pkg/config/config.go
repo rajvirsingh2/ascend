@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
+
 
 	"github.com/joho/godotenv"
 )
@@ -14,10 +14,10 @@ type Config struct {
 	AppPort string
 
 	DatabaseURL string
+	RedisURL    string
 
-	RedisURL string
-
-	KafkaBrokers []string
+	OpenAIKey    string
+	GeminiKey    string
 
 	JWTSecret         string
 	JWTExpiryMinutes  int
@@ -25,7 +25,10 @@ type Config struct {
 
 	AllowedOrigins []string
 
-	RAGServiceURL string
+
+
+	MLServiceURL string
+	HFToken      string
 
 	MasterEncryptionKey string
 	SMTPHost            string
@@ -64,12 +67,14 @@ func Load() (*Config, error) {
 		AppPort:             getEnv("APP_PORT", "8080"),
 		DatabaseURL:         requireEnv("DATABASE_URL"),
 		RedisURL:            requireEnv("REDIS_URL"),
-		KafkaBrokers:        strings.Split(getEnv("KAFKA_BROKERS", "localhost:9092"), ","),
+		OpenAIKey:           getEnv("OPENAI_API_KEY", ""),
+		GeminiKey:           getEnv("GEMINI_API_KEY", ""),
 		JWTSecret:           requireEnv("JWT_SECRET"),
 		JWTExpiryMinutes:    jwtExpiry,
 		RefreshExpiryDays:   refreshExpiry,
 		AllowedOrigins:      []string{getEnv("ALLOWED_ORIGINS", "http://localhost:3000")},
-		RAGServiceURL:       getEnv("RAG_SERVICE_URL", "http://localhost:8001"),
+		MLServiceURL:        getEnv("ML_SERVICE_URL", ""),
+		HFToken:             getEnv("HF_TOKEN", ""),
 		MasterEncryptionKey: getEnv("MASTER_ENCRYPTION_KEY", ""),
 		SMTPHost:            getEnv("SMTP_HOST", ""),
 		SMTPPort:            getEnv("SMTP_PORT", "587"),

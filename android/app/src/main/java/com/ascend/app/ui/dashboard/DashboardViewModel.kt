@@ -2,8 +2,7 @@ package com.ascend.app.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ascend.app.data.realtime.WebSocketManager
-import com.ascend.app.data.realtime.WsEvent
+
 import com.ascend.app.data.repository.HabitRepository
 import com.ascend.app.data.repository.QuestRepository
 import com.ascend.app.data.repository.UserRepository
@@ -22,8 +21,7 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     private val questRepo: QuestRepository,
     private val habitRepo: HabitRepository,
-    private val userRepo: UserRepository,
-    private val wsManager: WebSocketManager
+    private val userRepo: UserRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardUiState())
@@ -34,7 +32,6 @@ class DashboardViewModel @Inject constructor(
 
     init {
         observeLocalData()
-        observeWebSocketEvents()
         onIntent(DashboardIntent.LoadDashboard)
     }
 
@@ -58,10 +55,10 @@ class DashboardViewModel @Inject constructor(
     fun onIntent(intent: DashboardIntent) {
         when (intent) {
             is DashboardIntent.LoadDashboard -> refresh()
+            is DashboardIntent.GenerateQuests -> generateQuests()
             is DashboardIntent.CompleteQuest -> completeQuest(intent.questId)
             is DashboardIntent.SkipQuest -> skipQuest(intent.questId)
             is DashboardIntent.CompleteHabit -> completeHabit(intent.habitId)
-            is DashboardIntent.RequestNewQuests -> generateQuests()
         }
     }
 
@@ -82,9 +79,21 @@ class DashboardViewModel @Inject constructor(
                     val awarded = result.data.xpAwarded ?: 0
                     val leveledUp = result.data.leveledUp == true
                     val newLevel = result.data.levelAfter ?: 0
+                    
+                    // map DTO to Domain model
+                    val deltas = result.data.statDeltas?.map {
+                        com.ascend.app.domain.model.StatDelta(
+                            statName = it.statName,
+                            before = it.before.toString(),
+                            after = it.after.toString(),
+                            delta = "+${it.delta}",
+                            deltaPositive = it.delta > 0
+                        )
+                    } ?: emptyList()
+
                     userRepo.refresh() // re-sync XP
                     _effects.send(DashboardEffect.ShowSnackbar("+$awarded XP"))
-                    if (leveledUp) _effects.send(DashboardEffect.LevelUp(newLevel))
+                    if (leveledUp) _effects.send(DashboardEffect.LevelUp(newLevel, deltas))
                 }
                 is Result.Error ->
                     _effects.send(DashboardEffect.ShowSnackbar("Failed to complete quest"))
@@ -118,38 +127,21 @@ class DashboardViewModel @Inject constructor(
 
     private fun generateQuests() {
         viewModelScope.launch {
-            _state.update { it.copy(isGeneratingQuest = true) }
+            _state.update { it.copy(isGenerating = true) }
             when (val result = questRepo.generateQuests()) {
-                is Result.Success ->
-                    _effects.send(DashboardEffect.ShowSnackbar("New quests ready!"))
-                is Result.Error ->
-                    _effects.send(DashboardEffect.ShowSnackbar("Quest generation failed"))
+                is Result.Success -> {
+                    _effects.send(DashboardEffect.ShowSnackbar("New quests summoned!"))
+                }
+                is Result.Error -> {
+                    _effects.send(DashboardEffect.ShowSnackbar("Failed to summon quests: ${result.message}"))
+                }
                 else -> Unit
             }
-            _state.update { it.copy(isGeneratingQuest = false) }
+            _state.update { it.copy(isGenerating = false) }
         }
     }
 
-    private fun observeWebSocketEvents() {
-        viewModelScope.launch {
-            wsManager.events.collect { event ->
-                when (event) {
-                    is WsEvent.LevelUp -> {
-                        userRepo.refresh() // sync new level from API
-                        _effects.send(DashboardEffect.LevelUp(event.newLevel))
-                    }
-                    is WsEvent.XpAwarded -> {
-                        _effects.send(DashboardEffect.ShowSnackbar("+${event.amount} XP"))
-                        userRepo.refresh()
-                    }
-                    is WsEvent.GuildQuestCompleted -> {
-                        _effects.send(DashboardEffect.ShowSnackbar(
-                            "${event.memberName} completed ${event.questTitle}!"
-                        ))
-                    }
-                    is WsEvent.Disconnected -> Unit
-                }
-            }
-        }
-    }
+
+
+
 }

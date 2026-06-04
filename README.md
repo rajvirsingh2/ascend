@@ -4,32 +4,66 @@ A gamified personal development application where you are the character. Complet
 
 ---
 
+## Screenshots
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/images/splash.png" width="22%" />
+  <img src="docs/images/login.png" width="22%" />
+  <img src="docs/images/register.png" width="22%" />
+  <img src="docs/images/verification.png" width="22%" />
+</p>
+
+<p align="center">
+  <img src="docs/images/focus.png" width="22%" />
+  <img src="docs/images/dashboard.png" width="22%" />
+  <img src="docs/images/goals.png" width="22%" />
+  <img src="docs/images/notifications.png" width="22%" />
+</p>
+
+<p align="center">
+  <img src="docs/images/profile.png" width="22%" />
+  <img src="docs/images/stats.png" width="22%" />
+  <img src="docs/images/share.png" width="22%" />
+  <img src="docs/images/recover.png" width="22%" />
+</p>
+
+---
+
 ## Table of Contents
 
 - [What is Ascend](#what-is-ascend)
 - [Tech Stack](#tech-stack)
 - [Architecture Overview](#architecture-overview)
 - [Module Map](#module-map)
-- [Prerequisites](#prerequisites)
-- [Setup Guide](#setup-guide)
-- [Environment Variables](#environment-variables)
+- [Setup & Development](SETUP_GUIDE.md)
 - [API Reference](#api-reference)
 - [Security Model](#security-model)
-- [BYOK — Bring Your Own AI Key](#byok)
-- [Development Commands](#development-commands)
-- [Troubleshooting](#troubleshooting)
 
 ---
 
 ## What is Ascend
 
-Ascend turns your daily habits and personal goals into an RPG. Every task you complete grants XP. Reach XP thresholds to level up. The AI quest engine analyses your goals and history to generate personalised daily and weekly challenges — quests tailored to where you are in your journey, not generic productivity advice.
+**Ascend turns your daily habits and personal goals into a fully-fledged RPG.** 
+
+Instead of another boring to-do list, Ascend treats *you* as the main character. Every task you complete grants Experience Points (XP). Reach XP thresholds to level up your Hunter Rank and unlock achievements.
+
+What truly sets Ascend apart is its **Personalised AI Quest Engine**. The system analyses your long-term goals and quest history using advanced Retrieval-Augmented Generation (RAG) to generate daily and weekly challenges tailored specifically to where you are in your journey. 
+
+### ✨ Highlight Features
+
+- **🧠 Memory-Driven AI Quests:** The system remembers your past accomplishments and dynamically adjusts difficulty. It never repeats itself, acting like a true Dungeon Master for your life.
+- **📊 GitHub-Style Heatmaps & Deep Analytics:** Visualize your consistency with beautiful activity heatmaps and track your distribution of effort across Health, Mind, and Wealth domains.
+- **⚡ Offline-First Architecture:** Powered by a robust Room database locally, the app feels instantaneously snappy and seamlessly syncs to the backend in the background.
+- **🤖 Proprietary Custom ML Model:** Powered by a centralized, fine-tuned machine learning pipeline. Your personal data stays entirely within the Ascend ecosystem for complete privacy.
+- **🏆 Dynamic Achievements & Sharing:** Earn stylish diamond badges for your milestones and share your Hunter Card with friends to show off your rank and streaks.
 
 **Core loop:**
 1. Set goals (fitness, learning, mindfulness, creativity)
 2. Complete AI-generated quests and daily habits
 3. Earn XP, level up, unlock titles
-4. The AI remembers your history and never repeats itself
+4. The AI remembers your history and dynamically evolves your next quests
 
 ---
 
@@ -38,8 +72,8 @@ Ascend turns your daily habits and personal goals into an RPG. Every task you co
 | Layer | Technology |
 |---|---|
 | Android client | Kotlin · Jetpack Compose · MVI · Room · Retrofit |
-| Go API | Go 1.23 · Chi router · JWT · AES-256-GCM |
-| AI / RAG | Python · FastAPI · LangChain · OpenAI / Claude / Gemini |
+| Go API | Go 1.23 · Chi router · JWT |
+| AI / ML | Python · FastAPI · LangChain · Custom ML Model |
 | Database | PostgreSQL 16 · pgvector (semantic search) |
 | Cache & streams | Redis 7 · Redis Streams (async event processing) |
 | Containerisation | Docker · Docker Compose |
@@ -63,7 +97,7 @@ Go API Gateway (port 8080)
     │
     └──► Python RAG Service (port 8001)
              │  LangChain + vector similarity search
-             └──► LLM API (OpenAI / Claude / Gemini via BYOK)
+             └──► Custom ML Model Inference
 ```
 
 **Key design decisions:**
@@ -72,167 +106,13 @@ Go API Gateway (port 8080)
 - **Async by default**: quest completion returns in <15ms; XP calculation, embedding, and notifications are async via Redis Streams
 - **Offline-first Android**: Room cache serves UI instantly; network sync happens in background
 - **RAG memory**: every completed quest and goal is embedded into pgvector; the AI retrieves semantically relevant history before generating new quests — it never repeats itself
-- **BYOK**: users supply their own LLM API key; the backend encrypts it with AES-256-GCM envelope encryption and decrypts it only during quest generation, never logging it
 
 ---
 
-## Prerequisites
 
-Install these tools before starting:
+## Setup & Development
 
-```bash
-# required
-docker --version      # Docker Desktop 4.x+
-go version            # Go 1.23+
-python3 --version     # Python 3.12+
-git --version         # any version
-
-# for Android development
-# Android Studio Ladybug or newer (developer.android.com/studio)
-```
-
-**Free accounts needed (no credit card):**
-
-| Service | Purpose | URL |
-|---|---|---|
-| Railway | Cloud deployment | railway.app |
-| ngrok | Local tunnel for device testing | ngrok.com |
-| Brevo | SMTP email for OTP (300/day free) | brevo.com |
-
----
-
-## Setup Guide
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/you/ascend.git
-cd ascend
-```
-
-### 2. Configure environment
-
-```bash
-cp .env.example .env
-```
-
-Open `.env` and fill in:
-
-```bash
-# generate secrets
-openssl rand -hex 32   # use for JWT_SECRET
-openssl rand -hex 32   # use for MASTER_ENCRYPTION_KEY
-openssl rand -hex 32   # use for HMAC_SECRET
-```
-
-Minimum required values for local development:
-
-```env
-DB_NAME=ascend_db
-DB_USER=ascend_user
-DB_PASSWORD=ascend_pass
-DATABASE_URL=postgres://ascend_user:ascend_pass@localhost:5432/ascend_db?sslmode=disable
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=<generated>
-MASTER_ENCRYPTION_KEY=<generated>
-HMAC_SECRET=<generated>
-APP_ENV=development
-APP_PORT=8080
-ALLOWED_ORIGINS=http://localhost:3000
-RAG_SERVICE_URL=http://localhost:8001
-```
-
-SMTP values (for email OTP) — leave blank to skip email in development:
-
-```env
-SMTP_HOST=smtp.brevo.com
-SMTP_PORT=587
-SMTP_USER=your@email.com
-SMTP_PASSWORD=your_brevo_smtp_password
-EMAIL_FROM=noreply@ascend.app
-```
-
-### 3. Start backend services
-
-```bash
-# start database and cache
-docker compose up postgres redis -d
-
-# run all migrations (creates all tables)
-make migrate
-
-# start all services
-docker compose up --build
-```
-
-Expected output — all four containers running:
-
-```
-ascend_postgres   healthy
-ascend_redis      healthy
-ascend_backend    running on :8080
-ascend_rag        running on :8001
-ascend_xp_worker  consumer started
-```
-
-### 4. Verify services
-
-```bash
-curl http://localhost:8080/health   # {"data":{"status":"ok"}}
-curl http://localhost:8001/health   # {"status":"ok","service":"rag"}
-```
-
-### 5. Load seed data
-
-```bash
-docker exec -i ascend_postgres \
-  psql -U ascend_user -d ascend_db < scripts/seed.sql
-```
-
-This creates a test user: `test@ascend.app / password123` with sample goals, habits, and quests.
-
-> **Note:** The seed user has `email_verified=true` set manually. For new registrations, the email OTP flow applies.
-
-### 6. Run the Android app
-
-1. Open Android Studio
-2. `File → Open → select the android/ folder`
-3. Wait for Gradle sync
-4. Start an Android emulator (API 26 or higher)
-5. Press Run
-
-The app connects to `http://10.0.2.2:8080` — the emulator's alias for your machine's localhost.
-
-### 7. Test on a real device (optional)
-
-```bash
-./scripts/dev-tunnel.sh
-```
-
-Copy the printed ngrok URL, paste it into `android/app/build.gradle.kts` in the `ngrok` build type, select `ngrokDebug` variant, and run on your physical device.
-
----
-
-## Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `REDIS_URL` | Yes | Redis connection string |
-| `JWT_SECRET` | Yes | 32-byte hex secret for JWT signing |
-| `JWT_EXPIRY_MINUTES` | No | Access token TTL (default: 15) |
-| `REFRESH_TOKEN_EXPIRY_DAYS` | No | Refresh token TTL (default: 7) |
-| `MASTER_ENCRYPTION_KEY` | Yes | 32-byte hex key for BYOK encryption |
-| `HMAC_SECRET` | Yes | 32-byte hex key for request signing |
-| `APP_ENV` | No | development / production (default: development) |
-| `APP_PORT` | No | API port (default: 8080) |
-| `ALLOWED_ORIGINS` | Yes | Comma-separated CORS origins |
-| `RAG_SERVICE_URL` | Yes | Internal URL of the Python RAG service |
-| `SMTP_HOST` | No | SMTP server (required for email OTP) |
-| `SMTP_PORT` | No | SMTP port (default: 587) |
-| `SMTP_USER` | No | SMTP username |
-| `SMTP_PASSWORD` | No | SMTP password |
-| `EMAIL_FROM` | No | Sender address for OTP emails |
+Detailed instructions for local setup, environment configuration, troubleshooting, and development commands are available in the **[Setup Guide](SETUP_GUIDE.md)**.
 
 ---
 
@@ -282,14 +162,6 @@ All endpoints are prefixed with `/api/v1`.
 | POST | `/quests/:id/complete` | JWT | Complete a quest |
 | POST | `/quests/:id/skip` | JWT | Skip a quest |
 | POST | `/quests/generate` | JWT | AI-generate new quests (rate-limited: 3/day) |
-
-### Settings
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/settings/api-key` | JWT | Store AI API key (encrypted) |
-| GET | `/settings/api-key/status` | JWT | Check if key is stored |
-| DELETE | `/settings/api-key` | JWT | Remove stored key |
 
 ### Health
 
@@ -343,158 +215,6 @@ Register → email OTP sent → verify OTP → account active → login → JWT 
 - Maximum 128 characters
 - Stored as bcrypt hash at cost factor 12
 
-### BYOK encryption
-
-User-supplied AI API keys are never stored in plain text:
-
-```
-User submits key → TLS transit → Go handler
-    → generates random 32-byte DEK
-    → AES-256-GCM encrypts key with DEK
-    → AES-256-GCM encrypts DEK with MEK (from env, never in DB)
-    → stores {wrapped_dek, ciphertext} in postgres
-    → plaintext key goes out of scope → GC eligible
-```
-
-At generation time:
-
-```
-Decrypt wrapped_dek with MEK → decrypt ciphertext with DEK
-    → plaintext key in local variable
-    → passed to RAG service
-    → ZeroBytes() called on return → memory wiped
-```
-
-The plaintext key never appears in logs, never touches disk, and lives for one request stack frame.
-
----
-
-## BYOK
-
-To use AI quest generation, you need an API key from one of these providers:
-
-| Provider | Get a key | Recommended free tier |
-|---|---|---|
-| OpenAI | platform.openai.com | gpt-4o-mini ($0.15/1M tokens) |
-| Anthropic (Claude) | console.anthropic.com | claude-haiku-3 ($0.25/1M tokens) |
-| Google (Gemini) | aistudio.google.com | gemini-1.5-flash (free tier available) |
-
-In the Android app:
-
-1. Go to **Settings** (bottom navigation)
-2. Select your provider
-3. Paste your API key
-4. Tap **Save Key Securely**
-
-The key is immediately encrypted on the server. You can remove it at any time from the same screen.
-
----
-
-## Development Commands
-
-```bash
-# start all services
-docker compose up --build
-
-# start only database and cache (for running Go locally)
-docker compose up postgres redis -d
-
-# run migrations
-make migrate
-
-# roll back one migration
-make migrate-down
-
-# check migration version
-make migrate-status
-
-# run Go backend tests
-cd backend && go test ./...
-
-# run Go linter
-cd backend && golangci-lint run
-
-# run RAG service tests
-cd rag-service && pytest -v
-
-# view service logs
-docker compose logs backend -f
-docker compose logs rag-service -f
-docker compose logs xp-worker -f
-
-# connect to postgres
-docker exec -it ascend_postgres psql -U ascend_user -d ascend_db
-
-# connect to redis
-docker exec -it ascend_redis redis-cli
-
-# stop all containers
-docker compose down
-
-# stop and wipe all data (fresh start)
-docker compose down -v
-
-# start ngrok tunnel
-./scripts/dev-tunnel.sh
-
-# deploy to Railway
-railway up
-```
-
----
-
-## Troubleshooting
-
-**`go.sum` not found on first build**
-
-```bash
-cd backend && touch go.sum && go mod tidy
-```
-
-**Login returns "invalid credentials" on seeded user**
-
-The seed script has a placeholder hash. Fix:
-
-```bash
-cd backend
-go run /tmp/hashgen.go  # prints bcrypt hash for "password123"
-# paste hash into:
-docker exec -it ascend_postgres psql -U ascend_user -d ascend_db -c \
-  "UPDATE users SET password_hash='<hash>' WHERE email='test@ascend.app';"
-```
-
-**Android cannot reach backend on emulator**
-
-- Confirm backend is running: `curl http://localhost:8080/health`
-- Confirm `BASE_URL` is `http://10.0.2.2:8080/api/v1/` (not `localhost`)
-- Confirm `network_security_config.xml` allows cleartext to `10.0.2.2`
-
-**Android cannot reach backend on physical device**
-
-Use the ngrok tunnel: `./scripts/dev-tunnel.sh`
-
-**pgvector extension not found**
-
-The Docker image `pgvector/pgvector:pg16` includes pgvector pre-installed. If you see this error, the wrong Postgres image was used. Run `docker compose down -v && docker compose up postgres -d`.
-
-**Quest generation returns "no AI API key configured"**
-
-Go to Settings in the Android app and save your API key from OpenAI, Anthropic, or Google.
-
-**RAG service shows "mock embedder" in logs**
-
-This is correct when `OPENAI_API_KEY` is not set. The mock embedder returns fake vectors — quest generation still works but uses random embeddings instead of semantic ones. Set a real key in `.env` for real RAG behaviour.
-
-**OTP email not arriving**
-
-1. Check SMTP credentials in `.env`
-2. Check spam folder
-3. For development, read the OTP directly from Redis:
-   ```bash
-   docker exec -it ascend_redis redis-cli KEYS "otp:*"
-   docker exec -it ascend_redis redis-cli GET "otp:your@email.com"
-   ```
-
 ---
 
 ## Project Structure
@@ -511,12 +231,10 @@ ascend/
 │   │   ├── game/             XP engine, levelling formula
 │   │   ├── goal/             goal HTTP handlers
 │   │   ├── habit/            habit HTTP handlers
-│   │   ├── keyvault/         AES-256-GCM BYOK encryption
 │   │   ├── middleware/        CORS, JWT guard, rate limit, HMAC, logger
 │   │   ├── otp/              OTP generate + verify
 │   │   ├── quest/            quest handlers + expiry worker
 │   │   ├── server/           router wiring
-│   │   ├── settings/         BYOK settings handlers
 │   │   ├── store/            repository interfaces + Postgres/Redis impls
 │   │   ├── validators/       input validation
 │   │   └── workers/          XP background worker
@@ -527,7 +245,7 @@ ascend/
 │
 ├── rag-service/              Python AI service
 │   ├── app/
-│   │   ├── providers/        OpenAI / Claude / Gemini adapters
+│   │   ├── model/            Custom ML model inference adapters
 │   │   ├── prompts/          versioned prompt templates
 │   │   ├── context_builder   user context assembler
 │   │   ├── document_builder  quest → embeddable text
@@ -554,7 +272,6 @@ ascend/
 │           ├── levelup/      LevelUpModal with particle system
 │           ├── navigation/   NavGraph, routes, bottom nav
 │           ├── profile/      user profile + logout
-│           ├── settings/     BYOK key management
 │           ├── splash/       auto-login routing
 │           └── theme/        colors, typography, shapes, gradients
 │

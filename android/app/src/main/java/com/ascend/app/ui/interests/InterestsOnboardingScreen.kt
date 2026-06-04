@@ -1,73 +1,29 @@
 package com.ascend.app.ui.interests
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,18 +34,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ascend.app.domain.model.InterestCategory
 import com.ascend.app.domain.model.InterestSubcategory
 import com.ascend.app.domain.model.UserInterest
+import com.ascend.app.ui.auth.jetBrainsMono
+import com.ascend.app.ui.auth.orbitron
 import com.ascend.app.ui.components.SystemPanel
-import com.ascend.app.ui.theme.BorderGlow
-import com.ascend.app.ui.theme.CyanAccent
-import com.ascend.app.ui.theme.GoldAccent
-import com.ascend.app.ui.theme.PanelDark
-import com.ascend.app.ui.theme.PanelMid
-import com.ascend.app.ui.theme.PurpleLight
-import com.ascend.app.ui.theme.PurplePrimary
-import com.ascend.app.ui.theme.SystemBlack
-import com.ascend.app.ui.theme.TextMuted
-import com.ascend.app.ui.theme.TextPrimary
-import com.ascend.app.ui.theme.TextSecondary
+import com.ascend.app.ui.theme.*
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
@@ -110,135 +58,127 @@ fun InterestsOnboardingScreen(
     }
 
     InterestsOnboardingScreenContent(
-        step = state.step,
-        selectedInterests = state.selectedInterests,
-        categories = state.categories,
-        isLoading = state.isLoading,
-        isSaving = state.isSaving,
-        error = state.error,
-        draftCategoryObj = state.draftCategoryObj,
-        draftSubcategory = state.draftSubcategory,
-        draftPriority = state.draftPriority,
-        draftProficiency = state.draftProficiency,
-        draftCustomGoal = state.draftCustomGoal,
+        state = state,
         snackbarHostState = snackbarHostState,
-        onIntent = viewModel::onIntent,
-        onProceedToCustomGoal = viewModel::proceedToCustomGoal
+        onIntent = viewModel::onIntent
     )
 }
 
 @Composable
 fun InterestsOnboardingScreenContent(
-    step: InterestsStep,
-    selectedInterests: List<UserInterest>,
-    categories: List<InterestCategory>,
-    isLoading: Boolean,
-    isSaving: Boolean,
-    error: String?,
-    draftCategoryObj: InterestCategory?,
-    draftSubcategory: String?,
-    draftPriority: Int,
-    draftProficiency: String,
-    draftCustomGoal: String,
+    state: InterestsState,
     snackbarHostState: SnackbarHostState,
-    onIntent: (InterestsIntent) -> Unit,
-    onProceedToCustomGoal: () -> Unit
+    onIntent: (InterestsIntent) -> Unit
 ) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = SystemBlack
+        containerColor = SystemBlack,
+        bottomBar = {
+            OnboardingBottomBar(
+                isFinalStep = state.step == InterestsStep.REVIEW,
+                isLoading = state.isSaving,
+                proceedEnabled = canProceed(state),
+                onBack = { onIntent(InterestsIntent.GoBack) },
+                onProceed = {
+                    if (state.step == InterestsStep.REVIEW) onIntent(InterestsIntent.Save)
+                    else onIntent(InterestsIntent.Continue)
+                }
+            )
+        }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(SystemBlack)
+                .scanlineOverlay()
                 .padding(padding)
         ) {
-            OnboardingTopBar(
-                step = step,
-                selectedCount = selectedInterests.size,
-                onBack = { onIntent(InterestsIntent.GoBack) }
+            // Top atmospheric halo
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .height(384.dp)
+                    .blur(60.dp)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                PurplePrimary.copy(alpha = 0.10f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
 
-            StepProgressBar(current = step)
-            Spacer(Modifier.height(8.dp))
+            Column(modifier = Modifier.fillMaxSize()) {
+                OnboardingHeader(
+                    step = state.step,
+                    selectedCount = state.selectedInterests.size,
+                    onBack = { onIntent(InterestsIntent.GoBack) }
+                )
 
-            if (isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = PurplePrimary, strokeWidth = 2.dp)
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            "LOADING SYSTEM...", fontSize = 11.sp,
-                            letterSpacing = 3.sp, color = TextMuted, fontWeight = FontWeight.Black
+                if (state.isLoading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = PurplePrimary, strokeWidth = 2.dp)
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                "LOADING SYSTEM...",
+                                fontFamily = jetBrainsMono,
+                                fontSize = 11.sp, letterSpacing = 3.sp,
+                                color = TextMuted, fontWeight = FontWeight.Black
+                            )
+                        }
+                    }
+                    return@Column
+                }
+
+                AnimatedContent(
+                    targetState = state.step,
+                    transitionSpec = {
+                        val isForward = targetState.ordinal > initialState.ordinal
+                        (slideInHorizontally { if (isForward) it else -it } + fadeIn()) togetherWith
+                                (slideOutHorizontally { if (isForward) -it else it } + fadeOut())
+                    },
+                    label = "step_transition"
+                ) { currentStep ->
+                    val pickedCats = remember(state.categories, state.pickedCategoryIds) {
+                        state.categories.filter { it.id in state.pickedCategoryIds }
+                    }
+                    when (currentStep) {
+                        InterestsStep.CATEGORY_PICK -> CategoryPickStep(
+                            categories = state.categories,
+                            pickedCategoryIds = state.pickedCategoryIds,
+                            onTogglePicked = { onIntent(InterestsIntent.TogglePickedCategory(it)) }
+                        )
+                        InterestsStep.FOCUS_AREAS -> FocusAreasStep(
+                            pickedCategories = pickedCats,
+                            selectedInterests = state.selectedInterests,
+                            onToggleArea = { c, s -> onIntent(InterestsIntent.ToggleArea(c, s)) },
+                            onSetPriority = { c, s, p -> onIntent(InterestsIntent.SetAreaPriority(c, s, p)) }
+                        )
+                        InterestsStep.PROFICIENCY_PICK -> ProficiencyPickStep(
+                            pickedCategories = pickedCats,
+                            proficiencyMap = state.proficiencyByCategory,
+                            onSetProficiency = { c, lv -> onIntent(InterestsIntent.SetCategoryProficiency(c, lv)) }
+                        )
+                        InterestsStep.GLOBAL_GOAL -> GlobalGoalStep(
+                            goal = state.globalGoal,
+                            onGoalChanged = { onIntent(InterestsIntent.SetGlobalGoal(it)) }
+                        )
+                        InterestsStep.REVIEW -> ConfirmAwakeningStep(
+                            selectedInterests = state.selectedInterests,
+                            categories = state.categories,
+                            globalGoal = state.globalGoal,
+                            onRemove = { onIntent(InterestsIntent.RemoveInterest(it)) }
                         )
                     }
-                }
-                return@Scaffold
-            }
-
-            AnimatedContent(
-                targetState = step,
-                transitionSpec = {
-                    val isForward = targetState.ordinal > initialState.ordinal
-                    (slideInHorizontally { if (isForward) it else -it } + fadeIn()) togetherWith (slideOutHorizontally { if (isForward) -it else it } + fadeOut())
-                },
-                label = "step_transition"
-            ) { currentStep ->
-                when (currentStep) {
-                    InterestsStep.CATEGORY_PICK -> CategoryPickStep(
-                        categories = categories,
-                        selectedInterests = selectedInterests,
-                        onSelectCategory = { onIntent(InterestsIntent.SelectCategory(it)) },
-                        onGoToReview = {
-                            if (selectedInterests.isNotEmpty()) {
-                                onIntent(InterestsIntent.ConfirmDraftAndReview)
-                            }
-                        }
-                    )
-
-                    InterestsStep.SUBCATEGORY_PICK -> SubcategoryPickStep(
-                        category = draftCategoryObj,
-                        selectedSubcategory = draftSubcategory,
-                        selectedPriority = draftPriority,
-                        onSelectSubcategory = { onIntent(InterestsIntent.SelectSubcategory(it)) },
-                        onSetPriority = { onIntent(InterestsIntent.SetPriority(it)) },
-                        onNext = { onIntent(InterestsIntent.SelectSubcategory(draftSubcategory)) }
-                    )
-
-                    InterestsStep.PROFICIENCY_PICK -> ProficiencyPickStep(
-                        categoryName = draftCategoryObj?.name ?: "",
-                        subcategoryName = draftCategoryObj?.subcategories
-                            ?.find { it.id == draftSubcategory }?.name ?: "",
-                        selectedProficiency = draftProficiency,
-                        onSetProficiency = { onIntent(InterestsIntent.SetProficiency(it)) },
-                        onNext = { onIntent(InterestsIntent.ConfirmProficiencyAndContinue) }
-                    )
-
-                    InterestsStep.CUSTOM_GOAL -> CustomGoalStep(
-                        categoryName = draftCategoryObj?.name ?: "",
-                        subcategoryName = draftCategoryObj?.subcategories
-                            ?.find { it.id == draftSubcategory }?.name ?: "",
-                        customGoal = draftCustomGoal,
-                        onGoalChanged = { onIntent(InterestsIntent.SetCustomGoal(it)) },
-                        onAddMore = { onIntent(InterestsIntent.ConfirmDraftAndAddMore) },
-                        onDone = { onIntent(InterestsIntent.ConfirmDraftAndReview) }
-                    )
-
-                    InterestsStep.REVIEW -> ReviewStep(
-                        interests = selectedInterests,
-                        categories = categories,
-                        isSaving = isSaving,
-                        onRemove = { onIntent(InterestsIntent.RemoveInterest(it)) },
-                        onChangePriority = { idx, p -> onIntent(InterestsIntent.ChangePriority(idx, p)) },
-                        onAddMore = { onIntent(InterestsIntent.GoBack) },
-                        onSave = { onIntent(InterestsIntent.Save) }
-                    )
                 }
             }
         }
     }
-    if (error != null) {
+
+    if (state.error != null) {
         AlertDialog(
             onDismissRequest = { onIntent(InterestsIntent.DismissError) },
             confirmButton = {
@@ -247,449 +187,586 @@ fun InterestsOnboardingScreenContent(
                 }
             },
             title = { Text("Error", color = TextPrimary) },
-            text = { Text(error, color = TextSecondary) },
+            text = { Text(state.error, color = TextSecondary) },
             containerColor = PanelDark
         )
     }
 }
 
+private fun canProceed(state: InterestsState): Boolean = when (state.step) {
+    InterestsStep.CATEGORY_PICK    -> state.pickedCategoryIds.isNotEmpty()
+    InterestsStep.FOCUS_AREAS      -> state.selectedInterests.isNotEmpty()
+    InterestsStep.PROFICIENCY_PICK -> state.pickedCategoryIds.all { state.proficiencyByCategory[it]?.isNotBlank() == true }
+    InterestsStep.GLOBAL_GOAL      -> state.globalGoal.isNotBlank()
+    InterestsStep.REVIEW           -> state.selectedInterests.isNotEmpty() && !state.isSaving
+}
+
+/* ============================================================
+ *  HEADER
+ * ============================================================ */
 @Composable
-private fun ReviewStep(
-    interests: List<UserInterest>,
-    categories: List<InterestCategory>,
-    isSaving: Boolean,
-    onRemove: (Int) -> Unit,
-    onChangePriority: (Int, Int) -> Unit,
-    onAddMore: () -> Unit,
-    onSave: () -> Unit
+fun OnboardingHeader(
+    step: InterestsStep,
+    selectedCount: Int,
+    onBack: () -> Unit
 ) {
-    val catMap = categories.associateBy { it.id }
+    val total = InterestsStep.entries.size
+    val current = step.ordinal + 1
+    val title = when (step) {
+        InterestsStep.CATEGORY_PICK    -> "◈ CHOOSE YOUR PATHS"
+        InterestsStep.FOCUS_AREAS      -> "◈ SET FOCUS AREAS"
+        InterestsStep.PROFICIENCY_PICK -> "◈ SKILL CALIBRATION"
+        InterestsStep.GLOBAL_GOAL      -> "◈ DECLARE YOUR GOAL"
+        InterestsStep.REVIEW           -> "◈ CONFIRM AWAKENING"
+    }
+    val sub = when (step) {
+        InterestsStep.CATEGORY_PICK    -> "Select core domains. Each unlocks focus areas."
+        InterestsStep.FOCUS_AREAS      -> "Toggle areas. Set priority per area."
+        InterestsStep.PROFICIENCY_PICK -> "Calibrate System difficulty to your skill."
+        InterestsStep.GLOBAL_GOAL      -> "One directive. The AI will personalize quests."
+        InterestsStep.REVIEW           -> "Confirm your quest configuration."
+    }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 16.dp)
     ) {
-        item {
-            Spacer(Modifier.height(8.dp))
-            Text("Your quest profile", fontSize = 18.sp,
-                fontWeight = FontWeight.Black, color = TextPrimary)
-            Text("The System will generate quests based on these areas.",
-                fontSize = 13.sp, color = TextSecondary, modifier = Modifier.padding(top = 4.dp))
-            Spacer(Modifier.height(8.dp))
-        }
-
-        itemsIndexed(interests, key = { _, item -> "${item.category}_${item.subcategory}" }) { idx, interest ->
-            val cat = catMap[interest.category]
-            val sub = cat?.subcategories?.find { it.id == interest.subcategory }
-            val catColor = try {
-                Color((cat?.color ?: "#7C3AED").toColorInt())
-            } catch (_: Exception) { PurplePrimary }
-
-            ReviewInterestCard(
-                interest = interest,
-                categoryName = cat?.name ?: interest.category,
-                subcategoryName = sub?.name ?: "",
-                catColor = catColor,
-                emoji = categoryEmoji(interest.category),
-                onRemove = { onRemove(idx) },
-                onChangePriority = { onChangePriority(idx, it) }
-            )
-        }
-
-        item {
-            // Add more button
-            OutlinedButton(
-                onClick = onAddMore,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
-                border = BorderStroke(1.dp, BorderGlow)
-            ) {
-                Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("ADD ANOTHER AREA", fontSize = 11.sp,
-                    letterSpacing = 1.5.sp, fontWeight = FontWeight.Black)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                if (step != InterestsStep.CATEGORY_PICK) {
+                    IconButton(onClick = onBack, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextSecondary)
+                    }
+                    Spacer(Modifier.width(6.dp))
+                }
+                Text(
+                    text = title,
+                    fontFamily = orbitron,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 2.sp,
+                    color = PurpleLight,
+                    style = TextStyle(shadow = Shadow(PurpleLight.copy(alpha = 0.5f), blurRadius = 10f))
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    "SYSTEM CALIBRATION",
+                    fontFamily = jetBrainsMono,
+                    fontSize = 9.5.sp, letterSpacing = 2.sp, color = CyanAccent
+                )
+                Spacer(Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .border(1.dp, BorderGlow.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                        .background(PanelMid.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        "STEP $current/$total",
+                        fontFamily = jetBrainsMono,
+                        fontSize = 9.5.sp, letterSpacing = 2.sp, color = TextMuted
+                    )
+                }
             }
         }
 
+        Spacer(Modifier.height(10.dp))
+        HorizontalDivider(color = BorderGlow.copy(alpha = 0.3f))
+        Spacer(Modifier.height(14.dp))
+
+        SystemProgressBar(progress = current.toFloat() / total)
+
+        Spacer(Modifier.height(8.dp))
+        Text(
+            sub,
+            fontFamily = jetBrainsMono,
+            fontSize = 12.sp, letterSpacing = 0.25.sp,
+            color = TextSecondary.copy(alpha = 0.8f)
+        )
+    }
+}
+
+@Composable
+fun SystemProgressBar(progress: Float) {
+    val infiniteTransition = rememberInfiniteTransition(label = "barPulse")
+    val edgeAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(900, easing = EaseInOutSine), RepeatMode.Reverse),
+        label = "edge"
+    )
+    val animProgress by animateFloatAsState(progress, tween(500), label = "p")
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(6.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(PanelMid)
+            .border(1.dp, BorderGlow.copy(alpha = 0.2f), RoundedCornerShape(3.dp))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(animProgress)
+                .background(
+                    Brush.horizontalGradient(listOf(PurplePrimary.copy(alpha = 0.5f), CyanAccent)),
+                    RoundedCornerShape(3.dp)
+                )
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight()
+                    .width(20.dp)
+                    .blur(4.dp)
+                    .background(Color.White.copy(alpha = 0.6f * edgeAlpha))
+            )
+        }
+    }
+}
+
+/* ============================================================
+ *  STEP 1 — CATEGORY PICK (bento grid, same as before)
+ * ============================================================ */
+@Composable
+fun CategoryPickStep(
+    categories: List<InterestCategory>,
+    pickedCategoryIds: Set<String>,
+    onTogglePicked: (String) -> Unit
+) {
+    val spanMap = mapOf(
+        "technology" to 2, "tech" to 2,
+        "physical" to 2,
+        "mental" to 1,
+        "social" to 1,
+        "finance" to 2
+    )
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp, top = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(
+            count = categories.size,
+            span = { idx ->
+                val s = spanMap[categories[idx].id] ?: 1
+                GridItemSpan(if (s == 2) 2 else 1)
+            },
+            key = { idx -> categories[idx].id }
+        ) { idx ->
+            val category = categories[idx]
+            val span = spanMap[category.id] ?: 1
+            BentoCategoryCard(
+                category = category,
+                isSelected = category.id in pickedCategoryIds,
+                isWide = span == 2,
+                onClick = { onTogglePicked(category.id) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun BentoCategoryCard(
+    category: InterestCategory,
+    isSelected: Boolean,
+    isWide: Boolean,
+    onClick: () -> Unit
+) {
+    val accent = try { Color(category.color.toColorInt()) } catch (_: Exception) { categoryColor(category.id) }
+    val borderColor by animateColorAsState(
+        if (isSelected) accent else accent.copy(alpha = 0.3f), tween(250), label = "border"
+    )
+    val bgColor by animateColorAsState(
+        if (isSelected) accent.copy(alpha = 0.1f) else PanelMid.copy(alpha = 0.85f),
+        tween(250), label = "bg"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(160.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(bgColor)
+            .border(if (isSelected) 1.5.dp else 1.dp, borderColor, RoundedCornerShape(12.dp))
+            .then(
+                if (isSelected) Modifier.shadow(
+                    12.dp, RoundedCornerShape(12.dp),
+                    ambientColor = accent, spotColor = accent
+                ) else Modifier
+            )
+            .clickable { onClick() }
+    ) {
+        CornerTick(Modifier.align(Alignment.TopEnd), accent.copy(alpha = if (isSelected) 0.7f else 0.4f), Corner.TopRight)
+        CornerTick(Modifier.align(Alignment.BottomStart), accent.copy(alpha = 0.25f), Corner.BottomLeft)
+
+        if (isWide && category.id == "finance") {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(accent.copy(alpha = 0.10f), CircleShape)
+                        .border(1.dp, accent.copy(alpha = 0.3f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        categoryIcon(category.id), null, tint = accent,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .shadow(8.dp, CircleShape, ambientColor = accent, spotColor = accent)
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        category.name.uppercase(),
+                        fontFamily = orbitron, fontSize = 18.sp,
+                        fontWeight = FontWeight.Black, letterSpacing = 2.sp,
+                        color = if (isSelected) accent else TextPrimary
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("▸ ", fontSize = 11.sp, color = accent)
+                        Text(
+                            "${category.subcategories.size} FOCUS AREAS",
+                            fontFamily = jetBrainsMono, fontSize = 10.sp,
+                            letterSpacing = 1.sp, color = TextMuted
+                        )
+                    }
+                }
+                SelectedBadge(isSelected = isSelected, accent = accent)
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(20.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Icon(
+                        categoryIcon(category.id), null, tint = accent,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .shadow(8.dp, CircleShape, ambientColor = accent, spotColor = accent)
+                    )
+                    SelectedBadge(isSelected = isSelected, accent = accent)
+                }
+                Column {
+                    Text(
+                        category.name.uppercase(),
+                        fontFamily = orbitron,
+                        fontSize = if (isWide) 20.sp else 18.sp,
+                        fontWeight = FontWeight.Black, letterSpacing = 2.sp,
+                        color = if (isSelected) accent else TextPrimary
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("▸ ", fontSize = 10.sp, color = accent)
+                        Text(
+                            "${category.subcategories.size} FOCUS AREAS",
+                            fontFamily = jetBrainsMono, fontSize = 10.sp,
+                            letterSpacing = 1.sp, color = TextMuted
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectedBadge(isSelected: Boolean, accent: Color) {
+    val alpha by animateFloatAsState(if (isSelected) 1f else 0f, tween(200), label = "badgeA")
+    Box(
+        modifier = Modifier
+            .size(24.dp)
+            .alpha(alpha)
+            .background(accent.copy(alpha = 0.15f), CircleShape)
+            .border(1.dp, accent.copy(alpha = 0.6f), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(Icons.Filled.Check, null, tint = accent, modifier = Modifier.size(14.dp))
+    }
+}
+
+/* ============================================================
+ *  STEP 2 — FOCUS AREAS
+ * ============================================================ */
+@Composable
+fun FocusAreasStep(
+    pickedCategories: List<InterestCategory>,
+    selectedInterests: List<UserInterest>,
+    onToggleArea: (String, String) -> Unit,
+    onSetPriority: (String, String, Int) -> Unit
+) {
+    val areaMap = remember(selectedInterests) {
+        selectedInterests.associate { "${it.category}_${it.subcategory}" to it.priority }
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp, top = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         item {
-            Spacer(Modifier.height(8.dp))
-            // Summary panel
-            SystemPanel(glowColor = PurplePrimary) {
-                Text("◈ QUEST SYSTEM PREVIEW", fontSize = 10.sp,
-                    fontWeight = FontWeight.Black, letterSpacing = 3.sp, color = PurpleLight)
-                Spacer(Modifier.height(10.dp))
-                val primaries = interests.count { it.priority == 1 }
-                val secondaries = interests.count { it.priority == 2 }
-                Text(
-                    "Your daily quests will be generated from $primaries primary area${if (primaries != 1) "s" else ""}" +
-                            (if (secondaries > 0) " and $secondaries secondary area${if (secondaries != 1) "s" else ""}" else "") +
-                            ". The AI will personalise them to your stated goals.",
-                    fontSize = 13.sp, color = TextSecondary, lineHeight = 20.sp
+            Text(
+                "Toggle areas inside each domain. Set priority per area.",
+                fontFamily = jetBrainsMono, fontSize = 12.sp,
+                color = TextSecondary.copy(alpha = 0.8f),
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+        }
+        pickedCategories.forEach { cat ->
+            val accent = try { Color(cat.color.toColorInt()) } catch (_: Exception) { categoryColor(cat.id) }
+            item(key = "header_${cat.id}") {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(bottom = 4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .background(accent.copy(alpha = 0.12f), RoundedCornerShape(7.dp))
+                            .border(1.dp, accent.copy(alpha = 0.4f), RoundedCornerShape(7.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(categoryIcon(cat.id), null, tint = accent, modifier = Modifier.size(16.dp))
+                    }
+                    Text(
+                        cat.name.uppercase(),
+                        fontFamily = orbitron, fontSize = 13.sp,
+                        fontWeight = FontWeight.Black, letterSpacing = 2.sp, color = accent,
+                        style = TextStyle(shadow = Shadow(accent.copy(alpha = 0.5f), blurRadius = 8f))
+                    )
+                }
+            }
+            items(cat.subcategories, key = { "${cat.id}_${it.id}" }) { sub ->
+                val key = "${cat.id}_${sub.id}"
+                val priority = areaMap[key]
+                FocusAreaRow(
+                    name = sub.name,
+                    accent = accent,
+                    isOn = priority != null,
+                    priority = priority ?: 2,
+                    onToggle = { onToggleArea(cat.id, sub.id) },
+                    onSetPriority = { p -> onSetPriority(cat.id, sub.id, p) }
                 )
             }
         }
-
-        item {
-            // Save button
-            Button(
-                onClick = onSave,
-                enabled = interests.isNotEmpty() && !isSaving,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                contentPadding = PaddingValues(0.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.horizontalGradient(listOf(PurplePrimary, CyanAccent)),
-                            RoundedCornerShape(10.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(Modifier.size(22.dp),
-                            color = TextPrimary, strokeWidth = 2.dp)
-                    } else {
-                        Text("⚔  ENTER THE SYSTEM", fontSize = 14.sp,
-                            fontWeight = FontWeight.Black, letterSpacing = 2.sp, color = TextPrimary)
-                    }
-                }
-            }
-        }
     }
 }
 
 @Composable
-private fun ReviewInterestCard(
-    interest: UserInterest,
-    categoryName: String,
-    subcategoryName: String,
-    catColor: Color,
-    emoji: String,
-    onRemove: () -> Unit,
-    onChangePriority: (Int) -> Unit
+private fun FocusAreaRow(
+    name: String, accent: Color, isOn: Boolean, priority: Int,
+    onToggle: () -> Unit, onSetPriority: (Int) -> Unit
 ) {
-    val priorityColor = when (interest.priority) {
-        1 -> GoldAccent; 2 -> CyanAccent; else -> TextMuted
-    }
-    val priorityLabel = when (interest.priority) {
-        1 -> "PRIMARY"; 2 -> "SECONDARY"; else -> "OPTIONAL"
-    }
-
-    SystemPanel(glowColor = catColor.copy(alpha = 0.5f)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.weight(1f)) {
-                Text(emoji, fontSize = 24.sp)
-                Column {
-                    Text(categoryName.uppercase(), fontSize = 12.sp,
-                        fontWeight = FontWeight.Black, letterSpacing = 1.5.sp, color = catColor)
-                    if (subcategoryName.isNotBlank()) {
-                        Text(subcategoryName, fontSize = 13.sp,
-                            color = TextPrimary, fontWeight = FontWeight.Bold)
-                    }
-                    if (interest.customGoal.isNotBlank()) {
-                        Text("\"${interest.customGoal}\"", fontSize = 12.sp,
-                            color = TextSecondary, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                            modifier = Modifier.padding(top = 4.dp))
-                    }
-                }
-            }
-            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Close, null, tint = TextMuted, modifier = Modifier.size(16.dp))
-            }
-        }
-
-        Spacer(Modifier.height(10.dp))
-        HorizontalDivider(color = BorderGlow)
-        Spacer(Modifier.height(10.dp))
-
-        // Priority switcher
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text("PRIORITY", fontSize = 10.sp, fontWeight = FontWeight.Black,
-                letterSpacing = 2.sp, color = TextMuted)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(1 to "P", 2 to "S", 3 to "O").forEach { (p, label) ->
-                    val selected = interest.priority == p
-                    val color = when (p) { 1 -> GoldAccent; 2 -> CyanAccent; else -> TextMuted }
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(
-                                if (selected) color.copy(alpha = 0.15f) else Color.Transparent,
-                                CircleShape
-                            )
-                            .border(
-                                if (selected) 1.5.dp else 1.dp,
-                                if (selected) color else BorderGlow,
-                                CircleShape
-                            )
-                            .clickable { onChangePriority(p) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Black,
-                            color = if (selected) color else TextMuted)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CustomGoalStep(
-    categoryName: String,
-    subcategoryName: String,
-    customGoal: String,
-    onGoalChanged: (String) -> Unit,
-    onAddMore: () -> Unit,
-    onDone: () -> Unit
-) {
+    val borderColor by animateColorAsState(if (isOn) accent else BorderGlow, tween(200), label = "rb")
+    val bgColor by animateColorAsState(
+        if (isOn) accent.copy(alpha = 0.06f) else PanelMid, tween(200), label = "rg"
+    )
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(bgColor)
+            .border(if (isOn) 1.5.dp else 1.dp, borderColor, RoundedCornerShape(10.dp))
+            .clickable { onToggle() }
+            .padding(horizontal = 13.dp, vertical = 11.dp)
     ) {
-        Spacer(Modifier.height(8.dp))
-
-        Text("Tell the System your goal", fontSize = 18.sp,
-            fontWeight = FontWeight.Black, color = TextPrimary)
-
-        val areaLabel = subcategoryName.ifBlank { categoryName }
-        Text(
-            "For $areaLabel — what do you specifically want to achieve? " +
-                    "This helps the AI generate quests tailored exactly to you.",
-            fontSize = 13.sp, color = TextSecondary, lineHeight = 20.sp
-        )
-
-        // Examples
-        SystemPanel(glowColor = BorderGlow) {
-            Text("◈ EXAMPLES", fontSize = 10.sp, fontWeight = FontWeight.Black,
-                letterSpacing = 3.sp, color = TextMuted)
-            Spacer(Modifier.height(8.dp))
-            listOf(
-                "Build a full-stack app in 3 months",
-                "Run a 5K without stopping by June",
-                "Meditate every morning for 21 days",
-                "Read 12 books this year"
-            ).forEach { example ->
-                Row(verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(vertical = 3.dp)) {
-                    Text("▸", fontSize = 12.sp, color = CyanAccent)
-                    Text(example, fontSize = 12.sp, color = TextSecondary)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .border(1.5.dp, if (isOn) accent else BorderGlow, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isOn) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp).clip(CircleShape).background(accent)
+                            .shadow(6.dp, CircleShape, ambientColor = accent, spotColor = accent)
+                    )
+                }
+            }
+            Text(
+                name,
+                fontFamily = jetBrainsMono, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                color = if (isOn) TextPrimary else TextSecondary,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        AnimatedVisibility(visible = isOn) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                listOf(
+                    Triple(1, "PRIMARY", GoldAccent),
+                    Triple(2, "SECONDARY", PurpleLight),
+                    Triple(3, "OPTIONAL", TextMuted)
+                ).forEach { (p, label, color) ->
+                    PrioPill(label, color, priority == p, { onSetPriority(p) }, Modifier.weight(1f))
                 }
             }
         }
-
-        // Text input
-        OutlinedTextField(
-            value = customGoal,
-            onValueChange = { if (it.length <= 300) onGoalChanged(it) },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
-            placeholder = { Text("Describe what you want to achieve...",
-                color = TextMuted, fontSize = 14.sp) },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = PurplePrimary,
-                unfocusedBorderColor = BorderGlow,
-                focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextSecondary,
-                cursorColor = CyanAccent
-            ),
-            shape = RoundedCornerShape(10.dp),
-            maxLines = 6,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            supportingText = {
-                Text("${customGoal.length}/300", fontSize = 11.sp, color = TextMuted,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.End)
-            }
-        )
-
-        // Action buttons
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(
-                onClick = onAddMore,
-                modifier = Modifier.weight(1f).height(50.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
-                border = BorderStroke(1.dp, BorderGlow)
-            ) {
-                Text("+ ADD MORE", fontSize = 11.sp, letterSpacing = 1.5.sp,
-                    fontWeight = FontWeight.Black)
-            }
-
-            Button(
-                onClick = onDone,
-                modifier = Modifier.weight(2f).height(50.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                contentPadding = PaddingValues(0.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.horizontalGradient(listOf(PurplePrimary, CyanAccent)),
-                            RoundedCornerShape(10.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("REVIEW ALL", fontSize = 13.sp, fontWeight = FontWeight.Black,
-                        letterSpacing = 2.sp, color = TextPrimary)
-                }
-            }
-        }
-
-        Spacer(Modifier.height(40.dp))
     }
 }
 
 @Composable
-private fun SubcategoryPickStep(
-    category: InterestCategory?,
-    selectedSubcategory: String?,
-    selectedPriority: Int,
-    onSelectSubcategory: (String?) -> Unit,
-    onSetPriority: (Int) -> Unit,
-    onNext: () -> Unit
+private fun PrioPill(
+    label: String, color: Color, active: Boolean,
+    onClick: () -> Unit, modifier: Modifier = Modifier
 ) {
-    if (category == null) return
+    Box(
+        modifier = modifier
+            .height(28.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (active) color else Color.Transparent)
+            .border(1.dp, color.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
+            .then(
+                if (active) Modifier.shadow(8.dp, RoundedCornerShape(8.dp), ambientColor = color, spotColor = color)
+                else Modifier
+            )
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            label,
+            fontFamily = jetBrainsMono, fontSize = 9.5.sp, letterSpacing = 1.2.sp,
+            fontWeight = FontWeight.Black,
+            color = if (active) Color(0xFF0A0A0F) else color
+        )
+    }
+}
 
-    val catColor = try {
-        Color(category.color.toColorInt())
-    } catch (_: Exception) { PurplePrimary }
-
+/* ============================================================
+ *  STEP 3 — PROFICIENCY (per category)
+ * ============================================================ */
+@Composable
+fun ProficiencyPickStep(
+    pickedCategories: List<InterestCategory>,
+    proficiencyMap: Map<String, String>,
+    onSetProficiency: (String, String) -> Unit
+) {
+    val levels = listOf(
+        Triple("Beginner", "🌱", "Just starting"),
+        Triple("Intermediate", "⚡", "Some experience"),
+        Triple("Expert", "🔥", "Highly skilled")
+    )
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, bottom = 100.dp, end = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp, top = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         item {
-            Spacer(Modifier.height(8.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(categoryEmoji(category.id), fontSize = 28.sp)
-                Column {
-                    Text(category.name.uppercase(), fontSize = 16.sp,
-                        fontWeight = FontWeight.Black, letterSpacing = 2.sp, color = catColor)
-                    Text("Pick your specific focus area", fontSize = 13.sp, color = TextSecondary)
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-        }
-
-        // Subcategory options
-        items(category.subcategories, key = { it.id }) { sub ->
-            SubcategoryCard(
-                sub = sub,
-                accentColor = catColor,
-                isSelected = selectedSubcategory == sub.id,
-                onClick = {
-                    onSelectSubcategory(if (selectedSubcategory == sub.id) null else sub.id)
-                }
+            Text(
+                "Calibrate System difficulty per domain.",
+                fontFamily = jetBrainsMono, fontSize = 12.sp,
+                color = TextSecondary.copy(alpha = 0.8f)
             )
         }
+        items(pickedCategories, key = { it.id }) { cat ->
+            val accent = try { Color(cat.color.toColorInt()) } catch (_: Exception) { categoryColor(cat.id) }
+            val selected = proficiencyMap[cat.id] ?: ""
 
-        // "General" option — no subcategory
-        item {
-            SubcategoryCard(
-                sub = InterestSubcategory(
-                    id = "", name = "General ${category.name}",
-                    description = "No specific focus — mix of everything"
-                ),
-                accentColor = TextMuted,
-                isSelected = selectedSubcategory == null,
-                onClick = { onSelectSubcategory(null) }
-            )
-        }
-
-        // Priority picker
-        item {
-            Spacer(Modifier.height(8.dp))
-            SystemPanel(glowColor = BorderGlow) {
-                Text("◈ PRIORITY LEVEL", fontSize = 10.sp, fontWeight = FontWeight.Black,
-                    letterSpacing = 3.sp, color = TextMuted)
-                Spacer(Modifier.height(12.dp))
-                Text("How much focus should this area get?",
-                    fontSize = 13.sp, color = TextSecondary)
-                Spacer(Modifier.height(10.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .background(accent.copy(alpha = 0.12f), RoundedCornerShape(7.dp))
+                            .border(1.dp, accent.copy(alpha = 0.4f), RoundedCornerShape(7.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(categoryIcon(cat.id), null, tint = accent, modifier = Modifier.size(16.dp))
+                    }
+                    Text(
+                        cat.name.uppercase(),
+                        fontFamily = orbitron, fontSize = 13.sp,
+                        fontWeight = FontWeight.Black, letterSpacing = 2.sp, color = accent
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    listOf(1 to "PRIMARY", 2 to "SECONDARY", 3 to "OPTIONAL").forEach { (p, label) ->
-                        val selected = selectedPriority == p
-                        val color = when (p) {
-                            1 -> GoldAccent; 2 -> CyanAccent; else -> TextMuted
+                    levels.forEach { (level, emoji, desc) ->
+                        val active = selected == level
+                        val color = when (level) {
+                            "Beginner" -> CyanAccent
+                            "Intermediate" -> GoldAccent
+                            else -> Color(0xFFEF4444)
                         }
-                        OutlinedButton(
-                            onClick = { onSetPriority(p) },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (selected) color.copy(alpha = 0.1f) else Color.Transparent,
-                                contentColor = if (selected) color else TextMuted
-                            ),
-                            border = BorderStroke(
-                                if (selected) 1.5.dp else 1.dp,
-                                if (selected) color else BorderGlow
-                            )
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (active) color.copy(alpha = 0.10f) else PanelMid)
+                                .border(
+                                    if (active) 1.5.dp else 1.dp,
+                                    if (active) color else BorderGlow,
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clickable { onSetProficiency(cat.id, level) }
+                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(label, fontSize = 9.sp, letterSpacing = 1.sp,
-                                fontWeight = FontWeight.Black)
+                            Text(emoji, fontSize = 20.sp)
+                            Text(
+                                level.uppercase(),
+                                fontFamily = orbitron, fontSize = 10.sp,
+                                fontWeight = FontWeight.Black, letterSpacing = 1.sp,
+                                color = if (active) color else TextSecondary
+                            )
+                            Text(
+                                desc,
+                                fontFamily = jetBrainsMono, fontSize = 9.sp,
+                                color = TextMuted, textAlign = TextAlign.Center,
+                                lineHeight = 11.sp
+                            )
                         }
                     }
                 }
             }
         }
-
-        item {
-
-            Button(
-                onClick = onNext,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = catColor)
-            ) {
-                Text("NEXT: PROFICIENCY", fontSize = 13.sp,
-                    fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-            }
-        }
     }
 }
 
+/* ============================================================
+ *  STEP 4 — GLOBAL GOAL
+ * ============================================================ */
 @Composable
-private fun ProficiencyPickStep(
-    categoryName: String,
-    subcategoryName: String,
-    selectedProficiency: String,
-    onSetProficiency: (String) -> Unit,
-    onNext: () -> Unit
+fun GlobalGoalStep(
+    goal: String,
+    onGoalChanged: (String) -> Unit
 ) {
-    val areaLabel = subcategoryName.ifBlank { categoryName }
-    val levels = listOf(
-        Triple("Beginner",     "🌱", "Just starting out — quests will teach fundamentals"),
-        Triple("Intermediate", "⚡", "Have some experience — quests will challenge and grow you"),
-        Triple("Expert",       "🔥", "Highly skilled — quests will push your limits")
-    )
-
+    val charLimit = 240
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -697,418 +774,364 @@ private fun ProficiencyPickStep(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Spacer(Modifier.height(8.dp))
         Text(
-            "Your level in $areaLabel",
-            fontSize = 18.sp, fontWeight = FontWeight.Black, color = TextPrimary
+            "Declare what you want the System to drive you toward. Be specific.",
+            fontFamily = jetBrainsMono, fontSize = 12.sp,
+            color = TextSecondary.copy(alpha = 0.8f),
+            lineHeight = 18.sp
         )
-        Text(
-            "The System calibrates quest difficulty to your skill level.",
-            fontSize = 13.sp, color = TextSecondary, lineHeight = 20.sp
-        )
-        Spacer(Modifier.height(4.dp))
-
-        levels.forEach { (level, emoji, desc) ->
-            val isSelected = selectedProficiency == level
-            val accentColor = when (level) {
-                "Beginner"     -> CyanAccent
-                "Intermediate" -> GoldAccent
-                else           -> Color(0xFFEF4444)
-            }
-            Surface(
-                onClick = { onSetProficiency(level) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        width = if (isSelected) 1.5.dp else 1.dp,
-                        color = if (isSelected) accentColor else BorderGlow,
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                shape = RoundedCornerShape(12.dp),
-                color = if (isSelected) accentColor.copy(alpha = 0.08f) else PanelMid
-            ) {
+        SystemPanel(glowColor = BorderGlow) {
+            Text(
+                "▸ EXAMPLE DIRECTIVES",
+                fontFamily = jetBrainsMono, fontSize = 10.sp,
+                fontWeight = FontWeight.Black, letterSpacing = 1.5.sp,
+                color = CyanAccent
+            )
+            Spacer(Modifier.height(8.dp))
+            listOf(
+                "Become fluent in Rust and ship an open-source tool.",
+                "Deadlift 2x bodyweight and sleep 8h nightly.",
+                "Build a \$2k/mo side income stream."
+            ).forEach { example ->
                 Row(
-                    modifier = Modifier.padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(vertical = 4.dp)
                 ) {
-                    Text(emoji, fontSize = 32.sp)
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            level.uppercase(),
-                            fontSize = 14.sp, fontWeight = FontWeight.Black,
-                            letterSpacing = 1.5.sp,
-                            color = if (isSelected) accentColor else TextPrimary
-                        )
-                        Text(
-                            desc, fontSize = 12.sp, color = TextSecondary,
-                            lineHeight = 18.sp, modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                    if (isSelected) {
-                        Icon(
-                            Icons.Default.CheckCircle, null,
-                            tint = accentColor, modifier = Modifier.size(22.dp)
-                        )
-                    }
+                    Text("▸", fontFamily = jetBrainsMono, fontSize = 12.sp, color = CyanAccent)
+                    Text(
+                        example,
+                        fontFamily = jetBrainsMono, fontSize = 12.sp,
+                        color = TextSecondary.copy(alpha = 0.8f),
+                        lineHeight = 17.sp
+                    )
                 }
             }
         }
-
-        Spacer(Modifier.height(8.dp))
-        Button(
-            onClick = onNext,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-            contentPadding = PaddingValues(0.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.horizontalGradient(listOf(PurplePrimary, CyanAccent)),
-                        RoundedCornerShape(10.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "NEXT: SET YOUR GOAL", fontSize = 13.sp,
-                    fontWeight = FontWeight.Black, letterSpacing = 2.sp, color = TextPrimary
-                )
-            }
+        Column {
+            Text(
+                "TELL THE SYSTEM YOUR GOAL",
+                fontFamily = jetBrainsMono, fontSize = 10.sp,
+                letterSpacing = 2.sp, fontWeight = FontWeight.Bold, color = TextMuted
+            )
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = goal,
+                onValueChange = { if (it.length <= charLimit) onGoalChanged(it) },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 140.dp),
+                placeholder = {
+                    Text(
+                        "Your directive here...",
+                        fontFamily = jetBrainsMono, color = TextMuted.copy(alpha = 0.5f),
+                        fontSize = 14.sp
+                    )
+                },
+                textStyle = TextStyle(
+                    fontFamily = jetBrainsMono, fontSize = 14.sp,
+                    color = TextPrimary, lineHeight = 21.sp
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = CyanAccent,
+                    unfocusedBorderColor = BorderGlow,
+                    focusedContainerColor = Color(0xFF0C0C16),
+                    unfocusedContainerColor = Color(0xFF0C0C16),
+                    cursorColor = CyanAccent
+                ),
+                shape = RoundedCornerShape(10.dp),
+                maxLines = 8,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "${goal.length} / $charLimit",
+                fontFamily = jetBrainsMono, fontSize = 10.sp,
+                color = TextMuted.copy(alpha = 0.6f),
+                textAlign = TextAlign.End,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
         Spacer(Modifier.height(40.dp))
     }
 }
 
+/* ============================================================
+ *  STEP 5 — CONFIRM AWAKENING
+ * ============================================================ */
 @Composable
-private fun SubcategoryCard(
-    sub: InterestSubcategory,
-    accentColor: Color,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                width = if (isSelected) 1.5.dp else 1.dp,
-                color = if (isSelected) accentColor else BorderGlow,
-                shape = RoundedCornerShape(10.dp)
-            ),
-        shape = RoundedCornerShape(10.dp),
-        color = if (isSelected) accentColor.copy(alpha = 0.08f) else PanelMid
-    ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Selection indicator
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .border(
-                        1.5.dp,
-                        if (isSelected) accentColor else TextMuted,
-                        CircleShape
-                    )
-                    .background(
-                        if (isSelected) accentColor else Color.Transparent,
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                if (isSelected) Icon(Icons.Default.Check, null,
-                    tint = SystemBlack, modifier = Modifier.size(12.dp))
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(sub.name, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                    color = if (isSelected) TextPrimary else TextSecondary)
-                if (sub.description.isNotBlank()) {
-                    Text(sub.description, fontSize = 12.sp, color = TextMuted,
-                        modifier = Modifier.padding(top = 2.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun CategoryPickStep(
-    categories: List<InterestCategory>,
+fun ConfirmAwakeningStep(
     selectedInterests: List<UserInterest>,
-    onSelectCategory: (String) -> Unit,
-    onGoToReview: () -> Unit
+    categories: List<InterestCategory>,
+    globalGoal: String,
+    onRemove: (Int) -> Unit
 ) {
+    val catMap = categories.associateBy { it.id }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, bottom=100.dp, end = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ){
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp, top = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
         item {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "What do you want to level up?",
-                fontSize = 18.sp, fontWeight = FontWeight.Black,
-                color = TextPrimary, letterSpacing = 0.5.sp
-            )
-            Text(
-                "Select all areas that matter to you. You can add multiple.",
-                fontSize = 13.sp, color = TextSecondary,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-            Spacer(Modifier.height(16.dp))
-        }
-        items(categories, key = { it.id }) { category ->
-            val alreadySelected = selectedInterests.any { it.category == category.id }
-            CategoryCard(
-                category = category,
-                isSelected = alreadySelected,
-                onClick = { onSelectCategory(category.id) }
-            )
-        }
-        if (selectedInterests.isNotEmpty()) {
-            item {
-                Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = onGoToReview,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.horizontalGradient(listOf(PurplePrimary, CyanAccent)),
-                                RoundedCornerShape(10.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "REVIEW SELECTIONS (${selectedInterests.size})",
-                            fontSize = 13.sp, fontWeight = FontWeight.Black,
-                            letterSpacing = 2.sp, color = TextPrimary
-                        )
+            SystemPanel(glowColor = PurplePrimary) {
+                Text(
+                    "◈ FOCUS AREAS · ${selectedInterests.size}",
+                    fontFamily = jetBrainsMono, fontSize = 11.sp,
+                    fontWeight = FontWeight.Black, letterSpacing = 3.sp,
+                    color = PurpleLight
+                )
+                Spacer(Modifier.height(12.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    selectedInterests.forEachIndexed { idx, interest ->
+                        val cat = catMap[interest.category]
+                        val sub = cat?.subcategories?.find { it.id == interest.subcategory }
+                        val catColor = try {
+                            Color((cat?.color ?: "#7C3AED").toColorInt())
+                        } catch (_: Exception) { categoryColor(interest.category) }
+                        val (prioLabel, prioColor) = when (interest.priority) {
+                            1 -> "PRIMARY" to GoldAccent
+                            2 -> "SECONDARY" to PurpleLight
+                            else -> "OPTIONAL" to TextMuted
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(Color(0xFF0C0C16))
+                                .border(1.dp, BorderGlow, RoundedCornerShape(9.dp))
+                                .padding(horizontal = 10.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                categoryIcon(interest.category), null,
+                                tint = catColor, modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                sub?.name ?: interest.subcategory,
+                                fontFamily = jetBrainsMono, fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold, color = TextPrimary,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(prioColor.copy(alpha = 0.12f))
+                                    .border(1.dp, prioColor.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    prioLabel,
+                                    fontFamily = jetBrainsMono, fontSize = 8.5.sp,
+                                    letterSpacing = 1.sp, fontWeight = FontWeight.Black,
+                                    color = prioColor
+                                )
+                            }
+                            Icon(
+                                Icons.Filled.Close, null, tint = TextMuted,
+                                modifier = Modifier
+                                    .size(15.dp)
+                                    .clickable { onRemove(idx) }
+                            )
+                        }
                     }
                 }
             }
         }
+        item {
+            SystemPanel(glowColor = BorderGlow) {
+                Text(
+                    "▸ DIRECTIVE",
+                    fontFamily = jetBrainsMono, fontSize = 10.sp,
+                    fontWeight = FontWeight.Black, letterSpacing = 1.5.sp,
+                    color = CyanAccent
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    globalGoal.ifBlank { "(no directive set)" },
+                    fontFamily = jetBrainsMono, fontSize = 13.sp,
+                    color = TextSecondary.copy(alpha = 0.85f),
+                    lineHeight = 19.sp
+                )
+            }
+        }
     }
 }
 
+/* ============================================================
+ *  BOTTOM BAR
+ * ============================================================ */
 @Composable
-private fun CategoryCard(
-    category: InterestCategory,
-    isSelected: Boolean,
-    onClick: () -> Unit
+fun OnboardingBottomBar(
+    isFinalStep: Boolean,
+    isLoading: Boolean = false,
+    proceedEnabled: Boolean = true,
+    onBack: () -> Unit,
+    onProceed: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val parsedColor = try {
-        Color(category.color.toColorInt())
-    } catch (_: Exception) { PurplePrimary }
-
-    val borderColor by animateColorAsState(
-        if (isSelected) parsedColor else BorderGlow,
-        tween(250), label = "border"
+    val infiniteTransition = rememberInfiniteTransition(label = "btnPulse")
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 0.5f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1400, easing = EaseInOutSine), RepeatMode.Reverse),
+        label = "p"
     )
+    val proceedElev = if (isFinalStep) (pulse * 22).dp else 14.dp
 
-    Surface(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                width = if (isSelected) 1.5.dp else 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(12.dp)
-            ),
-        shape = RoundedCornerShape(12.dp),
-        color = if (isSelected) parsedColor.copy(alpha = 0.08f) else PanelDark
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Color dot / icon
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(parsedColor.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                    .border(1.dp, parsedColor.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    categoryEmoji(category.id),
-                    fontSize = 22.sp
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    category.name.uppercase(),
-                    fontSize = 13.sp, fontWeight = FontWeight.Black,
-                    letterSpacing = 1.5.sp, color = TextPrimary
-                )
-                Text(
-                    category.description,
-                    fontSize = 12.sp, color = TextSecondary,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-                Text(
-                    "${category.subcategories.size} focus areas",
-                    fontSize = 10.sp, color = parsedColor,
-                    letterSpacing = 1.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-
-            if (isSelected) {
-                Icon(Icons.Default.CheckCircle, null,
-                    tint = parsedColor, modifier = Modifier.size(22.dp))
-            } else {
-                Icon(Icons.Default.ChevronRight, null,
-                    tint = TextMuted, modifier = Modifier.size(22.dp))
-            }
-        }
-    }
-}
-
-@Composable
-fun StepProgressBar(current: InterestsStep) {
-    val step = InterestsStep.entries.toTypedArray()
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        step.forEach {
-            val active = it.ordinal <= current.ordinal
-            val animColor by animateColorAsState(
-                if (active) PurplePrimary else BorderGlow,
-                animationSpec = tween(3000), label = "step_color"
-            )
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(animColor)
-            )
-        }
-    }
-}
-
-@Composable
-fun OnboardingTopBar(onBack: () -> Unit, selectedCount: Int, step: InterestsStep) {
-    val title = when (step) {
-        InterestsStep.CATEGORY_PICK    -> "CHOOSE YOUR PATH"
-        InterestsStep.SUBCATEGORY_PICK -> "SELECT FOCUS"
-        InterestsStep.PROFICIENCY_PICK -> "YOUR SKILL LEVEL"
-        InterestsStep.CUSTOM_GOAL      -> "YOUR GOAL"
-        InterestsStep.REVIEW           -> "REVIEW & CONFIRM"
-    }
-    Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .background(Color(0xFF0A0A0F).copy(alpha = 0.92f))
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        if (step != InterestsStep.CATEGORY_PICK) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextSecondary)
-            }
-        } else {
-            Spacer(Modifier.size(48.dp))
+        Box(
+            modifier = Modifier
+                .width(96.dp)
+                .height(48.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .border(1.dp, BorderGlow, RoundedCornerShape(10.dp))
+                .clickable { onBack() },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "← BACK",
+                fontFamily = jetBrainsMono, fontSize = 11.sp,
+                letterSpacing = 2.sp, fontWeight = FontWeight.Black,
+                color = TextSecondary
+            )
         }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp, color = TextPrimary)
-            if (selectedCount > 0) {
-                Text("$selectedCount area${if (selectedCount > 1) "s" else ""} selected",
-                    fontSize = 10.sp, color = CyanAccent, letterSpacing = 1.sp
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(48.dp)
+                .shadow(
+                    proceedElev, RoundedCornerShape(10.dp),
+                    ambientColor = PurplePrimary, spotColor = CyanAccent
                 )
+                .clip(RoundedCornerShape(10.dp))
+                .background(Brush.horizontalGradient(listOf(PurplePrimary, CyanAccent)))
+                .alpha(if (proceedEnabled) 1f else 0.45f)
+                .clickable(enabled = proceedEnabled && !isLoading) { onProceed() },
+            contentAlignment = Alignment.Center
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    Modifier.size(20.dp), color = TextPrimary, strokeWidth = 2.dp
+                )
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (isFinalStep) Icons.Filled.Bolt else Icons.AutoMirrored.Filled.ArrowForward,
+                        null, tint = TextPrimary, modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (isFinalStep) "ENTER THE SYSTEM" else "CONTINUE",
+                        fontFamily = orbitron, fontSize = 13.sp,
+                        fontWeight = FontWeight.Black, letterSpacing = 2.sp,
+                        color = TextPrimary
+                    )
+                }
             }
-        }
-        if (selectedCount > 0 && step == InterestsStep.CATEGORY_PICK) {
-            TextButton(onClick = { /*TODO*/ }) {
-                Text("REVIEW", fontSize = 10.sp, color = PurpleLight, letterSpacing = 1.sp, fontWeight = FontWeight.Black)
-            }
-        } else {
-            Spacer(Modifier.size(48.dp))
         }
     }
 }
 
-private fun categoryEmoji(id: String): String = when (id) {
-    "technology" -> "💻"
-    "physical"   -> "⚔"
-    "mental"     -> "🧠"
-    "social"     -> "🗣"
-    "finance"    -> "📈"
-    else         -> "◈"
+/* ============================================================
+ *  HELPERS — corner ticks, scanline, mapping
+ * ============================================================ */
+private enum class Corner { TopRight, BottomLeft, TopLeft, BottomRight }
+
+@Composable
+private fun CornerTick(modifier: Modifier, color: Color, corner: Corner) {
+    Canvas(
+        modifier = modifier.size(if (corner == Corner.TopRight) 36.dp else 24.dp)
+    ) {
+        val w = size.width; val h = size.height
+        val sw = 1.5f
+        when (corner) {
+            Corner.TopRight -> {
+                drawLine(color, Offset(0f, 0f), Offset(w, 0f), strokeWidth = sw)
+                drawLine(color, Offset(w, 0f), Offset(w, h), strokeWidth = sw)
+            }
+            Corner.BottomLeft -> {
+                drawLine(color, Offset(0f, h), Offset(w, h), strokeWidth = sw)
+                drawLine(color, Offset(0f, 0f), Offset(0f, h), strokeWidth = sw)
+            }
+            Corner.TopLeft -> {
+                drawLine(color, Offset(0f, 0f), Offset(w, 0f), strokeWidth = sw)
+                drawLine(color, Offset(0f, 0f), Offset(0f, h), strokeWidth = sw)
+            }
+            Corner.BottomRight -> {
+                drawLine(color, Offset(0f, h), Offset(w, h), strokeWidth = sw)
+                drawLine(color, Offset(w, 0f), Offset(w, h), strokeWidth = sw)
+            }
+        }
+    }
 }
 
+fun Modifier.scanlineOverlay(): Modifier = drawWithCache {
+    val lineSpacing = 4f
+    onDrawWithContent {
+        drawContent()
+        var y = 0f
+        while (y < size.height) {
+            drawLine(
+                Color.White.copy(alpha = 0.015f),
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = 1f
+            )
+            y += lineSpacing
+        }
+    }
+}
 
+fun categoryIcon(id: String): ImageVector = when (id) {
+    "technology", "tech" -> Icons.Filled.Memory
+    "physical"           -> Icons.Filled.FitnessCenter
+    "mental"             -> Icons.Filled.Psychology
+    "social"             -> Icons.Filled.Groups
+    "finance"            -> Icons.Filled.AccountBalance
+    else                 -> Icons.Filled.Star
+}
+
+fun categoryColor(id: String): Color = when (id) {
+    "technology", "tech" -> CyanAccent
+    "physical"           -> Color(0xFFFFB4AB)
+    "mental"             -> PurpleLight
+    "social"             -> GoldAccent
+    "finance"            -> Color(0xFF732EE4)
+    else                 -> PurplePrimary
+}
+
+/* ============================================================
+ *  PREVIEW
+ * ============================================================ */
 private val mockCategories = listOf(
     InterestCategory(
-        id = "physical",
-        name = "Physical",
-        description = "Level up your strength, endurance, and overall health.",
-        color = "#E53935", // Red
+        id = "technology", name = "Technology",
+        description = "Master programming.",
+        color = "#4CD7F6",
         subcategories = listOf(
-            InterestSubcategory(
-                id = "c_calis",
-                name = "Calisthenics",
-                description = "Bodyweight mastery",
-                questHints = "Focus on pull-ups, push-ups, and core."
-            ),
-            InterestSubcategory(
-                id = "c_run",
-                name = "Running",
-                description = "Cardio and endurance",
-                questHints = "Focus on 5k, 10k, and sprints."
-            )
+            InterestSubcategory("t_and", "Android Development", "Mobile apps", ""),
+            InterestSubcategory("t_back", "Backend", "Servers and APIs", "")
         )
     ),
     InterestCategory(
-        id = "technology",
-        name = "Technology",
-        description = "Master programming, systems, and engineering.",
-        color = "#00ACC1", // Cyan
+        id = "physical", name = "Physical",
+        description = "Strength, endurance, health.",
+        color = "#FFB4AB",
         subcategories = listOf(
-            InterestSubcategory(
-                id = "t_and",
-                name = "Android Development",
-                description = "Mobile apps",
-                questHints = "Jetpack Compose, Kotlin Coroutines, Architecture."
-            ),
-            InterestSubcategory(
-                id = "t_back",
-                name = "Backend",
-                description = "Servers and APIs",
-                questHints = "Go, Gin framework, PostgreSQL, Docker."
-            )
+            InterestSubcategory("c_calis", "Calisthenics", "Bodyweight", ""),
+            InterestSubcategory("c_run", "Running", "Cardio", "")
         )
-    )
-)
-
-private val mockSelectedInterests = listOf(
-    UserInterest(
-        category = "physical",
-        subcategory = "c_run",
-        priority = 1,
-        customGoal = "Run a 5K under 25 minutes"
     ),
-    UserInterest(
-        category = "technology",
-        subcategory = "t_and",
-        priority = 2,
-        customGoal = "Build a habit tracking app"
+    InterestCategory(
+        id = "mental", name = "Mental",
+        description = "Sharpen mind.",
+        color = "#D2BBFF",
+        subcategories = listOf(InterestSubcategory("m_med", "Meditation", "", ""))
     )
 )
 
@@ -1116,82 +1139,79 @@ private val mockSelectedInterests = listOf(
 @Composable
 fun InterestsPreview_CategoryPick() {
     InterestsOnboardingScreenContent(
-        step = InterestsStep.CATEGORY_PICK,
-        selectedInterests = emptyList(),
-        categories = mockCategories,
-        isLoading = false,
-        isSaving = false,
-        error = null,
-        draftCategoryObj = null,
-        draftSubcategory = null,
-        draftPriority = 1,
-        draftProficiency = "Beginner",
-        draftCustomGoal = "",
+        state = InterestsState(
+            step = InterestsStep.CATEGORY_PICK,
+            categories = mockCategories,
+            pickedCategoryIds = setOf("technology")
+        ),
         snackbarHostState = remember { SnackbarHostState() },
-        onIntent = {},
-        onProceedToCustomGoal = {}
+        onIntent = {}
     )
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000, name = "Step 2: Subcategory Pick")
+@Preview(showBackground = true, backgroundColor = 0xFF000000, name = "Step 2: Focus Areas")
 @Composable
-fun InterestsPreview_SubcategoryPick() {
+fun InterestsPreview_FocusAreas() {
     InterestsOnboardingScreenContent(
-        step = InterestsStep.SUBCATEGORY_PICK,
-        selectedInterests = emptyList(),
-        categories = mockCategories,
-        isLoading = false,
-        isSaving = false,
-        error = null,
-        draftCategoryObj = mockCategories[0], // Physical
-        draftSubcategory = "c_calis",
-        draftPriority = 1,
-        draftProficiency = "Intermediate",
-        draftCustomGoal = "",
+        state = InterestsState(
+            step = InterestsStep.FOCUS_AREAS,
+            categories = mockCategories,
+            pickedCategoryIds = setOf("technology", "physical"),
+            selectedInterests = listOf(
+                UserInterest("technology", "t_and", "", 1),
+                UserInterest("physical", "c_run", "", 2)
+            )
+        ),
         snackbarHostState = remember { SnackbarHostState() },
-        onIntent = {},
-        onProceedToCustomGoal = {}
+        onIntent = {}
     )
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000, name = "Step 3: Custom Goal")
+@Preview(showBackground = true, backgroundColor = 0xFF000000, name = "Step 3: Proficiency")
 @Composable
-fun InterestsPreview_CustomGoal() {
+fun InterestsPreview_Proficiency() {
     InterestsOnboardingScreenContent(
-        step = InterestsStep.CUSTOM_GOAL,
-        selectedInterests = emptyList(),
-        categories = mockCategories,
-        isLoading = false,
-        isSaving = false,
-        error = null,
-        draftCategoryObj = mockCategories[0],
-        draftSubcategory = "c_run",
-        draftPriority = 1,
-        draftProficiency = "Beginner",
-        draftCustomGoal = "I want to",
+        state = InterestsState(
+            step = InterestsStep.PROFICIENCY_PICK,
+            categories = mockCategories,
+            pickedCategoryIds = setOf("technology", "physical"),
+            proficiencyByCategory = mapOf("technology" to "Intermediate")
+        ),
         snackbarHostState = remember { SnackbarHostState() },
-        onIntent = {},
-        onProceedToCustomGoal = {}
+        onIntent = {}
     )
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000, name = "Step 4: Review")
+@Preview(showBackground = true, backgroundColor = 0xFF000000, name = "Step 4: Global Goal")
+@Composable
+fun InterestsPreview_GlobalGoal() {
+    InterestsOnboardingScreenContent(
+        state = InterestsState(
+            step = InterestsStep.GLOBAL_GOAL,
+            categories = mockCategories,
+            pickedCategoryIds = setOf("technology", "physical"),
+            globalGoal = "Land a senior engineer role and run a half-marathon by Q4."
+        ),
+        snackbarHostState = remember { SnackbarHostState() },
+        onIntent = {}
+    )
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF000000, name = "Step 5: Review")
 @Composable
 fun InterestsPreview_Review() {
     InterestsOnboardingScreenContent(
-        step = InterestsStep.REVIEW,
-        selectedInterests = mockSelectedInterests,
-        categories = mockCategories,
-        isLoading = false,
-        isSaving = false,
-        error = null,
-        draftCategoryObj = null,
-        draftSubcategory = null,
-        draftPriority = 1,
-        draftProficiency = "Beginner",
-        draftCustomGoal = "",
+        state = InterestsState(
+            step = InterestsStep.REVIEW,
+            categories = mockCategories,
+            pickedCategoryIds = setOf("technology", "physical"),
+            selectedInterests = listOf(
+                UserInterest("technology", "t_and", "", 2),
+                UserInterest("physical", "c_run", "", 1)
+            ),
+            globalGoal = "Land a senior engineer role and run a half-marathon by Q4."
+        ),
         snackbarHostState = remember { SnackbarHostState() },
-        onIntent = {},
-        onProceedToCustomGoal = {}
+        onIntent = {}
     )
 }

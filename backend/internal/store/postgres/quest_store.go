@@ -30,7 +30,7 @@ func (s *QuestStore) ListActive(ctx context.Context, userID string) ([]*models.Q
 	rows, err := s.db.Query(ctx,
 		`SELECT id, user_id, goal_id, title, description, type, difficulty,
 		        xp_reward, status, is_ai_generated, skill_area, expires_at,
-		        completed_at, created_at
+		        completed_at, created_at, reminder_sent
 		 FROM quests
 		 WHERE user_id=$1 AND status='active'
 		 ORDER BY created_at DESC`,
@@ -48,7 +48,7 @@ func (s *QuestStore) ListActive(ctx context.Context, userID string) ([]*models.Q
 			&q.ID, &q.UserID, &q.GoalID, &q.Title, &q.Description,
 			&q.Type, &q.Difficulty, &q.XPReward, &q.Status,
 			&q.IsAIGenerated, &q.SkillArea, &q.ExpiresAt,
-			&q.CompletedAt, &q.CreatedAt,
+			&q.CompletedAt, &q.CreatedAt, &q.ReminderSent,
 		)
 		if err != nil {
 			return nil, err
@@ -62,7 +62,7 @@ func (s *QuestStore) ListHistory(ctx context.Context, userID string) ([]*models.
 	rows, err := s.db.Query(ctx,
 		`SELECT id, user_id, goal_id, title, description, type, difficulty,
 		        xp_reward, status, is_ai_generated, skill_area, expires_at,
-		        completed_at, created_at
+		        completed_at, created_at, reminder_sent
 		 FROM quests
 		 WHERE user_id=$1 AND status IN ('completed', 'skipped', 'expired')
 		 ORDER BY completed_at DESC NULLS LAST, created_at DESC
@@ -81,7 +81,7 @@ func (s *QuestStore) ListHistory(ctx context.Context, userID string) ([]*models.
 			&q.ID, &q.UserID, &q.GoalID, &q.Title, &q.Description,
 			&q.Type, &q.Difficulty, &q.XPReward, &q.Status,
 			&q.IsAIGenerated, &q.SkillArea, &q.ExpiresAt,
-			&q.CompletedAt, &q.CreatedAt,
+			&q.CompletedAt, &q.CreatedAt, &q.ReminderSent,
 		)
 		if err != nil {
 			return nil, err
@@ -96,14 +96,14 @@ func (s *QuestStore) GetByID(ctx context.Context, id, userID string) (*models.Qu
 	err := s.db.QueryRow(ctx,
 		`SELECT id, user_id, goal_id, title, description, type, difficulty,
 		        xp_reward, status, is_ai_generated, skill_area, expires_at,
-		        completed_at, created_at
+		        completed_at, created_at, reminder_sent
 		 FROM quests WHERE id=$1 AND user_id=$2`,
 		id, userID,
 	).Scan(
 		&q.ID, &q.UserID, &q.GoalID, &q.Title, &q.Description,
 		&q.Type, &q.Difficulty, &q.XPReward, &q.Status,
 		&q.IsAIGenerated, &q.SkillArea, &q.ExpiresAt,
-		&q.CompletedAt, &q.CreatedAt,
+		&q.CompletedAt, &q.CreatedAt, &q.ReminderSent,
 	)
 	return q, err
 }
@@ -141,8 +141,8 @@ func (s *QuestStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 		})
 	}
 
-	return game.AwardXP(ctx, s.db, userID, "quest", id, "quest_completed", q.XPReward)
-
+	// award XP synchronously
+	return game.AwardXP(ctx, s.db, userID, "quest", id, "quest_completed", q.SkillArea, q.XPReward)
 }
 
 func (s *QuestStore) Skip(ctx context.Context, id, userID string) error {
@@ -160,5 +160,70 @@ func (s *QuestStore) ExpireOld(ctx context.Context) error {
 		   AND expires_at IS NOT NULL
 		   AND expires_at < NOW()`,
 	)
+	return err
+}
+
+func (s *QuestStore) GetHeatmap(ctx context.Context, userID string) ([]models.HeatmapPoint, error) {
+	rows, err := s.db.Query(ctx,
+		`SELECT TO_CHAR(completed_at, 'YYYY-MM-DD') as date, COUNT(*) as count
+		 FROM quests
+		 WHERE user_id=$1 AND status='completed' AND completed_at IS NOT NULL
+		 GROUP BY TO_CHAR(completed_at, 'YYYY-MM-DD')
+		 ORDER BY date ASC`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var points []models.HeatmapPoint
+	for rows.Next() {
+		var p models.HeatmapPoint
+		if err := rows.Scan(&p.Date, &p.Count); err != nil {
+			return nil, err
+		}
+		points = append(points, p)
+	}
+	if points == nil {
+		points = []models.HeatmapPoint{}
+	}
+	return points, nil
+}
+
+func (s *QuestStore) GetExpiringQuests(ctx context.Context, duration time.Duration) ([]*models.Quest, error) {
+	threshold := time.Now().Add(duration)
+	rows, err := s.db.Query(ctx,
+		`SELECT id, user_id, goal_id, title, description, type, difficulty,
+		        xp_reward, status, is_ai_generated, skill_area, expires_at,
+		        completed_at, created_at, reminder_sent
+		 FROM quests
+		 WHERE status='active' AND reminder_sent=FALSE AND expires_at IS NOT NULL AND expires_at <= $1 AND expires_at > NOW()`,
+		threshold,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var quests []*models.Quest
+	for rows.Next() {
+		q := &models.Quest{}
+		err := rows.Scan(
+			&q.ID, &q.UserID, &q.GoalID, &q.Title, &q.Description,
+			&q.Type, &q.Difficulty, &q.XPReward, &q.Status,
+			&q.IsAIGenerated, &q.SkillArea, &q.ExpiresAt,
+			&q.CompletedAt, &q.CreatedAt, &q.ReminderSent,
+		)
+		if err != nil {
+			return nil, err
+		}
+		quests = append(quests, q)
+	}
+	return quests, nil
+}
+
+func (s *QuestStore) MarkReminderSent(ctx context.Context, questID string) error {
+	_, err := s.db.Exec(ctx, `UPDATE quests SET reminder_sent=TRUE WHERE id=$1`, questID)
 	return err
 }

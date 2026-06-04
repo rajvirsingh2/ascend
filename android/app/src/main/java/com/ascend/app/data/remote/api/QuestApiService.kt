@@ -20,4 +20,7 @@ interface QuestApiService {
 
     @POST("quests/generate")
     suspend fun generateQuests(): ApiEnvelope<List<QuestResponse>>
+
+    @GET("quests/heatmap")
+    suspend fun getHeatmap(): ApiEnvelope<List<com.ascend.app.data.remote.dto.HeatmapPointResponse>>
 }

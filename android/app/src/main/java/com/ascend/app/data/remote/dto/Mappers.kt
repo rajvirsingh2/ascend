@@ -5,6 +5,7 @@ import com.ascend.app.domain.model.Quest
 import com.ascend.app.domain.model.QuestStatus
 import com.ascend.app.domain.model.QuestType
 import com.ascend.app.domain.model.User
+import com.ascend.app.domain.model.Notification
 
 fun UserResponse.toDomain() = User(
     id = id,
@@ -14,6 +15,19 @@ fun UserResponse.toDomain() = User(
     currentXp = currentXp,
     xpToNext = xpToNext,
     avatarUrl = avatarUrl
+)
+
+
+
+fun NotificationResponse.toDomain() = Notification(
+    id = id,
+    type = type,
+    title = title,
+    body = body,
+    xpDelta = xpDelta,
+    actionRoute = actionRoute,
+    isRead = isRead,
+    createdAt = createdAt
 )
 
 fun QuestResponse.toDomain() = Quest(

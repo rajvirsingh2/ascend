@@ -1,12 +1,14 @@
 package com.ascend.app.ui.profile
 
+import com.ascend.app.domain.model.Achievement
 import com.ascend.app.domain.model.User
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
     val user: User? = null,
-    val achievements: List<AchievementItem> = emptyList(),
-    val completedQuestCount: Int = 0
+    val achievements: List<Achievement> = emptyList(),
+    val completedQuestCount: Int = 0,
+    val bestStreak: Int = 0
 )
 
 sealed interface ProfileIntent {

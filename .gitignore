@@ -22,9 +22,10 @@ rag-service/*.egg-info/
 
 # Secrets
 android/app/google-services.json
-backend/firebase-service-account.json.json
+backend/firebase-service-account.json
 
 # Misc / scratch
+scratch/
 data.json
 cookies.txt
 

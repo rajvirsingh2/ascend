@@ -24,7 +24,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.ascend.app.data.realtime.WebSocketManager
+
+import androidx.navigation.navDeepLink
+
 import com.ascend.app.ui.auth.ForgotPasswordScreen
 import com.ascend.app.ui.auth.LoginScreen
 import com.ascend.app.ui.auth.OtpVerificationScreen
@@ -38,33 +40,30 @@ import com.ascend.app.ui.navigation.Routes
 import com.ascend.app.ui.physique.PhysiqueOnboardingScreen
 import com.ascend.app.ui.profile.ProfileScreen
 import com.ascend.app.ui.settings.SettingsScreen
+import com.ascend.app.ui.stats.StatsScreen
 import com.ascend.app.ui.splash.SplashScreen
 import com.ascend.app.ui.theme.AscendTheme
 import com.ascend.app.ui.theme.DarkColors
+import com.ascend.app.notification.AscendToastHost
+import com.ascend.app.notification.NotificationsScreen
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @Inject lateinit var wsManager: WebSocketManager
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        wsManager.connect(BuildConfig.BASE_URL)
         setContent {
             AscendTheme {
                 AscendNavHost()
+                AscendToastHost()
             }
         }
         // in onCreate, after setContent
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        wsManager.disconnect()
     }
 }
 
@@ -97,20 +96,28 @@ fun AscendNavHost() {
                 OtpVerificationScreen(
                     email = email,
                     onVerified = {
-                        // New registrant → go to interests onboarding, then dashboard
-                        navController.navigate(Routes.INTERESTS) {
+                        // New registrant → go to physique onboarding, then interests, then dashboard
+                        navController.navigate(Routes.PHYSIQUE_SETUP_ONBOARDING) {
                             popUpTo(Routes.REGISTER) { inclusive = true }
                         }
                     }
                 )
             }
 
+            composable(Routes.PHYSIQUE_SETUP_ONBOARDING) {
+                PhysiqueOnboardingScreen(
+                    onComplete = {
+                        navController.navigate(Routes.INTERESTS_ONBOARDING) {
+                            popUpTo(Routes.PHYSIQUE_SETUP_ONBOARDING) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            
             composable(Routes.PHYSIQUE_SETUP) {
                 PhysiqueOnboardingScreen(
                     onComplete = {
-                        navController.navigate(Routes.DASHBOARD) {
-                            popUpTo(Routes.PHYSIQUE_SETUP) { inclusive = true }
-                        }
+                        navController.popBackStack()
                     }
                 )
             }
@@ -127,7 +134,7 @@ fun AscendNavHost() {
                         }
                     },
                     onNavigateToInterests = {
-                        navController.navigate(Routes.INTERESTS) {
+                        navController.navigate(Routes.INTERESTS_ONBOARDING) {
                             popUpTo(Routes.SPLASH) { inclusive = true }
                         }
                     }
@@ -151,21 +158,36 @@ fun AscendNavHost() {
                     onNavigateToLogin = { navController.popBackStack() }
                 )
             }
-            composable(Routes.DASHBOARD) { DashboardScreen(onNavigate = { route ->
+            composable(
+                route = Routes.DASHBOARD,
+                deepLinks = listOf(navDeepLink { uriPattern = "ascend://${Routes.DASHBOARD}" })
+            ) { DashboardScreen(onNavigate = { route ->
                 navController.navigate(route) {
                     launchSingleTop = true
                 }
             }) }
-            composable(Routes.GOALS) { GoalsScreen() }
+            composable(
+                route = Routes.GOALS,
+                deepLinks = listOf(navDeepLink { uriPattern = "ascend://${Routes.GOALS}" })
+            ) { GoalsScreen() }
 
             // --- UPDATED PROFILE COMPOSABLE ---
-            composable(Routes.PROFILE) {
+            composable(
+                route = Routes.PROFILE,
+                deepLinks = listOf(navDeepLink { uriPattern = "ascend://${Routes.PROFILE}" })
+            ) {
                 ProfileScreen(
                     onNavigateToPhysiqueSetup = {
                         navController.navigate(Routes.PHYSIQUE_SETUP)
                     },
                     onNavigateToInterests = {
                         navController.navigate(Routes.INTERESTS)
+                    },
+                    onNavigateToStats = {
+                        navController.navigate(Routes.STATS)
+                    },
+                    onNavigateToAttributes = {
+                        navController.navigate(Routes.ATTRIBUTES)
                     },
                     onNavigateToLogin = {
                         navController.navigate(Routes.LOGIN) {
@@ -176,10 +198,23 @@ fun AscendNavHost() {
             }
             // ----------------------------------
 
-            composable(Routes.SETTINGS) {
+            composable(
+                route = Routes.STATS,
+                deepLinks = listOf(navDeepLink { uriPattern = "ascend://${Routes.STATS}" })
+            ) {
+                StatsScreen()
+            }
+
+            composable(
+                route = Routes.SETTINGS,
+                deepLinks = listOf(navDeepLink { uriPattern = "ascend://${Routes.SETTINGS}" })
+            ) {
                 SettingsScreen()
             }
-            composable(Routes.HISTORY) {
+            composable(
+                route = Routes.HISTORY,
+                deepLinks = listOf(navDeepLink { uriPattern = "ascend://${Routes.HISTORY}" })
+            ) {
                 HistoryScreen()
             }
 
@@ -194,13 +229,44 @@ fun AscendNavHost() {
                 )
             }
 
-            composable(Routes.INTERESTS){
+            composable(Routes.INTERESTS_ONBOARDING){
                 InterestsOnboardingScreen(
                     onComplete =  {
                         navController.navigate(Routes.DASHBOARD){
-                            popUpTo(Routes.INTERESTS) { inclusive=true }
+                            popUpTo(Routes.INTERESTS_ONBOARDING) { inclusive=true }
                         }
                     }
+                )
+            }
+            
+            composable(Routes.INTERESTS){
+                InterestsOnboardingScreen(
+                    onComplete =  {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable(
+                route = "notifications",
+                deepLinks = listOf(navDeepLink { uriPattern = "ascend://notifications" })
+            ) {
+                NotificationsScreen(
+                    onBack = { navController.popBackStack() },
+                    onItemClick = { item ->
+                        item.actionRoute?.let { route ->
+                            navController.navigate(route)
+                        }
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.ATTRIBUTES,
+                deepLinks = listOf(navDeepLink { uriPattern = "ascend://${Routes.ATTRIBUTES}" })
+            ) {
+                com.ascend.app.ui.attributes.AttributesScreen(
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

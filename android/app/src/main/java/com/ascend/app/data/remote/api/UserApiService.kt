@@ -16,4 +16,31 @@ interface UserApiService{
 
     @POST("me/fcm-token")
     suspend fun registerFCMToken(@Body req: FCMTokenRequest): ApiEnvelope<Unit>
+
+    @GET("me/stats")
+    suspend fun getStats(): ApiEnvelope<StatsResponse>
 }
+
+data class XpHistoryPointResponse(
+    val date: String,
+    val xp: Int
+)
+
+data class SkillCountResponse(
+    val skill_area: String,
+    val count: Int
+)
+
+data class StatsResponse(
+    val total_xp: Int,
+    val level: Int,
+    val total_quests: Int,
+    val habits_completed: Int,
+    val streak_freezes: Int,
+    val best_streak: Int,
+    val xp_history: List<XpHistoryPointResponse>,
+    val quest_distribution: List<SkillCountResponse>,
+    val quests_this_week: Int,
+    val quests_skipped: Int,
+    val on_time_percentage: Float
+)

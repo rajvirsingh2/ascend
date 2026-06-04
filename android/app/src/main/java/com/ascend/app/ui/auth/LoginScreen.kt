@@ -1,21 +1,36 @@
 package com.ascend.app.ui.auth
 
+import androidx.compose.animation.core.EaseInOutSine
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -23,36 +38,47 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-
+import com.ascend.app.R
 import com.ascend.app.ui.components.SystemPanel
 import com.ascend.app.ui.navigation.Routes
 import com.ascend.app.ui.theme.BorderGlow
 import com.ascend.app.ui.theme.CyanAccent
 import com.ascend.app.ui.theme.DarkColors
-import com.ascend.app.ui.theme.PurpleLight
 import com.ascend.app.ui.theme.PurplePrimary
 import com.ascend.app.ui.theme.TextPrimary
-import com.ascend.app.ui.theme.TextSecondary
 
+
+val orbitron= FontFamily(
+    Font(R.font.orbitron_black, FontWeight.Normal)
+)
+
+val jetBrainsMono=FontFamily(
+    Font(R.font.jetbrainsmono_medium, FontWeight.Normal)
+)
 @Composable
 fun LoginScreen(
     onNavigateToDashboard: () -> Unit,
@@ -66,7 +92,7 @@ fun LoginScreen(
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                is AuthEffect.NavigateToSplash -> onNavigateToDashboard() // The callback is still named onNavigateToDashboard in the composable signature, but we'll route it to splash from MainActivity
+                is AuthEffect.NavigateToSplash -> onNavigateToDashboard()
                 is AuthEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
         }
@@ -101,96 +127,155 @@ fun LoginScreenContent(
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit
 ) {
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+    // Pulse glow for primary button (web: Btn kind="grad" pulse)
+    val infiniteTransition = rememberInfiniteTransition(label = "login")
+    val btnGlow by infiniteTransition.animateFloat(
+        initialValue = 0.4f, targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(tween(1600, easing = EaseInOutSine), RepeatMode.Reverse),
+        label = "btnGlow"
+    )
+    // Halo throb behind logo
+    val haloAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.30f, targetValue = 0.65f,
+        animationSpec = infiniteRepeatable(tween(1800, easing = EaseInOutSine), RepeatMode.Reverse),
+        label = "halo"
+    )
+
+    val titleBrush = Brush.verticalGradient(
+        0f to Color.White,
+        0.55f to Color(0xFFC9B8FF),
+        1f to CyanAccent
+    )
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = DarkColors.Void
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DarkColors.Void) // Added background to match the theme context
+                .background(DarkColors.Void)
                 .padding(padding)
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 22.dp, vertical = 34.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(32.dp)) // Added top padding
-
-            Text(
-                text = "Ascend",
-                style = MaterialTheme.typography.displaySmall,
-                color = TextPrimary,
-                fontSize = 42.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 8.sp
-            )
-            Text(
-                text = "LEVEL UP IN REAL LIFE",
-                fontSize = 11.sp,
-                letterSpacing = 4.sp,
-                color = CyanAccent,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            SystemPanel(glowColor = PurplePrimary, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    "HUNTER LOGIN", fontSize = 10.sp, fontWeight = FontWeight.Black,
-                    letterSpacing = 3.sp, color = PurpleLight
+            // ---------- LOGO ----------
+            Box(contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(220.dp)
+                        .blur(24.dp)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF7C3AED).copy(alpha = haloAlpha),
+                                    Color.Transparent
+                                )
+                            ),
+                            shape = CircleShape
+                        )
                 )
-                Spacer(Modifier.height(16.dp))
-                OutlinedTextField(
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "ASCEND",
+                        fontFamily = orbitron,
+                        fontSize = 54.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 6.5.sp, // 54 * 0.12
+                        style = TextStyle(
+                            brush = titleBrush,
+                            shadow = Shadow(
+                                color = Color(0xFF7C3AED).copy(alpha = 0.6f),
+                                blurRadius = 30f
+                            )
+                        )
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "LEVEL UP IN REAL LIFE",
+                        fontFamily = jetBrainsMono,
+                        fontSize = 10.sp,
+                        letterSpacing = 4.sp,
+                        color = CyanAccent,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            // ---------- PANEL ----------
+            SystemPanel(
+                glowColor = PurplePrimary,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // h-sys header (web: "HUNTER LOGIN")
+                Text(
+                    text = "◈ HUNTER LOGIN",
+                    fontFamily = jetBrainsMono,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 3.sp,
+                    color = CyanAccent
+                )
+                Spacer(Modifier.height(18.dp))
+
+                // Email field
+                LabeledField(
+                    label = "EMAIL",
                     value = email,
                     onValueChange = onEmailChanged,
-                    label = { Text("Email") },
-                    isError = emailError != null,
-                    supportingText = emailError?.let { { Text(it) } },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PurplePrimary,
-                        unfocusedBorderColor = BorderGlow,
-                        focusedLabelColor = PurpleLight,
-                        cursorColor = CyanAccent,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextSecondary
-                    )
+                    placeholder = "hunter@ascend.app",
+                    keyboardType = KeyboardType.Email,
+                    error = emailError
                 )
+                Spacer(Modifier.height(14.dp))
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
+                // Password field
+                LabeledField(
+                    label = "PASSWORD",
                     value = password,
                     onValueChange = onPasswordChanged,
-                    label = { Text("Password") },
-                    isError = passwordError != null,
-                    supportingText = passwordError?.let { { Text(it) } },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PurplePrimary,
-                        unfocusedBorderColor = BorderGlow,
-                        focusedLabelColor = PurpleLight,
-                        cursorColor = CyanAccent,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextSecondary
-                    )
+                    placeholder = "••••••••",
+                    keyboardType = KeyboardType.Password,
+                    isPassword = true,
+                    error = passwordError
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(Modifier.height(6.dp))
 
+                // FORGOT ACCESS? — right-aligned link INSIDE panel
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                    Text(
+                        text = "FORGOT ACCESS?",
+                        fontFamily = jetBrainsMono,
+                        fontSize = 11.sp,
+                        letterSpacing = 1.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CyanAccent,
+                        style = TextStyle(
+                            shadow = Shadow(CyanAccent.copy(alpha = 0.7f), blurRadius = 10f)
+                        ),
+                        modifier = Modifier.clickable { onNavigateToForgotPassword() }
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // ENTER THE SYSTEM — gradient button with bolt + pulse glow
                 Button(
                     onClick = onSubmitLogin,
                     enabled = !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp)
+                        .height(52.dp)
                         .shadow(
-                            16.dp, RoundedCornerShape(8.dp),
-                            ambientColor = PurplePrimary, spotColor = CyanAccent
+                            elevation = (btnGlow * 22).dp,
+                            shape = RoundedCornerShape(10.dp),
+                            ambientColor = PurplePrimary,
+                            spotColor = CyanAccent
                         ),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                     contentPadding = PaddingValues(0.dp)
                 ) {
@@ -199,35 +284,125 @@ fun LoginScreenContent(
                             .fillMaxSize()
                             .background(
                                 Brush.horizontalGradient(listOf(PurplePrimary, CyanAccent)),
-                                RoundedCornerShape(8.dp)
+                                RoundedCornerShape(10.dp)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (isLoading)
+                        if (isLoading) {
                             CircularProgressIndicator(
                                 Modifier.size(20.dp),
                                 color = TextPrimary,
                                 strokeWidth = 2.dp
                             )
-                        else
-                            Text(
-                                "ENTER THE SYSTEM", fontSize = 13.sp,
-                                fontWeight = FontWeight.Black, letterSpacing = 2.sp
-                            )
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Bolt,
+                                    contentDescription = null,
+                                    tint = TextPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.run { width(8.dp) })
+                                Text(
+                                    text = "ENTER THE SYSTEM",
+                                    fontFamily = orbitron,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 2.sp,
+                                    color = TextPrimary
+                                )
+                            }
+                        }
                     }
                 }
             }
 
-            TextButton(onClick = onNavigateToRegister) {
+            // ---------- REGISTER LINK (below panel) ----------
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
                 Text(
-                    "NEW HUNTER? REGISTER", fontSize = 11.sp,
-                    color = CyanAccent, letterSpacing = 1.5.sp, fontWeight = FontWeight.Bold
+                    text = "NEW HUNTER? ",
+                    fontFamily = jetBrainsMono,
+                    fontSize = 13.sp,
+                    letterSpacing = 1.sp,
+                    color = DarkColors.TextMuted
+                )
+                Text(
+                    text = "REGISTER",
+                    fontFamily = jetBrainsMono,
+                    fontSize = 12.sp,
+                    letterSpacing = 1.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CyanAccent,
+                    style = TextStyle(
+                        shadow = Shadow(CyanAccent.copy(alpha = 0.7f), blurRadius = 10f)
+                    ),
+                    modifier = Modifier.clickable { onNavigateToRegister() }
                 )
             }
-            TextButton(onClick = onNavigateToForgotPassword) {
-                Text("Forgot password?", color = DarkColors.TextMuted, fontSize = 13.sp)
-            }
         }
+    }
+}
+
+/**
+ * Field with caps mono label ABOVE the input (matches web <Field>).
+ * Reusable for Register + OTP screens.
+ */
+@Composable
+fun LabeledField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String = "",
+    keyboardType: KeyboardType = KeyboardType.Text,
+    isPassword: Boolean = false,
+    error: String? = null
+) {
+    Column {
+        Text(
+            text = label,
+            fontFamily = jetBrainsMono,
+            fontSize = 10.sp,
+            letterSpacing = 2.sp,
+            fontWeight = FontWeight.Bold,
+            color = DarkColors.TextMuted
+        )
+        Spacer(Modifier.height(6.dp))
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = {
+                Text(
+                    placeholder,
+                    color = DarkColors.TextMuted.copy(alpha = 0.5f),
+                    fontFamily = jetBrainsMono,
+                    fontSize = 14.sp
+                )
+            },
+            isError = error != null,
+            supportingText = error?.let { { Text(it, fontSize = 10.sp) } },
+            visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            singleLine = true,
+            shape = RoundedCornerShape(8.dp),
+            textStyle = TextStyle(
+                fontFamily = jetBrainsMono,
+                fontSize = 15.sp,
+                color = TextPrimary
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = CyanAccent,
+                unfocusedBorderColor = BorderGlow,
+                focusedContainerColor = Color(0xFF0C0C16),
+                unfocusedContainerColor = Color(0xFF0C0C16),
+                cursorColor = CyanAccent,
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 

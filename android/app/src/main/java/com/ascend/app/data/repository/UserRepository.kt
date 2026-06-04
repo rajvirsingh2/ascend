@@ -5,11 +5,12 @@ import com.ascend.app.data.local.dao.UserDao
 import com.ascend.app.data.local.entity.UserEntity
 import com.ascend.app.data.remote.api.AuthApiService
 import com.ascend.app.data.remote.dto.UserResponse
-import com.ascend.app.data.remote.dto.toDomain
 import com.ascend.app.domain.model.Result
 import com.ascend.app.domain.model.User
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import com.ascend.app.data.local.AscendDatabase
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,7 +20,7 @@ class UserRepository @Inject constructor(
     private val api: AuthApiService,
     private val dao: UserDao,
     private val tokenDataStore: TokenDataStore,
-    private val database: AscendDatabase
+    private val database: AscendDatabase,
 ) {
     fun observeUser(): Flow<User?> =
         dao.observe().map { it?.toDomain() }
@@ -35,9 +36,11 @@ class UserRepository @Inject constructor(
     }
 
     suspend fun logout() {
-        try { api.logout() } catch (_: Exception) {}
-        tokenDataStore.clearToken()
-        database.clearAllTables()
+        withContext(Dispatchers.IO) {
+            try { api.logout() } catch (_: Exception) {}
+            tokenDataStore.clearToken()
+            database.clearAllTables()
+        }
     }
 
     fun hasToken(): Flow<Boolean> =
@@ -51,7 +54,10 @@ private fun UserResponse.toEntity() = UserEntity(
     level      = level,
     currentXp  = currentXp,
     xpToNext   = if (xpToNext > 0) xpToNext else 100,
-    avatarUrl  = avatarUrl
+    avatarUrl  = avatarUrl,
+    strength   = strength,
+    agility    = agility,
+    mana       = mana,
 )
 
 private fun UserEntity.toDomain() = User(
@@ -62,5 +68,8 @@ private fun UserEntity.toDomain() = User(
     currentXp = currentXp,
     xpToNext  = xpToNext,
     totalXp   = 0,
-    avatarUrl = avatarUrl
+    avatarUrl = avatarUrl,
+    strength  = strength,
+    agility   = agility,
+    mana      = mana,
 )

@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN streak_freezes INT NOT NULL DEFAULT 1;

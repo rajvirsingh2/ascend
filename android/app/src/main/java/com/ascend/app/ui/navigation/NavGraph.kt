@@ -23,7 +23,12 @@ object Routes{
     const val HISTORY="history"
     const val FORGOT_PASSWORD="forgot-password"
     const val PHYSIQUE_SETUP = "physique-setup"
-    const val INTERESTS="interests_onboarding"
+    const val PHYSIQUE_SETUP_ONBOARDING = "physique-setup-onboarding"
+    const val INTERESTS = "interests"
+    const val INTERESTS_ONBOARDING = "interests_onboarding"
+    const val STATS = "stats"
+    const val ATTRIBUTES = "attributes"
+    const val NOTIFICATIONS = "notifications"
 }
 
 sealed class BottomNavItem(

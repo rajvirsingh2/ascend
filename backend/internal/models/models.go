@@ -34,6 +34,30 @@ type Habit struct {
 	CreatedAt       time.Time  `json:"created_at"`
 }
 
+type Achievement struct {
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
+	Key       string    `json:"key"`
+	Title     string    `json:"title"`
+	Tag       string    `json:"tag"`
+	Icon      string    `json:"icon"`
+	Earned    bool      `json:"earned"`
+	EarnedAt  time.Time `json:"earned_at"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type Notification struct {
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	Type        string    `json:"type"`
+	Title       string    `json:"title"`
+	Body        string    `json:"body"`
+	XPDelta     *int      `json:"xp_delta,omitempty"`
+	ActionRoute *string   `json:"action_route,omitempty"`
+	IsRead      bool      `json:"is_read"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
 type Quest struct {
 	ID            string     `json:"id"`
 	UserID        string     `json:"user_id"`
@@ -49,4 +73,10 @@ type Quest struct {
 	ExpiresAt     *time.Time `json:"expires_at,omitempty"`
 	CompletedAt   *time.Time `json:"completed_at,omitempty"`
 	CreatedAt     time.Time  `json:"created_at"`
+	ReminderSent  bool       `json:"reminder_sent"`
+}
+
+type HeatmapPoint struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
 }

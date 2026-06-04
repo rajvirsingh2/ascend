@@ -12,5 +12,8 @@ data class UserEntity(
     val currentXp: Int,
     val xpToNext: Int,
     val avatarUrl: String?,
+    val strength: Int = 0,
+    val agility: Int = 0,
+    val mana: Int = 0,
     val cachedAt: Long = System.currentTimeMillis()
 )

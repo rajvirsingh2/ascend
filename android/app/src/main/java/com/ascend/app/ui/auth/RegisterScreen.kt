@@ -1,35 +1,66 @@
 package com.ascend.app.ui.auth
 
+import androidx.compose.animation.core.EaseInOutSine
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.ascend.app.ui.components.SystemPanel
+import com.ascend.app.ui.theme.CyanAccent
+import com.ascend.app.ui.theme.DarkColors
+import com.ascend.app.ui.theme.PurplePrimary
+import com.ascend.app.ui.theme.TextPrimary
+
 
 @Composable
 fun RegisterScreen(
@@ -44,7 +75,6 @@ fun RegisterScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is AuthEffect.NavigateToSplash -> {
-                    // after register — go to OTP screen, not dashboard
                     navController.navigate("otp/${state.email}")
                 }
                 is AuthEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
@@ -81,81 +111,223 @@ fun RegisterScreenContent(
     onSubmitRegister: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+    // Halo throb behind logo
+    val infiniteTransition = rememberInfiniteTransition(label = "register")
+    val haloAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.30f, targetValue = 0.65f,
+        animationSpec = infiniteRepeatable(tween(1800, easing = EaseInOutSine), RepeatMode.Reverse),
+        label = "halo"
+    )
+
+    val titleBrush = Brush.verticalGradient(
+        0f to Color.White,
+        0.55f to Color(0xFFC9B8FF),
+        1f to CyanAccent
+    )
+
+    // Lighter purple glow for panel (web: glow="var(--purple-2)")
+    val purpleLight = Color(0xFFA78BFA)
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = DarkColors.Void
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(DarkColors.Void)
                 .padding(padding)
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.Center,
+                .padding(horizontal = 22.dp, vertical = 34.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Create account", style = MaterialTheme.typography.headlineMedium)
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            OutlinedTextField(
-                value = username,
-                onValueChange = onUsernameChanged,
-                label = { Text("Username") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = onEmailChanged,
-                label = { Text("Email") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = password,
-                onValueChange = onPasswordChanged,
-                label = { Text("Password") },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            error?.let {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+            // ---------- LOGO ----------
+            Box(contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(220.dp)
+                        .blur(24.dp)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF7C3AED).copy(alpha = haloAlpha),
+                                    Color.Transparent
+                                )
+                            ),
+                            shape = CircleShape
+                        )
                 )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = onSubmitRegister,
-                enabled = !isLoading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.height(18.dp)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "ASCEND",
+                        fontFamily = orbitron,
+                        fontSize = 54.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 6.5.sp,
+                        style = TextStyle(
+                            brush = titleBrush,
+                            shadow = Shadow(
+                                color = Color(0xFF7C3AED).copy(alpha = 0.6f),
+                                blurRadius = 30f
+                            )
+                        )
                     )
-                } else {
-                    Text("Create account")
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "LEVEL UP IN REAL LIFE",
+                        fontFamily = jetBrainsMono,
+                        fontSize = 10.sp,
+                        letterSpacing = 4.sp,
+                        color = CyanAccent,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            // ---------- PANEL (lighter purple glow) ----------
+            SystemPanel(
+                glowColor = purpleLight,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "◈ AWAKENING PROTOCOL",
+                    fontFamily = jetBrainsMono,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 3.sp,
+                    color = CyanAccent
+                )
+                Spacer(Modifier.height(18.dp))
 
-            TextButton(onClick = onNavigateToLogin) {
-                Text("Already have an account? Log in")
+                LabeledField(
+                    label = "HUNTER NAME",
+                    value = username,
+                    onValueChange = onUsernameChanged,
+                    placeholder = "KAIRO"
+                )
+                Spacer(Modifier.height(14.dp))
+
+                LabeledField(
+                    label = "EMAIL",
+                    value = email,
+                    onValueChange = onEmailChanged,
+                    placeholder = "hunter@ascend.app",
+                    keyboardType = KeyboardType.Email
+                )
+                Spacer(Modifier.height(14.dp))
+
+                LabeledField(
+                    label = "PASSWORD",
+                    value = password,
+                    onValueChange = onPasswordChanged,
+                    placeholder = "create access key",
+                    keyboardType = KeyboardType.Password,
+                    isPassword = true
+                )
+
+                Spacer(Modifier.height(10.dp))
+
+                // Password rule hint
+                Text(
+                    text = "▸ MIN 8 CHARS · 1 NUMBER · 1 SYMBOL",
+                    fontFamily = jetBrainsMono,
+                    fontSize = 10.sp,
+                    letterSpacing = 1.sp,
+                    color = DarkColors.TextMuted.copy(alpha = 0.6f)
+                )
+
+                error?.let {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = it,
+                        fontFamily = jetBrainsMono,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                // AWAKEN button — gradient + arrow-up icon, no pulse
+                Button(
+                    onClick = onSubmitRegister,
+                    enabled = !isLoading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .shadow(
+                            elevation = 14.dp,
+                            shape = RoundedCornerShape(10.dp),
+                            ambientColor = PurplePrimary,
+                            spotColor = CyanAccent
+                        ),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.horizontalGradient(listOf(PurplePrimary, CyanAccent)),
+                                RoundedCornerShape(10.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                Modifier.size(20.dp),
+                                color = TextPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Outlined.ArrowUpward,
+                                    contentDescription = null,
+                                    tint = TextPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "AWAKEN",
+                                    fontFamily = orbitron,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 3.sp,
+                                    color = TextPrimary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---------- LOGIN LINK ----------
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "ALREADY AWAKENED? ",
+                    fontFamily = jetBrainsMono,
+                    fontSize = 13.sp,
+                    letterSpacing = 1.sp,
+                    color = DarkColors.TextMuted
+                )
+                Text(
+                    text = "LOGIN",
+                    fontFamily = jetBrainsMono,
+                    fontSize = 12.sp,
+                    letterSpacing = 1.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CyanAccent,
+                    style = TextStyle(
+                        shadow = Shadow(CyanAccent.copy(alpha = 0.7f), blurRadius = 10f)
+                    ),
+                    modifier = Modifier.clickable { onNavigateToLogin() }
+                )
             }
         }
     }

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"time"
 
 	"ascend-backend/internal/game"
 
@@ -30,4 +31,7 @@ type QuestStore interface {
 	Complete(ctx context.Context, id, userID string) (*game.XPResult, error)
 	Skip(ctx context.Context, id, userID string) error
 	ExpireOld(ctx context.Context) error
+	GetHeatmap(ctx context.Context, userID string) ([]models.HeatmapPoint, error)
+	GetExpiringQuests(ctx context.Context, duration time.Duration) ([]*models.Quest, error)
+	MarkReminderSent(ctx context.Context, questID string) error
 }

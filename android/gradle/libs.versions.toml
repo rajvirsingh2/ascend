@@ -21,6 +21,12 @@ runtime = "1.10.6"
 firebase-messaging = "25.0.2"
 firebase-inappmessaging-display = "22.0.3"
 foundation = "1.11.1"
+foundation-version = "1.11.2"
+ui-text = "1.11.2"
+animation-core = "1.11.2"
+work = "2.9.0"
+hilt-work = "1.2.0"
+hilt-common = "1.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
@@ -42,6 +48,9 @@ firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.2.0" }
+hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hilt-work" }
+hilt-compiler-ext = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hilt-work" }
+work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
 
 lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie-compose" }
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
@@ -72,6 +81,10 @@ androidx-runtime = { group = "androidx.compose.runtime", name = "runtime", versi
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging", version.ref = "firebase-messaging" }
 firebase-inappmessaging-display = { group = "com.google.firebase", name = "firebase-inappmessaging-display", version.ref = "firebase-inappmessaging-display" }
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
+foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation-version" }
+androidx-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "ui-text" }
+androidx-animation-core = { group = "androidx.compose.animation", name = "animation-core", version.ref = "animation-core" }
+androidx-hilt-common = { group = "androidx.hilt", name = "hilt-common", version.ref = "hilt-common" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -36,6 +36,13 @@ class GoalsViewModel @Inject constructor(
                 _state.update { it.copy(showCreateDialog = false) }
             is GoalsIntent.CreateGoal -> createGoal(intent)
             is GoalsIntent.DeleteGoal -> deleteGoal(intent.id)
+            is GoalsIntent.ToggleGoalDone -> toggleGoalDone(intent.id)
+        }
+    }
+
+    private fun toggleGoalDone(id: String) {
+        viewModelScope.launch {
+            _effects.send(GoalsEffect.ShowSnackbar("Feature pending: Toggle Goal"))
         }
     }
 

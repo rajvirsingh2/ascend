@@ -1,0 +1,4 @@
+ALTER TABLE users
+DROP COLUMN strength,
+DROP COLUMN agility,
+DROP COLUMN mana;

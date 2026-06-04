@@ -30,8 +30,13 @@ data class UserResponse(
     val level: Int,
     @Json(name = "current_xp") val currentXp: Int,
     @Json(name = "xp_to_next") val xpToNext: Int,
-    @Json(name="total_xp") val  totalXp:Int = 0,
-    @Json(name = "avatar_url") val avatarUrl: String?=null
+    @Json(name="total_xp") val totalXp: Int = 0,
+    val hp: Int = 100,
+    @Json(name="max_hp") val maxHp: Int = 100,
+    val strength: Int = 0,
+    val agility: Int = 0,
+    val mana: Int = 0,
+    @Json(name = "avatar_url") val avatarUrl: String? = null
 )
 
 @JsonClass(generateAdapter = true)

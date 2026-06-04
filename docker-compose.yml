@@ -56,7 +56,6 @@ services:
       DB_HOST: postgres
       DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
       REDIS_URL: redis://redis:6379
-      RAG_SERVICE_URL: http://rag-service:8001
     volumes:
       - ./backend:/app
     depends_on:
@@ -66,26 +65,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  rag-service:
-    build:
-      context: ./rag-service
-      dockerfile: Dockerfile.dev
-    container_name: ascend_rag
-    ports:
-      - "8001:8001"
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
-      REDIS_URL: redis://redis:6379
-    volumes:
-      - ./rag-service:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
+
 
   # XP worker — consumes Redis Streams, awards XP
   xp-worker:

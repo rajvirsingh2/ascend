@@ -2,6 +2,7 @@ package com.ascend.app.ui.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ascend.app.domain.model.Achievement
 import com.ascend.app.data.remote.api.UserApiService
 import com.ascend.app.data.remote.dto.AvatarUploadRequest
 import com.ascend.app.data.repository.UserRepository
@@ -53,11 +54,14 @@ class ProfileViewModel @Inject constructor(
 
             try {
                 val achResp = userApi.getAchievements().data ?: emptyList()
+                val statsResp = userApi.getStats().data
+
                 _state.update { currentState ->
                     currentState.copy(
                         achievements = achResp.map {
-                            AchievementItem(it.key, it.title, it.tag, it.icon, it.earned, it.earnedAt)
-                        }
+                            Achievement(it.key, it.title, it.tag, it.icon, it.earned, it.earnedAt)
+                        },
+                        bestStreak = statsResp?.best_streak ?: 0
                     )
                 }
 

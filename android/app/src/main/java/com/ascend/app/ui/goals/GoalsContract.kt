@@ -6,7 +6,7 @@ data class GoalsUiState(
     val isLoading: Boolean = true,
     val goals: List<Goal> = emptyList(),
     val showCreateDialog: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
 )
 
 sealed interface GoalsIntent {
@@ -20,6 +20,7 @@ sealed interface GoalsIntent {
         val priority: Int
     ) : GoalsIntent
     data class DeleteGoal(val id: String) : GoalsIntent
+    data class ToggleGoalDone(val id: String) : GoalsIntent
 }
 
 sealed interface GoalsEffect {

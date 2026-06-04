@@ -75,6 +75,15 @@ class QuestRepository @Inject constructor(
             Result.Error(e.message ?: "Network error")
         }
     }
+
+    suspend fun getHeatmap(): Result<List<com.ascend.app.data.remote.dto.HeatmapPointResponse>> {
+        return try {
+            val response = api.getHeatmap()
+            Result.Success(response.data ?: emptyList())
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Network error")
+        }
+    }
 }
 
 private fun QuestEntity.toDomain() = com.ascend.app.data.remote.dto.QuestResponse(

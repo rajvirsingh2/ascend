@@ -98,13 +98,27 @@ func (s *HabitStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 		}
 	}
 
-	// determine if streak continues or resets
 	newStreak := 1
+	var freezesUsed int
+
 	if h.LastCompletedAt != nil {
-		yesterday := now.AddDate(0, 0, -1)
 		last := *h.LastCompletedAt
-		if last.Year() == yesterday.Year() && last.YearDay() == yesterday.YearDay() {
+		// calculate whole days between last completion and now
+		lastDay := time.Date(last.Year(), last.Month(), last.Day(), 0, 0, 0, 0, last.Location())
+		nowDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		daysDiff := int(nowDay.Sub(lastDay).Hours() / 24)
+
+		if daysDiff == 1 {
 			newStreak = h.CurrentStreak + 1
+		} else if daysDiff > 1 {
+			// missed some days, check if we have enough freezes
+			missedDays := daysDiff - 1
+			var freezesAvailable int
+			err := s.db.QueryRow(ctx, "SELECT streak_freezes FROM users WHERE id=$1", userID).Scan(&freezesAvailable)
+			if err == nil && freezesAvailable >= missedDays {
+				freezesUsed = missedDays
+				newStreak = h.CurrentStreak + 1
+			}
 		}
 	}
 
@@ -113,13 +127,33 @@ func (s *HabitStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 		newLongest = newStreak
 	}
 
-	_, err = s.db.Exec(ctx,
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx,
 		`UPDATE habits
 		 SET current_streak=$1, longest_streak=$2, last_completed_at=$3
 		 WHERE id=$4`,
 		newStreak, newLongest, now, id,
 	)
 	if err != nil {
+		return nil, err
+	}
+
+	if freezesUsed > 0 {
+		_, err = tx.Exec(ctx,
+			`UPDATE users SET streak_freezes = streak_freezes - $1 WHERE id = $2`,
+			freezesUsed, userID,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 
@@ -138,5 +172,5 @@ func (s *HabitStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 
 	}
 
-	return game.AwardXP(ctx, s.db, userID, "habit", id, "habit_completed", h.XPReward)
+	return game.AwardXP(ctx, s.db, userID, "habit", id, "habit_completed", "General", h.XPReward)
 }

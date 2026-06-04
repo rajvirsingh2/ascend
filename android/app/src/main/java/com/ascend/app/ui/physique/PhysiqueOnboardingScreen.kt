@@ -1,10 +1,22 @@
 package com.ascend.app.ui.physique
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.EaseInOutSine
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +24,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,26 +33,39 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,17 +75,28 @@ import androidx.lifecycle.viewModelScope
 import com.ascend.app.data.remote.api.PhysiqueApiService
 import com.ascend.app.data.remote.dto.SavePhysiqueRequest
 import com.ascend.app.domain.model.PhysiqueProfile
-import com.ascend.app.domain.model.activityOptions
-import com.ascend.app.domain.model.bodyGoalOptions
-import com.ascend.app.ui.components.AscendButton
-import com.ascend.app.ui.theme.DarkColors
-import com.ascend.app.ui.theme.Gradients
+import com.ascend.app.ui.auth.jetBrainsMono
+import com.ascend.app.ui.auth.orbitron
+import com.ascend.app.ui.theme.BorderGlow
+import com.ascend.app.ui.theme.CyanAccent
+import com.ascend.app.ui.theme.DangerRed
+import com.ascend.app.ui.theme.GoldAccent
+import com.ascend.app.ui.theme.PanelMid
+import com.ascend.app.ui.theme.PurpleLight
+import com.ascend.app.ui.theme.PurplePrimary
+import com.ascend.app.ui.theme.SuccessGreen
+import com.ascend.app.ui.theme.SystemBlack
+import com.ascend.app.ui.theme.TextMuted
+import com.ascend.app.ui.theme.TextPrimary
+import com.ascend.app.ui.theme.TextSecondary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
 // ─── ViewModel ───────────────────────────────────────────────────────────────
 
@@ -107,7 +144,6 @@ class PhysiqueViewModel @Inject constructor(
                         fitnessLevel = p.fitnessLevel,
                     )
                 )
-                // generate first set of exercise quests
                 api.generateExerciseQuests()
                 _done.value = true
             } catch (e: Exception) {
@@ -119,24 +155,37 @@ class PhysiqueViewModel @Inject constructor(
     }
 }
 
-// ─── Stateful Wrapper ────────────────────────────────────────────────────────
+/* ============================================================
+ *  STEPS
+ * ============================================================ */
+enum class PhysiqueStep {
+    BIOMETRIC_SCAN,
+    AGE,
+    BODY_METRICS,
+    ACTIVITY_LEVEL,
+    OBJECTIVE,
+    SUMMARY
+}
 
+/* ============================================================
+ *  ROOT
+ * ============================================================ */
 @Composable
 fun PhysiqueOnboardingScreen(
     onComplete: () -> Unit,
     viewModel: PhysiqueViewModel = hiltViewModel()
 ) {
     val profile by viewModel.profile.collectAsStateWithLifecycle()
-    val step    by viewModel.step.collectAsStateWithLifecycle()
+    val stepInt by viewModel.step.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
-    val done    by viewModel.done.collectAsStateWithLifecycle()
-    val error   by viewModel.error.collectAsStateWithLifecycle()
+    val done by viewModel.done.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
 
     LaunchedEffect(done) { if (done) onComplete() }
 
     PhysiqueOnboardingScreenContent(
         profile = profile,
-        step = step,
+        step = PhysiqueStep.entries[stepInt.coerceIn(0, PhysiqueStep.entries.lastIndex)],
         isSaving = isSaving,
         error = error,
         onUpdateProfile = viewModel::update,
@@ -145,545 +194,961 @@ fun PhysiqueOnboardingScreen(
     )
 }
 
-// ─── Stateless UI Composable safe for Previews ───────────────────────────────
-
 @Composable
 fun PhysiqueOnboardingScreenContent(
     profile: PhysiqueProfile,
-    step: Int,
+    step: PhysiqueStep,
     isSaving: Boolean,
     error: String?,
     onUpdateProfile: ((PhysiqueProfile.() -> PhysiqueProfile)) -> Unit,
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    val stepTitles = listOf(
-        "Basic info", "Body metrics", "Target & goal",
-        "Activity level", "Fitness level"
-    )
-
-    Scaffold(containerColor = DarkColors.Void) { padding ->
-        Column(
+    Scaffold(containerColor = SystemBlack) { padding ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(SystemBlack)
+                .scanlineHorizontal()
                 .padding(padding)
-                .padding(horizontal = 20.dp)
         ) {
-            Spacer(Modifier.height(16.dp))
-
-            // progress indicator
-            Text(
-                text = "PHYSIQUE PROFILE · STEP ${step + 1} OF 5",
-                fontSize = 10.sp, color = DarkColors.Arcane,
-                fontWeight = FontWeight.Medium, letterSpacing = 0.12.sp
-            )
-            Spacer(Modifier.height(6.dp))
-            LinearProgressIndicator(
-                progress = { (step + 1) / 5f },
+            Box(
                 modifier = Modifier
+                    .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(2.dp)),
-                color     = DarkColors.Arcane,
-                trackColor = DarkColors.Dusk
+                    .height(280.dp)
+                    .blur(50.dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(PurplePrimary.copy(alpha = 0.10f), Color.Transparent)
+                        )
+                    )
             )
-            Spacer(Modifier.height(6.dp))
-            Text(stepTitles[step], fontSize = 20.sp,
-                fontWeight = FontWeight.Medium, color = DarkColors.TextPrimary)
 
-            Spacer(Modifier.height(20.dp))
-
-            // animated step content
-            AnimatedContent(
-                targetState = step,
-                transitionSpec = {
-                    slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
-                },
-                label = "physique_step",
-                modifier = Modifier.weight(1f)
-            ) { currentStep ->
-                when (currentStep) {
-                    0 -> StepBasicInfo(profile, onUpdateProfile)
-                    1 -> StepBodyMetrics(profile, onUpdateProfile)
-                    2 -> StepTargetAndGoal(profile, onUpdateProfile)
-                    3 -> StepActivityLevel(profile, onUpdateProfile)
-                    4 -> StepFitnessLevel(profile, onUpdateProfile)
-                }
-            }
-
-            error?.let {
-                Text(it, fontSize = 12.sp, color = DarkColors.Ember,
-                    textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(8.dp))
-            }
-
-            // navigation
-            Row(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
             ) {
-                if (step > 0) {
-                    AscendButton(
-                        text    = "BACK",
-                        onClick = onBack,
-                        gradient = listOf(DarkColors.Dusk, DarkColors.Deep),
-                        modifier = Modifier.width(100.dp)
+                Spacer(Modifier.height(14.dp))
+                PhysiqueHeader(step = step)
+                Spacer(Modifier.height(20.dp))
+
+                AnimatedContent(
+                    targetState = step,
+                    transitionSpec = {
+                        val isForward = targetState.ordinal > initialState.ordinal
+                        (slideInHorizontally { if (isForward) it else -it } + fadeIn()) togetherWith
+                                (slideOutHorizontally { if (isForward) -it else it } + fadeOut())
+                    },
+                    label = "physique_step",
+                    modifier = Modifier.weight(1f)
+                ) { current ->
+                    when (current) {
+                        PhysiqueStep.BIOMETRIC_SCAN -> StepBiometric(profile, onUpdateProfile)
+                        PhysiqueStep.AGE            -> StepAge(profile, onUpdateProfile)
+                        PhysiqueStep.BODY_METRICS   -> StepBodyMetrics(profile, onUpdateProfile)
+                        PhysiqueStep.ACTIVITY_LEVEL -> StepActivity(profile, onUpdateProfile)
+                        PhysiqueStep.OBJECTIVE      -> StepObjective(profile, onUpdateProfile)
+                        PhysiqueStep.SUMMARY        -> StepSummary(profile)
+                    }
+                }
+
+                error?.let {
+                    Text(
+                        it,
+                        fontFamily = jetBrainsMono,
+                        fontSize = 11.sp,
+                        color = DangerRed,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                     )
                 }
-                AscendButton(
-                    text    = when {
-                        isSaving  -> "SAVING..."
-                        step == 4 -> "SAVE PROFILE"
-                        else      -> "NEXT"
-                    },
-                    onClick  = onNext,
-                    enabled  = !isSaving,
-                    gradient = Gradients.ArcaneFlow,
-                    modifier = Modifier.weight(1f)
+
+                PhysiqueBottomBar(
+                    isFirstStep = step == PhysiqueStep.BIOMETRIC_SCAN,
+                    isFinalStep = step == PhysiqueStep.SUMMARY,
+                    isSaving = isSaving,
+                    proceedEnabled = canProceed(step, profile),
+                    onBack = onBack,
+                    onNext = onNext
                 )
             }
         }
     }
 }
 
-// ─── Step composables ────────────────────────────────────────────────────────
+private fun canProceed(step: PhysiqueStep, p: PhysiqueProfile): Boolean = when (step) {
+    PhysiqueStep.BIOMETRIC_SCAN -> p.sex.isNotBlank()
+    PhysiqueStep.AGE            -> p.age in 14..80
+    PhysiqueStep.BODY_METRICS   -> p.heightCm > 0 && p.weightKg > 0
+    PhysiqueStep.ACTIVITY_LEVEL -> p.activityLevel.isNotBlank()
+    PhysiqueStep.OBJECTIVE      -> p.bodyGoal.isNotBlank()
+    PhysiqueStep.SUMMARY        -> true
+}
+
+/* ============================================================
+ *  HEADER
+ * ============================================================ */
+@Composable
+private fun PhysiqueHeader(step: PhysiqueStep) {
+    val total = PhysiqueStep.entries.size
+    val current = step.ordinal + 1
+    val title = when (step) {
+        PhysiqueStep.BIOMETRIC_SCAN -> "BIOMETRIC SCAN"
+        PhysiqueStep.AGE            -> "AGE"
+        PhysiqueStep.BODY_METRICS   -> "BODY METRICS"
+        PhysiqueStep.ACTIVITY_LEVEL -> "ACTIVITY LEVEL"
+        PhysiqueStep.OBJECTIVE      -> "OBJECTIVE"
+        PhysiqueStep.SUMMARY        -> "CALIBRATION COMPLETE"
+    }
+
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier=Modifier.weight(1f)
+            ) {
+                Text(
+                    "◈ ",
+                    fontFamily = orbitron,
+                    fontSize = 18.sp,
+                    color = CyanAccent
+                )
+                Text(
+                    "PHYSIQUE · $title",
+                    fontFamily = orbitron,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 2.sp,
+                    color = PurpleLight,
+                    maxLines = 1,
+                    modifier = Modifier.basicMarquee(
+                        iterations = Int.MAX_VALUE,
+                        repeatDelayMillis = 1500,
+                        initialDelayMillis = 1500,
+                        velocity = 30.dp
+                    ),
+                    style = TextStyle(shadow = Shadow(PurpleLight.copy(alpha = 0.4f), blurRadius = 10f))
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Box(
+                modifier = Modifier
+                    .border(1.dp, BorderGlow.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                    .background(PanelMid.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    "STEP $current/$total",
+                    fontFamily = jetBrainsMono,
+                    fontSize = 9.5.sp,
+                    letterSpacing = 2.sp,
+                    color = TextMuted,
+                    maxLines = 1,
+                    softWrap = false
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        ProgressBarWithEdge(progress = current.toFloat() / total)
+    }
+}
 
 @Composable
-private fun StepBasicInfo(
-    profile: PhysiqueProfile,
-    update: (PhysiqueProfile.() -> PhysiqueProfile) -> Unit
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.verticalScroll(rememberScrollState())
-    ) {
-        // age
-        LabeledInput("Age (years)") {
-            OutlinedTextField(
-                value = if (profile.age == 0) "" else profile.age.toString(),
-                onValueChange = { update { copy(age = it.toIntOrNull() ?: 0) } },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
-                colors = ascendFieldColors()
-            )
-        }
+private fun ProgressBarWithEdge(progress: Float) {
+    val infiniteTransition = rememberInfiniteTransition(label = "progEdge")
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 0.4f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(900, easing = EaseInOutSine), RepeatMode.Reverse),
+        label = "p"
+    )
+    val anim by animateFloatAsState(progress, tween(500), label = "prog")
 
-        // sex
-        LabeledInput("Biological sex") {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("male", "female", "other").forEach { sex ->
-                    val selected = profile.sex == sex
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (selected)
-                                    Brush.horizontalGradient(Gradients.ArcaneFlow)
-                                else
-                                    Brush.horizontalGradient(listOf(DarkColors.Abyss, DarkColors.Deep))
-                            )
-                            .clickable { update { copy(sex = sex) } }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(sex.replaceFirstChar { it.uppercase() },
-                            fontSize = 13.sp, color = Color.White,
-                            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal)
-                    }
-                }
-            }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(6.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(PanelMid)
+            .border(1.dp, BorderGlow.copy(alpha = 0.2f), RoundedCornerShape(3.dp))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(anim)
+                .background(
+                    Brush.horizontalGradient(listOf(PurplePrimary, CyanAccent)),
+                    RoundedCornerShape(3.dp)
+                )
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight()
+                    .width(20.dp)
+                    .blur(4.dp)
+                    .background(Color.White.copy(alpha = 0.5f * pulse))
+            )
         }
     }
 }
 
+/* ============================================================
+ *  STEP 1 — BIOMETRIC SCAN (sex)
+ * ============================================================ */
+@Composable
+private fun StepBiometric(
+    profile: PhysiqueProfile,
+    update: (PhysiqueProfile.() -> PhysiqueProfile) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        SexCard(
+            symbol = "♂",
+            label = "MALE",
+            selected = profile.sex == "male",
+            modifier = Modifier.weight(1f),
+            onClick = { update { copy(sex = "male") } }
+        )
+        SexCard(
+            symbol = "♀",
+            label = "FEMALE",
+            selected = profile.sex == "female",
+            modifier = Modifier.weight(1f),
+            onClick = { update { copy(sex = "female") } }
+        )
+    }
+}
+
+@Composable
+private fun SexCard(
+    symbol: String,
+    label: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val color = CyanAccent
+    Box(
+        modifier = modifier
+            .reactStyleCard(selected, color)
+            .clickable { onClick() }
+            .padding(vertical = 28.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                symbol,
+                fontSize = 56.sp,
+                color = if (selected) color else TextSecondary,
+                style = TextStyle(
+                    shadow = Shadow(
+                        if (selected) color.copy(alpha = 0.6f) else Color.Transparent,
+                        blurRadius = 20f
+                    )
+                )
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                label,
+                fontFamily = orbitron,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.5.sp,
+                color = if (selected) color else TextPrimary
+            )
+        }
+    }
+}
+
+/* ============================================================
+ *  STEP 2 — AGE (slider + huge value)
+ * ============================================================ */
+@Composable
+private fun StepAge(
+    profile: PhysiqueProfile,
+    update: (PhysiqueProfile.() -> PhysiqueProfile) -> Unit
+) {
+    val ageValue = if (profile.age == 0) 25 else profile.age
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.height(24.dp))
+        Text(
+            ageValue.toString(),
+            fontFamily = orbitron,
+            fontSize = 88.sp,
+            fontWeight = FontWeight.Black,
+            color = CyanAccent,
+            style = TextStyle(shadow = Shadow(CyanAccent.copy(alpha = 0.5f), blurRadius = 28f))
+        )
+        Text(
+            "YEARS",
+            fontFamily = jetBrainsMono,
+            fontSize = 11.sp,
+            letterSpacing = 4.sp,
+            color = TextMuted
+        )
+
+        Spacer(Modifier.height(32.dp))
+
+        AscendSlider(
+            value = ageValue.toFloat(),
+            range = 14f..80f,
+            steps = 0,
+            accentColor = CyanAccent,
+            onValueChange = { update { copy(age = it.roundToInt()) } }
+        )
+        Spacer(Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            SliderLegend("14")
+            SliderLegend("47")
+            SliderLegend("80")
+        }
+    }
+}
+
+/* ============================================================
+ *  STEP 3 — BODY METRICS (height + weight)
+ * ============================================================ */
 @Composable
 private fun StepBodyMetrics(
     profile: PhysiqueProfile,
     update: (PhysiqueProfile.() -> PhysiqueProfile) -> Unit
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.verticalScroll(rememberScrollState())
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(28.dp)
     ) {
-        LabeledInput("Height (cm)") {
-            OutlinedTextField(
-                value = if (profile.heightCm == 0f) "" else profile.heightCm.toString(),
-                onValueChange = { update { copy(heightCm = it.toFloatOrNull() ?: 0f) } },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
-                placeholder = { Text("e.g. 175", color = DarkColors.TextHint) },
-                colors = ascendFieldColors()
-            )
-        }
+        Spacer(Modifier.height(8.dp))
 
-        LabeledInput("Current weight (kg)") {
-            OutlinedTextField(
-                value = if (profile.weightKg == 0f) "" else profile.weightKg.toString(),
-                onValueChange = { update { copy(weightKg = it.toFloatOrNull() ?: 0f) } },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
-                placeholder = { Text("e.g. 75", color = DarkColors.TextHint) },
-                colors = ascendFieldColors()
-            )
-        }
+        MetricSlider(
+            label = "HEIGHT",
+            unit = "cm",
+            value = if (profile.heightCm > 0) profile.heightCm else 178f,
+            range = 120f..220f,
+            accent = CyanAccent,
+            onChange = { update { copy(heightCm = it) } }
+        )
 
-        // live BMI preview
-        if (profile.heightCm > 0 && profile.weightKg > 0) {
-            val heightM = profile.heightCm / 100f
-            val bmi = profile.weightKg / (heightM * heightM)
-            val bmiCat = when {
-                bmi < 18.5f -> "Underweight" to DarkColors.Cyan
-                bmi < 25f   -> "Normal" to Color(0xFF39FF14)
-                bmi < 30f   -> "Overweight" to Color(0xFFFFD700)
-                else        -> "Obese" to DarkColors.Ember
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(DarkColors.Abyss)
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Your BMI", fontSize = 13.sp, color = DarkColors.TextMuted)
-                Row(verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("%.1f".format(bmi), fontSize = 20.sp,
-                        fontWeight = FontWeight.Medium, color = DarkColors.TextPrimary)
-                    Text(bmiCat.first, fontSize = 12.sp,
-                        color = bmiCat.second, fontWeight = FontWeight.Medium)
-                }
-            }
-        }
+        HorizontalDivider(color = BorderGlow.copy(alpha = 0.2f))
+
+        MetricSlider(
+            label = "WEIGHT",
+            unit = "kg",
+            value = if (profile.weightKg > 0) profile.weightKg else 74f,
+            range = 40f..160f,
+            accent = CyanAccent,
+            onChange = { update { copy(weightKg = it) } }
+        )
     }
 }
 
 @Composable
-private fun StepTargetAndGoal(
-    profile: PhysiqueProfile,
-    update: (PhysiqueProfile.() -> PhysiqueProfile) -> Unit
+private fun MetricSlider(
+    label: String,
+    unit: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    accent: Color,
+    onChange: (Float) -> Unit
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.verticalScroll(rememberScrollState())
-    ) {
-        LabeledInput("Target weight (kg)") {
-            OutlinedTextField(
-                value = if (profile.targetWeightKg == 0f) "" else profile.targetWeightKg.toString(),
-                onValueChange = { update { copy(targetWeightKg = it.toFloatOrNull() ?: weightKg) } },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
-                placeholder = { Text("Leave same if maintaining", color = DarkColors.TextHint) },
-                colors = ascendFieldColors()
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Text(
+                label,
+                fontFamily = jetBrainsMono,
+                fontSize = 11.sp,
+                letterSpacing = 2.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextMuted
             )
-        }
-
-        LabeledInput("Choose your body goal") {}
-        Spacer(Modifier.height(4.dp))
-
-        // body goal cards with illustrations
-        bodyGoalOptions.forEach { option ->
-            val selected = profile.bodyGoal == option.key
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (selected)
-                            Brush.horizontalGradient(
-                                listOf(DarkColors.Arcane.copy(.25f), DarkColors.Cyan.copy(.15f))
-                            )
-                        else Brush.horizontalGradient(listOf(DarkColors.Abyss, DarkColors.Deep))
-                    )
-                    .border(
-                        width = if (selected) 1.5.dp else 0.5.dp,
-                        color = if (selected) DarkColors.Arcane else DarkColors.Dusk,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .clickable { update { copy(bodyGoal = option.key) } }
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // silhouette illustration
-                BodyGoalIllustration(goal = option.key)
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(option.title, fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (selected) DarkColors.TextPrimary else DarkColors.TextPrimary)
-                    Text(option.description, fontSize = 11.sp,
-                        color = DarkColors.TextMuted, lineHeight = 15.sp)
-                    Text(option.comparison, fontSize = 10.sp,
-                        color = if (selected) DarkColors.Arcane else DarkColors.TextHint,
-                        fontWeight = FontWeight.Medium)
-                }
-
-                if (selected) {
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(Brush.linearGradient(Gradients.ArcaneFlow)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("✓", fontSize = 11.sp, color = Color.White,
-                            fontWeight = FontWeight.Medium)
-                    }
-                }
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    "%.0f".format(value),
+                    fontFamily = orbitron,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Black,
+                    color = accent,
+                    style = TextStyle(shadow = Shadow(accent.copy(alpha = 0.5f), blurRadius = 16f))
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    unit,
+                    fontFamily = jetBrainsMono,
+                    fontSize = 12.sp,
+                    color = TextMuted,
+                    modifier = Modifier.padding(bottom = 5.dp)
+                )
             }
-            Spacer(Modifier.height(8.dp))
         }
+        Spacer(Modifier.height(10.dp))
+        AscendSlider(
+            value = value,
+            range = range,
+            steps = 0,
+            accentColor = accent,
+            onValueChange = onChange
+        )
     }
 }
 
+/* ============================================================
+ *  STEP 4 — ACTIVITY LEVEL
+ * ============================================================ */
 @Composable
-private fun StepActivityLevel(
+private fun StepActivity(
     profile: PhysiqueProfile,
     update: (PhysiqueProfile.() -> PhysiqueProfile) -> Unit
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.verticalScroll(rememberScrollState())
-    ) {
-        Text("How active are you currently?",
-            fontSize = 14.sp, color = DarkColors.TextMuted)
-        Spacer(Modifier.height(4.dp))
+    val options = listOf(
+        Triple("sedentary", "SEDENTARY", "Desk-bound · little exercise"),
+        Triple("light",     "LIGHT",     "1–3 days / week"),
+        Triple("moderate",  "MODERATE",  "3–5 days / week"),
+        Triple("intense",   "INTENSE",   "6–7 days / week")
+    )
 
-        activityOptions.forEach { (key, label) ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        options.forEach { (key, title, desc) ->
             val selected = profile.activityLevel == key
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(
-                        if (selected)
-                            Brush.horizontalGradient(
-                                listOf(DarkColors.Arcane.copy(.2f), DarkColors.Cyan.copy(.1f))
-                            )
-                        else Brush.horizontalGradient(listOf(DarkColors.Abyss, DarkColors.Abyss))
-                    )
-                    .border(
-                        width = if (selected) 1.5.dp else 0.5.dp,
-                        color = if (selected) DarkColors.Arcane else DarkColors.Dusk,
-                        shape = RoundedCornerShape(10.dp)
-                    )
+                    .reactStyleCard(selected, PurpleLight)
                     .clickable { update { copy(activityLevel = key) } }
                     .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(Modifier.weight(1f)) {
-                    Text(label.split(" (")[0], fontSize = 13.sp,
-                        fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-                        color = DarkColors.TextPrimary)
-                    if (label.contains("(")) {
-                        Text(label.substringAfter("(").dropLast(1),
-                            fontSize = 11.sp, color = DarkColors.TextMuted)
-                    }
+                Icon(
+                    Icons.Filled.FitnessCenter,
+                    null,
+                    tint = if (selected) PurpleLight else TextMuted,
+                    modifier = Modifier.size(22.dp)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        title,
+                        fontFamily = orbitron,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.5.sp,
+                        color = if (selected) PurpleLight else TextPrimary
+                    )
+                    Text(
+                        desc,
+                        fontFamily = jetBrainsMono,
+                        fontSize = 11.sp,
+                        color = TextSecondary.copy(alpha = 0.75f),
+                        lineHeight = 15.sp
+                    )
                 }
                 if (selected) {
-                    Box(
-                        modifier = Modifier
-                            .size(18.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(Brush.linearGradient(Gradients.ArcaneFlow)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("✓", fontSize = 10.sp, color = Color.White)
-                    }
+                    Icon(
+                        Icons.Filled.CheckCircle,
+                        null,
+                        tint = PurpleLight,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
     }
 }
 
+/* ============================================================
+ *  STEP 5 — OBJECTIVE (Cut / Maintain / Bulk)
+ * ============================================================ */
 @Composable
-private fun StepFitnessLevel(
+private fun StepObjective(
     profile: PhysiqueProfile,
     update: (PhysiqueProfile.() -> PhysiqueProfile) -> Unit
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.verticalScroll(rememberScrollState())
+    val options = listOf(
+        ObjectiveOpt("cut",      "CUT",      "Lose fat",     CyanAccent),
+        ObjectiveOpt("maintain", "MAINTAIN", "Recomp",       GoldAccent),
+        ObjectiveOpt("bulk",     "BULK",     "Gain muscle",  SuccessGreen)
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text("What is your current fitness experience?",
-            fontSize = 14.sp, color = DarkColors.TextMuted)
-        Spacer(Modifier.height(4.dp))
+        options.forEach { opt ->
+            ObjectiveCard(
+                opt = opt,
+                selected = profile.bodyGoal == opt.key,
+                modifier = Modifier.weight(1f),
+                onClick = { update { copy(bodyGoal = opt.key) } }
+            )
+        }
+    }
+}
 
-        val levels = listOf(
-            Triple("beginner",     "Beginner",
-                "Little to no exercise experience. Just starting out."),
-            Triple("intermediate", "Intermediate",
-                "6+ months of consistent training. Familiar with main exercises."),
-            Triple("advanced",     "Advanced",
-                "2+ years of serious training. Comfortable with progressive overload.")
-        )
+private data class ObjectiveOpt(
+    val key: String,
+    val label: String,
+    val desc: String,
+    val color: Color
+)
 
-        val icons = mapOf(
-            "beginner"     to "🌱",
-            "intermediate" to "⚡",
-            "advanced"     to "🔥"
-        )
+@Composable
+private fun ObjectiveCard(
+    opt: ObjectiveOpt,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .reactStyleCard(selected, opt.color)
+            .clickable { onClick() }
+            .padding(vertical = 18.dp, horizontal = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                opt.label,
+                fontFamily = orbitron,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.5.sp,
+                color = if (selected) opt.color else TextPrimary
+            )
+            Text(
+                opt.desc,
+                fontFamily = jetBrainsMono,
+                fontSize = 10.sp,
+                color = TextMuted,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
 
-        levels.forEach { (key, title, desc) ->
-            val selected = profile.fitnessLevel == key
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (selected)
-                            Brush.horizontalGradient(
-                                listOf(DarkColors.Arcane.copy(.25f), DarkColors.Cyan.copy(.15f))
-                            )
-                        else Brush.horizontalGradient(listOf(DarkColors.Abyss, DarkColors.Deep))
-                    )
-                    .border(
-                        width = if (selected) 1.5.dp else 0.5.dp,
-                        color = if (selected) DarkColors.Arcane else DarkColors.Dusk,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .clickable { update { copy(fitnessLevel = key) } }
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+/* ============================================================
+ *  STEP 6 — SUMMARY (BMI + BMR + TDEE + Target)
+ * ============================================================ */
+@Composable
+private fun StepSummary(profile: PhysiqueProfile) {
+    val bmi = if (profile.heightCm > 0)
+        profile.weightKg / (profile.heightCm / 100f).pow(2) else 0f
+    val bmiCat = when {
+        bmi < 18.5f -> "UNDERWEIGHT"
+        bmi < 25f   -> "OPTIMAL"
+        bmi < 30f   -> "ELEVATED"
+        else        -> "HIGH"
+    }
+
+    val bmrRaw = 10f * profile.weightKg + 6.25f * profile.heightCm - 5f * profile.age
+    val bmr = (bmrRaw + (if (profile.sex == "male") 5f else -161f)).roundToInt()
+
+    val activityMult = when (profile.activityLevel) {
+        "sedentary" -> 1.2f
+        "light"     -> 1.375f
+        "moderate"  -> 1.55f
+        "intense"   -> 1.725f
+        else        -> 1.2f
+    }
+    val tdee = (bmr * activityMult).roundToInt()
+
+    val goalAdj = when (profile.bodyGoal) {
+        "cut"      -> -0.18f
+        "bulk"     ->  0.15f
+        else       ->  0f
+    }
+    val target = (tdee * (1f + goalAdj)).roundToInt()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // BMI panel
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .reactStyleCard(selected = true, glowColor = GoldAccent)
+                .padding(vertical = 20.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(icons[key] ?: "", fontSize = 28.sp)
-                Column(Modifier.weight(1f)) {
-                    Text(title, fontSize = 15.sp, fontWeight = FontWeight.Medium,
-                        color = DarkColors.TextPrimary)
-                    Text(desc, fontSize = 11.sp,
-                        color = DarkColors.TextMuted, lineHeight = 16.sp)
+                Text(
+                    "BODY MASS INDEX",
+                    fontFamily = jetBrainsMono,
+                    fontSize = 10.sp,
+                    letterSpacing = 2.sp,
+                    color = CyanAccent,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "%.1f".format(bmi),
+                    fontFamily = orbitron,
+                    fontSize = 58.sp,
+                    fontWeight = FontWeight.Black,
+                    color = GoldAccent,
+                    style = TextStyle(shadow = Shadow(GoldAccent.copy(alpha = 0.5f), blurRadius = 24f))
+                )
+                Spacer(Modifier.height(10.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(SuccessGreen.copy(alpha = 0.12f))
+                        .border(1.dp, SuccessGreen.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        bmiCat,
+                        fontFamily = jetBrainsMono,
+                        fontSize = 9.5.sp,
+                        letterSpacing = 1.5.sp,
+                        fontWeight = FontWeight.Black,
+                        color = SuccessGreen
+                    )
                 }
             }
         }
 
-        // estimated quest intensity preview
-        val intensityText = when (profile.fitnessLevel) {
-            "beginner"     -> "Your quests: 3 sets of 10 reps, 60s rest, focus on form"
-            "intermediate" -> "Your quests: 4 sets of 8-12 reps, 45s rest, progressive load"
-            "advanced"     -> "Your quests: 5 sets of 4-6 reps, 30s rest, near-maximal effort"
-            else           -> ""
+        // BMR / TDEE / TARGET row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            SummaryTile(label = "BMR",    value = bmr,    color = PurpleLight,   modifier = Modifier.weight(1f))
+            SummaryTile(label = "TDEE",   value = tdee,   color = CyanAccent,    modifier = Modifier.weight(1f))
+            SummaryTile(label = "TARGET", value = target, color = SuccessGreen,  modifier = Modifier.weight(1f))
         }
+    }
+}
 
-        if (intensityText.isNotEmpty()) {
+@Composable
+private fun SummaryTile(
+    label: String,
+    value: Int,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    val anim by animateIntAsState(value, tween(900, easing = EaseOutCubic), label = "v")
+    Box(
+        modifier = modifier
+            .reactStyleCard(selected = false, glowColor = Color.Transparent)
+            .padding(vertical = 14.dp, horizontal = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                label,
+                fontFamily = jetBrainsMono,
+                fontSize = 9.sp,
+                letterSpacing = 1.5.sp,
+                color = TextMuted
+            )
+            Text(
+                anim.toString(),
+                fontFamily = orbitron,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Black,
+                color = color,
+                style = TextStyle(shadow = Shadow(color.copy(alpha = 0.4f), blurRadius = 12f))
+            )
+            Text(
+                "KCAL",
+                fontFamily = jetBrainsMono,
+                fontSize = 8.sp,
+                letterSpacing = 1.5.sp,
+                color = TextMuted.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+/* ============================================================
+ *  ASCEND SLIDER (custom cyber slider)
+ * ============================================================ */
+@Composable
+private fun AscendSlider(
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    accentColor: Color,
+    onValueChange: (Float) -> Unit
+) {
+    Slider(
+        value = value,
+        valueRange = range,
+        steps = steps,
+        onValueChange = onValueChange,
+        colors = SliderDefaults.colors(
+            thumbColor = accentColor,
+            activeTrackColor = accentColor,
+            inactiveTrackColor = PanelMid,
+            activeTickColor = Color.Transparent,
+            inactiveTickColor = Color.Transparent
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                10.dp, RoundedCornerShape(20.dp),
+                ambientColor = accentColor, spotColor = accentColor
+            )
+    )
+}
+
+@Composable
+private fun SliderLegend(text: String) {
+    Text(
+        text,
+        fontFamily = jetBrainsMono,
+        fontSize = 9.5.sp,
+        letterSpacing = 1.sp,
+        color = TextMuted.copy(alpha = 0.6f)
+    )
+}
+
+/* ============================================================
+ *  BOTTOM BAR
+ * ============================================================ */
+@Composable
+private fun PhysiqueBottomBar(
+    isFirstStep: Boolean,
+    isFinalStep: Boolean,
+    isSaving: Boolean,
+    proceedEnabled: Boolean,
+    onBack: () -> Unit,
+    onNext: () -> Unit
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "btnPulse")
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 0.5f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1400, easing = EaseInOutSine), RepeatMode.Reverse),
+        label = "p"
+    )
+    val elev = if (isFinalStep) (pulse * 22).dp else 14.dp
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (!isFirstStep) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(DarkColors.Arcane.copy(.1f))
-                    .padding(12.dp)
+                    .width(96.dp)
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(1.dp, BorderGlow, RoundedCornerShape(10.dp))
+                    .clickable { onBack() },
+                contentAlignment = Alignment.Center
             ) {
-                Text(intensityText, fontSize = 12.sp,
-                    color = DarkColors.Arcane, lineHeight = 18.sp)
+                Text(
+                    "← BACK",
+                    fontFamily = jetBrainsMono,
+                    fontSize = 11.sp,
+                    letterSpacing = 2.sp,
+                    fontWeight = FontWeight.Black,
+                    color = TextSecondary
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(48.dp)
+                .shadow(
+                    elev, RoundedCornerShape(10.dp),
+                    ambientColor = PurplePrimary, spotColor = CyanAccent
+                )
+                .clip(RoundedCornerShape(10.dp))
+                .background(Brush.horizontalGradient(listOf(PurplePrimary, CyanAccent)))
+                .alpha(if (proceedEnabled) 1f else 0.45f)
+                .clickable(enabled = proceedEnabled && !isSaving) { onNext() },
+            contentAlignment = Alignment.Center
+        ) {
+            if (isSaving) {
+                CircularProgressIndicator(
+                    Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp
+                )
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (isFinalStep) Icons.Filled.Check else Icons.AutoMirrored.Filled.ArrowForward,
+                        null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (isFinalStep) "SAVE PHYSIQUE" else "CONTINUE",
+                        fontFamily = orbitron,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp,
+                        color = Color.White
+                    )
+                }
             }
         }
     }
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+/* ============================================================
+ *  HELPERS
+ * ============================================================ */
 
-@Composable
-private fun LabeledInput(label: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, fontSize = 12.sp, color = DarkColors.TextMuted,
-            fontWeight = FontWeight.Medium, letterSpacing = 0.04.sp)
-        content()
+fun Modifier.reactStyleCard(selected: Boolean, glowColor: Color, cornerRadius: Dp = 12.dp): Modifier {
+    return this
+        .alpha(if (selected) 1f else 0.7f)
+        .then(
+            if (selected) Modifier.shadow(
+                elevation = 14.dp,
+                shape = RoundedCornerShape(cornerRadius),
+                ambientColor = glowColor,
+                spotColor = glowColor
+            ) else Modifier
+        )
+        .clip(RoundedCornerShape(cornerRadius))
+        .background(PanelMid)
+        .border(
+            width = 1.dp,
+            color = if (selected) glowColor else BorderGlow.copy(alpha = 0.5f),
+            shape = RoundedCornerShape(cornerRadius)
+        )
+}
+
+fun Modifier.scanlineHorizontal(): Modifier = drawWithCache {
+    val spacing = 4f
+    onDrawWithContent {
+        drawContent()
+        var y = 0f
+        while (y < size.height) {
+            drawLine(
+                Color.Black.copy(alpha = 0.08f),
+                start = Offset(0f, y + 1.5f),
+                end = Offset(size.width, y + 1.5f),
+                strokeWidth = 1.5f
+            )
+            y += spacing
+        }
     }
 }
 
-@Composable
-private fun ascendFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor   = DarkColors.Arcane,
-    unfocusedBorderColor = DarkColors.Dusk,
-    focusedTextColor     = DarkColors.TextPrimary,
-    unfocusedTextColor   = DarkColors.TextPrimary,
-    cursorColor          = DarkColors.Arcane,
-    focusedLabelColor    = DarkColors.Arcane,
-    unfocusedLabelColor  = DarkColors.TextMuted,
-)
-
-@Preview(showBackground = true, name = "Step 1: Basic Info")
+/* ============================================================
+ *  PREVIEWS
+ * ============================================================ */
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "1 - Biometric")
 @Composable
 fun PhysiquePreview_Step0() {
     MaterialTheme {
         PhysiqueOnboardingScreenContent(
-            profile = PhysiqueProfile(),
-            step = 0,
-            isSaving = false,
-            error = null,
-            onUpdateProfile = {},
-            onNext = {},
-            onBack = {}
+            profile = PhysiqueProfile(sex = "male"),
+            step = PhysiqueStep.BIOMETRIC_SCAN,
+            isSaving = false, error = null,
+            onUpdateProfile = {}, onNext = {}, onBack = {}
         )
     }
 }
 
-@Preview(showBackground = true, name = "Step 2: Body Metrics")
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "2 - Age")
 @Composable
 fun PhysiquePreview_Step1() {
     MaterialTheme {
         PhysiqueOnboardingScreenContent(
-            // Pre-filled to show BMI calculation
-            profile = PhysiqueProfile(heightCm = 180f, weightKg = 75f),
-            step = 1,
-            isSaving = false,
-            error = null,
-            onUpdateProfile = {},
-            onNext = {},
-            onBack = {}
+            profile = PhysiqueProfile(sex = "male", age = 27),
+            step = PhysiqueStep.AGE,
+            isSaving = false, error = null,
+            onUpdateProfile = {}, onNext = {}, onBack = {}
         )
     }
 }
 
-@Preview(showBackground = true, name = "Step 3: Target & Goal")
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "3 - Body Metrics")
 @Composable
 fun PhysiquePreview_Step2() {
     MaterialTheme {
         PhysiqueOnboardingScreenContent(
-            profile = PhysiqueProfile(bodyGoal = "lean_athletic"),
-            step = 2,
-            isSaving = false,
-            error = null,
-            onUpdateProfile = {},
-            onNext = {},
-            onBack = {}
+            profile = PhysiqueProfile(sex = "male", age = 27, heightCm = 178f, weightKg = 74f),
+            step = PhysiqueStep.BODY_METRICS,
+            isSaving = false, error = null,
+            onUpdateProfile = {}, onNext = {}, onBack = {}
         )
     }
 }
 
-@Preview(showBackground = true, name = "Step 4: Activity Level")
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "4 - Activity")
 @Composable
 fun PhysiquePreview_Step3() {
     MaterialTheme {
         PhysiqueOnboardingScreenContent(
-            profile = PhysiqueProfile(activityLevel = "moderate"), // Assuming moderate is a key
-            step = 3,
-            isSaving = false,
-            error = null,
-            onUpdateProfile = {},
-            onNext = {},
-            onBack = {}
+            profile = PhysiqueProfile(sex = "male", age = 27, heightCm = 178f, weightKg = 74f, activityLevel = "moderate"),
+            step = PhysiqueStep.ACTIVITY_LEVEL,
+            isSaving = false, error = null,
+            onUpdateProfile = {}, onNext = {}, onBack = {}
         )
     }
 }
 
-@Preview(showBackground = true, name = "Step 5: Fitness Level")
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "5 - Objective")
 @Composable
 fun PhysiquePreview_Step4() {
     MaterialTheme {
         PhysiqueOnboardingScreenContent(
-            profile = PhysiqueProfile(fitnessLevel = "intermediate"),
-            step = 4,
-            isSaving = false,
-            error = null,
-            onUpdateProfile = {},
-            onNext = {},
-            onBack = {}
+            profile = PhysiqueProfile(sex = "male", age = 27, heightCm = 178f, weightKg = 74f, activityLevel = "moderate", bodyGoal = "cut"),
+            step = PhysiqueStep.OBJECTIVE,
+            isSaving = false, error = null,
+            onUpdateProfile = {}, onNext = {}, onBack = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "6 - Summary")
+@Composable
+fun PhysiquePreview_Step5() {
+    MaterialTheme {
+        PhysiqueOnboardingScreenContent(
+            profile = PhysiqueProfile(sex = "male", age = 27, heightCm = 178f, weightKg = 74f, activityLevel = "moderate", bodyGoal = "cut"),
+            step = PhysiqueStep.SUMMARY,
+            isSaving = false, error = null,
+            onUpdateProfile = {}, onNext = {}, onBack = {}
         )
     }
 }

@@ -1,12 +1,6 @@
 package main
 
 import (
-	"context"
-	"log"
-	"net/http"
-
-	"log/slog"
-
 	"ascend-backend/internal/notifications"
 	"ascend-backend/internal/quest"
 	"ascend-backend/internal/server"
@@ -15,9 +9,14 @@ import (
 	redisstore "ascend-backend/internal/store/redis"
 	"ascend-backend/internal/user"
 	"ascend-backend/internal/workers"
-
+	"ascend-backend/internal/interests"
+	"ascend-backend/internal/mlservice"
 	"ascend-backend/pkg/config"
 	logger "ascend-backend/pkg/logger"
+	"context"
+	"log"
+	"log/slog"
+	"net/http"
 )
 
 func main() {
@@ -61,12 +60,31 @@ func main() {
 	questStore := pgstore.NewQuestStore(db, rdb)
 	go quest.StartExpiryWorker(ctx, questStore)
 	go user.PurgeScheduled(ctx, db)
+
+	// Quest Generation Worker
+	if cfg.MLServiceURL != "" {
+		workerMLClient := mlservice.NewClient(mlservice.Config{
+			SpaceURL: cfg.MLServiceURL,
+			Redis:    rdb,
+			HFToken:  cfg.HFToken,
+		})
+		interestsStore := interests.NewStore(db)
+		go workers.StartQuestGenerationWorker(ctx, workers.QuestGenerationWorkerConfig{
+			DB:             db,
+			MLClient:       workerMLClient,
+			InterestsStore: interestsStore,
+		})
+	}
 	go notifications.RunDailyReminder(ctx, db, fcmNotifier)
 	go workers.RunXPWorker(ctx, workers.XPWorkerConfig{
 		Redis:    rdb,
 		DB:       db,
 		Notifier: fcmNotifier,
 		Config:   cfg,
+	})
+	go workers.StartQuestReminderWorker(ctx, workers.QuestReminderWorkerConfig{
+		DB:       db,
+		Notifier: fcmNotifier,
 	})
 
 	log.Printf("starting ascend backend on %s [%s]", srv.Addr(), cfg.AppEnv)

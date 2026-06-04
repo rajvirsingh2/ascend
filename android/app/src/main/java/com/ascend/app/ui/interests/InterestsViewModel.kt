@@ -2,10 +2,8 @@ package com.ascend.app.ui.interests
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ascend.app.data.repository.InterestsRepository
-import com.ascend.app.domain.model.Result
 import com.ascend.app.domain.model.UserInterest
+// import com.ascend.app.domain.repository.InterestsRepository  // your repo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,162 +16,126 @@ import javax.inject.Inject
 
 @HiltViewModel
 class InterestsViewModel @Inject constructor(
-    private val repository: InterestsRepository
-): ViewModel(){
-    private val _state= MutableStateFlow(InterestsState())
+    // private val repo: InterestsRepository  // inject your data layer
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(InterestsState())
     val state: StateFlow<InterestsState> = _state.asStateFlow()
 
-    private val _effects= Channel<InterestsEffect>(Channel.BUFFERED)
-    val effects=_effects.receiveAsFlow()
+    private val _effects = Channel<InterestsEffect>(Channel.BUFFERED)
+    val effects = _effects.receiveAsFlow()
 
     init {
         loadCategories()
     }
 
-    private fun loadCategories(){
+    private fun loadCategories() {
         viewModelScope.launch {
-            when(val res=repository.getCategories()){
-                is Result.Success -> _state.update { it.copy(
-                    categories = res.data, isLoading = false
-                ) }
-                is Result.Error -> _state.update { it.copy(
-                    error = res.message, isLoading = false
-                ) }
-                is Result.Loading -> _state.update { it.copy(isLoading = true) }
+            _state.update { it.copy(isLoading = true) }
+            try {
+                // val cats = repo.getCategories()
+                val cats = emptyList<com.ascend.app.domain.model.InterestCategory>() // replace
+                _state.update { it.copy(categories = cats, isLoading = false) }
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = e.message) }
             }
         }
     }
 
-    fun onIntent(intent: InterestsIntent){
-        when(intent){
-            is InterestsIntent.SelectCategory ->{
-                _state.update { it.copy(
-                    draftCategory = intent.categoryId,
-                    draftSubcategory = null,
-                    draftCustomGoal = "",
-                    draftPriority = 1,
-                    draftProficiency = "Beginner",
-                    step = InterestsStep.SUBCATEGORY_PICK
-                ) }
-            }
-            is InterestsIntent.SelectSubcategory ->{
-                _state.update { it.copy(
-                    draftSubcategory = intent.subcategoryId,
-                    step = InterestsStep.PROFICIENCY_PICK   // advance to proficiency selection
-                ) }
-            }
-            is InterestsIntent.SetPriority ->{
-                _state.update { it.copy(
-                    draftPriority = intent.priority
-                ) }
-            }
-            is InterestsIntent.SetProficiency ->{
-                _state.update { it.copy(
-                    draftProficiency = intent.proficiency
-                ) }
-            }
-            is InterestsIntent.ConfirmProficiencyAndContinue -> {
-                _state.update { it.copy(step = InterestsStep.CUSTOM_GOAL) }
-            }
-            is InterestsIntent.SetCustomGoal ->{
-                _state.update { it.copy(
-                    draftCustomGoal = intent.text
-                ) }
-            }
-            is InterestsIntent.ConfirmDraftAndAddMore ->{
-                commitDraft()
-                _state.update { it.copy(
-                    step = InterestsStep.CATEGORY_PICK,
-                    draftCategory = null,
-                    draftSubcategory = null,
-                    draftPriority = 1,
-                    draftProficiency = "Beginner",
-                    draftCustomGoal = ""
-                ) }
-            }
-            is InterestsIntent.ConfirmDraftAndReview -> {
-                commitDraft()
-                _state.update { it.copy(step = InterestsStep.REVIEW) }
-            }
-
-            is InterestsIntent.RemoveInterest -> {
-                _state.update { s ->
-                    val updated = s.selectedInterests.toMutableList()
-                    if (intent.index in updated.indices) updated.removeAt(intent.index)
-                    s.copy(selectedInterests = updated)
-                }
-            }
-            is InterestsIntent.ChangePriority -> {
-                _state.update { s ->
-                    val updated = s.selectedInterests.toMutableList()
-                    if (intent.index in updated.indices) {
-                        updated[intent.index] = updated[intent.index].copy(priority = intent.priority)
-                    }
-                    s.copy(selectedInterests = updated.sortedBy { it.priority })
-                }
-            }
-
-            is InterestsIntent.GoBack -> {
-                val current = _state.value.step
-                val previous = when (current) {
-                    InterestsStep.SUBCATEGORY_PICK -> InterestsStep.CATEGORY_PICK
-                    InterestsStep.PROFICIENCY_PICK -> InterestsStep.SUBCATEGORY_PICK
-                    InterestsStep.CUSTOM_GOAL      -> InterestsStep.PROFICIENCY_PICK
-                    InterestsStep.REVIEW           -> InterestsStep.CATEGORY_PICK
-                    else                           -> null
-                }
-                if (previous != null) {
-                    _state.update { it.copy(step = previous) }
-                }
-            }
-            is InterestsIntent.Save -> {
-                saveInterests()
-            }
-
-            is InterestsIntent.DismissError -> {
-                _state.update { it.copy(error = null) }
-            }
+    fun onIntent(intent: InterestsIntent) {
+        when (intent) {
+            is InterestsIntent.TogglePickedCategory -> togglePicked(intent.id)
+            is InterestsIntent.ToggleArea           -> toggleArea(intent.catId, intent.subId)
+            is InterestsIntent.SetAreaPriority      -> setAreaPriority(intent.catId, intent.subId, intent.priority)
+            is InterestsIntent.SetCategoryProficiency -> setProficiency(intent.catId, intent.level)
+            is InterestsIntent.SetGlobalGoal        -> _state.update { it.copy(globalGoal = intent.goal) }
+            is InterestsIntent.RemoveInterest       -> removeInterest(intent.index)
+            InterestsIntent.Continue                -> goNext()
+            InterestsIntent.GoBack                  -> goBack()
+            InterestsIntent.Save                    -> save()
+            InterestsIntent.DismissError            -> _state.update { it.copy(error = null) }
         }
     }
 
-    fun proceedToCustomGoal(){
-        _state.update { it.copy(step = InterestsStep.CUSTOM_GOAL) }
+    private fun togglePicked(id: String) {
+        _state.update {
+            val newSet = if (id in it.pickedCategoryIds) it.pickedCategoryIds - id
+            else it.pickedCategoryIds + id
+            // If category un-picked, remove its areas
+            val cleanedInterests = if (id !in newSet)
+                it.selectedInterests.filter { ui -> ui.category != id }
+            else it.selectedInterests
+            it.copy(pickedCategoryIds = newSet, selectedInterests = cleanedInterests)
+        }
     }
-    private fun saveInterests() {
-        val interests = _state.value.selectedInterests
-        if (interests.isEmpty()) return
 
+    private fun toggleArea(catId: String, subId: String) {
+        _state.update { s ->
+            val exists = s.selectedInterests.any { it.category == catId && it.subcategory == subId }
+            val newList = if (exists) {
+                s.selectedInterests.filterNot { it.category == catId && it.subcategory == subId }
+            } else {
+                s.selectedInterests + UserInterest(
+                    category = catId, subcategory = subId,
+                    priority = 2, customGoal = ""
+                )
+            }
+            s.copy(selectedInterests = newList)
+        }
+    }
+
+    private fun setAreaPriority(catId: String, subId: String, priority: Int) {
+        _state.update { s ->
+            s.copy(selectedInterests = s.selectedInterests.map {
+                if (it.category == catId && it.subcategory == subId) it.copy(priority = priority)
+                else it
+            })
+        }
+    }
+
+    private fun setProficiency(catId: String, level: String) {
+        _state.update { it.copy(proficiencyByCategory = it.proficiencyByCategory + (catId to level)) }
+    }
+
+    private fun removeInterest(idx: Int) {
+        _state.update { s ->
+            s.copy(selectedInterests = s.selectedInterests.toMutableList().apply {
+                if (idx in indices) removeAt(idx)
+            })
+        }
+    }
+
+    private fun goNext() {
+        _state.update {
+            val cur = it.step.ordinal
+            val total = InterestsStep.entries.size
+            if (cur < total - 1) it.copy(step = InterestsStep.entries[cur + 1])
+            else it
+        }
+    }
+
+    private fun goBack() {
+        _state.update {
+            val cur = it.step.ordinal
+            if (cur > 0) it.copy(step = InterestsStep.entries[cur - 1])
+            else it
+        }
+    }
+
+    private fun save() {
         viewModelScope.launch {
-            when (val result = repository.saveInterests(interests)) {
-                is Result.Success -> {
-                    _state.update { it.copy(isSaving = false) }
-                    _effects.send(InterestsEffect.NavigateToDashboard)
-                }
-                is Result.Error -> {
-                    _state.update { it.copy(isSaving = false, error = result.message) }
-                }
-                is Result.Loading -> {
-                    _state.update { it.copy(isSaving = true) }
-                }
+            _state.update { it.copy(isSaving = true) }
+            try {
+                // repo.saveOnboarding(
+                //     interests = _state.value.selectedInterests,
+                //     proficiency = _state.value.proficiencyByCategory,
+                //     goal = _state.value.globalGoal
+                // )
+                _state.update { it.copy(isSaving = false) }
+                _effects.send(InterestsEffect.NavigateToDashboard)
+            } catch (e: Exception) {
+                _state.update { it.copy(isSaving = false, error = e.message) }
             }
         }
-    }
-
-    private fun commitDraft() {
-        val s = _state.value
-        val categoryId = s.draftCategory ?: return
-        val interest = UserInterest(
-            category = categoryId,
-            subcategory = s.draftSubcategory ?: "",
-            customGoal = s.draftCustomGoal.trim(),
-            priority = s.draftPriority,
-            proficiency = s.draftProficiency
-        )
-        val existing = s.selectedInterests.toMutableList()
-        val idx = existing.indexOfFirst {
-            it.category == interest.category && it.subcategory == interest.subcategory
-        }
-        if (idx >= 0) existing[idx] = interest else existing.add(interest)
-        _state.update { it.copy(selectedInterests = existing.sortedBy { i -> i.priority }) }
     }
 }

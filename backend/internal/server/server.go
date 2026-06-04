@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"ascend-backend/internal/achievements"
-	"ascend-backend/internal/ai"
 	"ascend-backend/internal/auth"
 	"ascend-backend/internal/email"
 	"ascend-backend/internal/events"
@@ -17,6 +16,8 @@ import (
 	"ascend-backend/internal/interests"
 	"ascend-backend/internal/keyvault"
 	"ascend-backend/internal/middleware"
+	"ascend-backend/internal/mlservice"
+	"ascend-backend/internal/notifications"
 	"ascend-backend/internal/physique"
 	"ascend-backend/internal/quest"
 	"ascend-backend/internal/settings"
@@ -37,7 +38,7 @@ type Server struct {
 	db       *pgxpool.Pool
 	rdb      *redis.Client
 	vault    *keyvault.Vault
-	aiClient *ai.Client
+	mlClient *mlservice.Client
 	pub      *events.Publisher
 }
 
@@ -47,12 +48,22 @@ func New(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *Server {
 		slog.Error("vault init failed", "error", err)
 		// non-fatal in dev if key not set — vault will error per-request
 	}
+	var mlClient *mlservice.Client
+	if cfg.MLServiceURL != "" {
+		mlClient = mlservice.NewClient(mlservice.Config{
+			SpaceURL: cfg.MLServiceURL,
+			Redis:    rdb,
+			HFToken:  cfg.HFToken,
+		})
+		slog.Info("ML model client initialised", "url", cfg.MLServiceURL)
+	}
+
 	return &Server{
 		cfg:      cfg,
 		db:       db,
 		rdb:      rdb,
 		vault:    vault,
-		aiClient: ai.NewClient(cfg.RAGServiceURL),
+		mlClient: mlClient,
 	}
 }
 
@@ -117,6 +128,7 @@ func (s *Server) Routes() http.Handler {
 			)
 			r.Route("/me", func(r chi.Router) {
 				r.Get("/", s.meHandler())
+				r.Get("/stats", userHandler.GetStats)
 				r.Post("/delete", userHandler.RequestDeletion)
 				r.Post("/cancel-delete", userHandler.CancelDeletion)
 				r.Get("/progress", s.progressHandler())
@@ -156,14 +168,17 @@ func (s *Server) Routes() http.Handler {
 				r.Post("/{id}/complete", habitHandler.Complete)
 			})
 
+			tracker := quest.NewInteractionTracker(s.db)
+
 			// quests
-			questHandler := quest.NewHandler(pgstore.NewQuestStore(s.db, s.rdb))
+			questHandler := quest.NewHandler(pgstore.NewQuestStore(s.db, s.rdb), tracker)
 			r.Route("/quests", func(r chi.Router) {
 				r.Get("/", questHandler.ListActive)
 				r.Get("/history", questHandler.ListHistory)
+				r.Get("/heatmap", questHandler.GetHeatmap)
 				r.Post("/{id}/complete", questHandler.Complete)
 				r.Post("/{id}/skip", questHandler.Skip)
-				generateHandler := quest.NewGenerateHandler(s.db, s.rdb, s.aiClient, s.vault, interestsStore)
+				generateHandler := quest.NewGenerateHandler(s.db, s.rdb, s.mlClient, interestsStore, tracker)
 				r.Post("/generate", generateHandler.Generate)
 			})
 
@@ -172,6 +187,11 @@ func (s *Server) Routes() http.Handler {
 				r.Get("/", interestsHandler.GetMyInterests)
 				r.Post("/", interestsHandler.SaveInterests)
 			})
+
+			// notifications
+			notificationStore := pgstore.NewNotificationStore(s.db)
+			notificationHandler := notifications.NewHandler(notificationStore)
+			r.Mount("/notifications", notificationHandler.Routes())
 		})
 	})
 
@@ -192,11 +212,11 @@ func (s *Server) meHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := middleware.GetUserID(r)
 		var email, username string
-		var level, currentXP, totalXP, hp, maxHp int
+		var level, currentXP, totalXP, hp, maxHp, strength, agility, mana int
 		err := s.db.QueryRow(r.Context(),
-			`SELECT email, username, level, current_xp, total_xp, hp, max_hp FROM users WHERE id = $1`,
+			`SELECT email, username, level, current_xp, total_xp, hp, max_hp, strength, agility, mana FROM users WHERE id = $1`,
 			userID,
-		).Scan(&email, &username, &level, &currentXP, &totalXP, &hp, &maxHp)
+		).Scan(&email, &username, &level, &currentXP, &totalXP, &hp, &maxHp, &strength, &agility, &mana)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, "user not found")
 			return
@@ -212,6 +232,9 @@ func (s *Server) meHandler() http.HandlerFunc {
 			"xp_to_next": xpToNext,
 			"hp":         hp,
 			"max_hp":     maxHp,
+			"strength":   strength,
+			"agility":    agility,
+			"mana":       mana,
 		})
 	}
 }
