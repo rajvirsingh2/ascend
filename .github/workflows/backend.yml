@@ -86,7 +86,7 @@ jobs:
 
       - name: Run migrations
         run: |
-          migrate -path ./migrations \
+          migrate -path ./backend/internal/store/postgres/migrations \
             -database "$DATABASE_URL" up
 
       - name: Run tests
