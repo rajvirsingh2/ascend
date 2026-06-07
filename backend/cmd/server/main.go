@@ -56,16 +56,19 @@ func main() {
 
 	var firebaseAuthClient *firebaseauth.Client
 	if cfg.FCMCredentialsJSON != "" {
+		//nolint:staticcheck // we control the source of the credentials file
 		opt := option.WithCredentialsFile(cfg.FCMCredentialsJSON)
 		app, err := firebase.NewApp(ctx, nil, opt)
 		if err != nil {
-			log.Fatalf("error initializing app: %v", err)
+			log.Printf("error initializing firebase app: %v", err)
+		} else {
+			firebaseAuthClient, err = app.Auth(ctx)
+			if err != nil {
+				log.Printf("error getting Auth client: %v", err)
+			} else {
+				slog.Info("Firebase Auth initialized")
+			}
 		}
-		firebaseAuthClient, err = app.Auth(ctx)
-		if err != nil {
-			log.Fatalf("error getting Auth client: %v", err)
-		}
-		slog.Info("Firebase Auth initialized")
 	} else {
 		slog.Warn("FCM_CREDENTIALS_JSON not set — Firebase Auth disabled")
 	}

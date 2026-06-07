@@ -75,15 +75,40 @@ class AuthViewModel @Inject constructor(
 
         viewModelScope.launch {
             _loginState.update { it.copy(isLoading = true) }
+            com.google.firebase.auth.FirebaseAuth.getInstance()
+                .signInWithEmailAndPassword(state.email, state.password)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        task.result?.user?.getIdToken(true)?.addOnSuccessListener { tokenResult ->
+                            tokenResult.token?.let { firebaseLogin(it) }
+                        }?.addOnFailureListener { e ->
+                            viewModelScope.launch {
+                                _effects.send(AuthEffect.ShowError("Failed to get Firebase token: ${e.message}"))
+                                _loginState.update { it.copy(isLoading = false) }
+                            }
+                        }
+                    } else {
+                        viewModelScope.launch {
+                            _effects.send(AuthEffect.ShowError(task.exception?.message ?: "Login failed"))
+                            _loginState.update { it.copy(isLoading = false) }
+                        }
+                    }
+                }
+        }
+    }
+
+    fun firebaseLogin(firebaseToken: String) {
+        viewModelScope.launch {
+            _loginState.update { it.copy(isLoading = true) }
             try {
-                val response = authApi.login(
-                    LoginRequest(email = state.email, password = state.password)
+                val response = authApi.firebaseLogin(
+                    AuthApiService.FirebaseLoginRequest(token = firebaseToken)
                 )
                 if (response.data != null) {
                     tokenDataStore.saveToken(response.data.accessToken)
                     _effects.send(AuthEffect.NavigateToSplash)
                 } else {
-                    _effects.send(AuthEffect.ShowError(response.error ?: "Login failed"))
+                    _effects.send(AuthEffect.ShowError(response.error ?: "Firebase login failed"))
                 }
                 FirebaseMessaging.getInstance().token.addOnSuccessListener { fcmToken ->
                     viewModelScope.launch {
@@ -103,24 +128,24 @@ class AuthViewModel @Inject constructor(
         val state = _registerState.value
         viewModelScope.launch {
             _registerState.update { it.copy(isLoading = true) }
-            try {
-                val response = authApi.register(
-                    RegisterRequest(
-                        email = state.email,
-                        password = state.password,
-                        username = state.username
-                    )
-                )
-                if (response.data != null) {
-                    _effects.send(AuthEffect.NavigateToSplash)
-                } else {
-                    _registerState.update { it.copy(error = response.error ?: "Registration failed") }
+            com.google.firebase.auth.FirebaseAuth.getInstance()
+                .createUserWithEmailAndPassword(state.email, state.password)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        // Registration success. Now get token and send to backend
+                        task.result?.user?.getIdToken(true)?.addOnSuccessListener { tokenResult ->
+                            tokenResult.token?.let { firebaseLogin(it) }
+                        }?.addOnFailureListener { e ->
+                            viewModelScope.launch {
+                                _registerState.update { it.copy(error = "Failed to get Firebase token: ${e.message}", isLoading = false) }
+                            }
+                        }
+                    } else {
+                        viewModelScope.launch {
+                            _registerState.update { it.copy(error = task.exception?.message ?: "Registration failed", isLoading = false) }
+                        }
+                    }
                 }
-            } catch (e: Exception) {
-                _registerState.update { it.copy(error=e.message.toString()) }
-            } finally {
-                _registerState.update { it.copy(isLoading = false) }
-            }
         }
     }
 

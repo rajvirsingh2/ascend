@@ -25,17 +25,17 @@ import (
 	"ascend-backend/pkg/config"
 	"ascend-backend/pkg/response"
 
+	firebaseauth "firebase.google.com/go/v4/auth"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-	firebaseauth "firebase.google.com/go/v4/auth"
 )
 
 type Server struct {
-	cfg      *config.Config
-	db       *pgxpool.Pool
-	rdb      *redis.Client
+	cfg          *config.Config
+	db           *pgxpool.Pool
+	rdb          *redis.Client
 	mlClient     *mlservice.Client
 	pub          *events.Publisher
 	firebaseAuth *firebaseauth.Client
@@ -53,7 +53,7 @@ func New(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, firebaseAuth *
 	}
 
 	return &Server{
-		cfg:      cfg,
+		cfg:          cfg,
 		db:           db,
 		rdb:          rdb,
 		mlClient:     mlClient,
@@ -97,6 +97,7 @@ func (s *Server) Routes() http.Handler {
 			r.Use(authRateLimit)
 			r.Post("/register", authHandler.Register)
 			r.Post("/login", authHandler.Login)
+			r.Post("/firebase-login", authHandler.FirebaseLogin)
 			r.Post("/refresh", authHandler.Refresh)
 			r.Post("/logout", authHandler.Logout)
 			r.Post("/verify-email", authHandler.VerifyEmail)
