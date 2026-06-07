@@ -106,9 +106,9 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = questRepo.skipQuest(questId)) {
                 is Result.Success -> {
-                    val skips = result.data.skips_used
-                    val damage = result.data.hp_damage
-                    val died = result.data.died
+                    val skips = result.data.skips_used ?: 0
+                    val damage = result.data.hp_damage ?: 0
+                    val died = result.data.died ?: false
                     
                     if (died) {
                         userRepo.refresh()

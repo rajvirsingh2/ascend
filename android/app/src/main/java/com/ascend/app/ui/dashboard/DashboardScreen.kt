@@ -132,18 +132,39 @@ fun DashboardScreenContent(
                 )
             }
 
-            // ── ACTIVE QUESTS ──
+            val dailyQuests = activeQuests.filter { it.type.equals("daily", ignoreCase = true) }
+            val otherQuests = activeQuests.filter { !it.type.equals("daily", ignoreCase = true) }
+
+            // ── DAILY QUESTS ──
             item {
                 SectionHeader(
-                    title = "ACTIVE QUESTS",
-                    rightText = "${activeQuests.size} ACTIVE"
+                    title = "DAILY QUESTS",
+                    rightText = "${dailyQuests.size} ACTIVE"
                 )
             }
 
-            if (activeQuests.isEmpty()) {
+            if (dailyQuests.isEmpty()) {
                 item { EmptyQuestsPanel() }
             } else {
-                items(activeQuests, key = { it.id }) { quest ->
+                items(dailyQuests, key = { it.id }) { quest ->
+                    QuestCard(
+                        quest = quest,
+                        onComplete = { onIntent(DashboardIntent.CompleteQuest(quest.id)) },
+                        onSkip = { onIntent(DashboardIntent.SkipQuest(quest.id)) }
+                    )
+                }
+            }
+
+            // ── OTHER QUESTS ──
+            if (otherQuests.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(4.dp))
+                    SectionHeader(
+                        title = "OTHER QUESTS",
+                        rightText = "${otherQuests.size} ACTIVE"
+                    )
+                }
+                items(otherQuests, key = { it.id }) { quest ->
                     QuestCard(
                         quest = quest,
                         onComplete = { onIntent(DashboardIntent.CompleteQuest(quest.id)) },

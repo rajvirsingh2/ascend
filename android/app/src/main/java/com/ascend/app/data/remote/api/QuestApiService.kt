@@ -13,11 +13,11 @@ import com.ascend.app.data.remote.dto.StatDeltaResponse
 
 @JsonClass(generateAdapter = true)
 data class SkipResponse(
-    val hp_damage: Int,
-    val hp_after: Int,
-    val skips_used: Int,
-    val died: Boolean,
-    val stat_deltas: List<StatDeltaResponse>?
+    @Json(name = "hp_damage") val hp_damage: Int? = 0,
+    @Json(name = "hp_after") val hp_after: Int? = 0,
+    @Json(name = "skips_used") val skips_used: Int? = 0,
+    @Json(name = "died") val died: Boolean? = false,
+    @Json(name = "stat_deltas") val stat_deltas: List<StatDeltaResponse>? = null
 )
 
 interface QuestApiService {
