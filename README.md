@@ -33,6 +33,7 @@ A gamified personal development application inspired by the hit anime "Solo Leve
 
 - [What is Ascend](#what-is-ascend)
 - [Tech Stack](#tech-stack)
+- [Custom Quest Generation Model](#custom-quest-generation-model)
 - [Architecture Overview](#architecture-overview)
 - [Module Map](#module-map)
 - [Installation & Setup](#installation--setup)
@@ -60,6 +61,24 @@ What truly sets Ascend apart is its **Personalised AI Quest Engine**. The system
 2. Complete AI-generated quests and daily habits
 3. Earn XP, level up, unlock titles
 4. The AI remembers your history and dynamically evolves your next quests
+
+---
+
+## Custom Quest Generation Model
+
+A core technical pillar of Ascend is its independent AI infrastructure. Rather than relying heavily on generic third-party AI APIs (which are expensive and rigid), Ascend features a **custom fine-tuned LLM** dedicated entirely to generating personalized RPG quests.
+
+### The Machine Learning Journey
+- **Synthetic Dataset Generation:** The process began with no real user data. A synthetic dataset of 100,000 instruction-tuning pairs was built using a custom script and Gemini, ensuring proper ChatML formatting, train/validation splits, and balanced domains (fitness, mindfulness, etc.).
+- **Fine-tuning on Colab:** Using a free Colab GPU, Microsoft's **Phi-3 Mini** was fine-tuned using LoRA/QLoRA techniques via `SFTTrainer`. Key techniques included gradient accumulation and early stopping to prevent overfitting.
+- **Serverless Deployment:** The resulting model was merged, quantized to GGUF format, and deployed on a free Hugging Face Space running `llama-cpp-python` and Gradio for API access.
+- **Backend Integration:** The Go backend communicates with the Hugging Face Space via the Gradio protocol. It caches responses and includes a graceful fallback to a cloud LLM if the free tier space is cold-starting.
+- **Continuous Improvement:** The architecture is designed for **Direct Preference Optimization (DPO)**. As users interact with quests (completing vs. skipping), preference pairs are collected to further align the model's reward signals in future iterations.
+
+**Final State:**
+- **Model:** Phi-3 Mini + LoRA (Quantized GGUF)
+- **Hosted:** Hugging Face Spaces (CPU Free Tier)
+- **Zero API Keys required** for the core quest generation loop.
 
 ---
 
