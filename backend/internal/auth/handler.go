@@ -12,6 +12,7 @@ import (
 	"ascend-backend/internal/otp"
 	"ascend-backend/pkg/response"
 	"ascend-backend/pkg/validator"
+	firebaseauth "firebase.google.com/go/v4/auth"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,9 +27,10 @@ type Handler struct {
 	refreshExpiryDays int
 	emailSender       *email.Sender
 	otpService        *otp.Service
+	firebaseAuth      *firebaseauth.Client
 }
 
-func NewHandler(db *pgxpool.Pool, rdb *redis.Client, jwtSecret string, jwtExpiry, refreshExpiry int, emailSender *email.Sender) *Handler {
+func NewHandler(db *pgxpool.Pool, rdb *redis.Client, jwtSecret string, jwtExpiry, refreshExpiry int, emailSender *email.Sender, firebaseAuth *firebaseauth.Client) *Handler {
 	return &Handler{
 		db:                db,
 		rdb:               rdb,
@@ -37,6 +39,7 @@ func NewHandler(db *pgxpool.Pool, rdb *redis.Client, jwtSecret string, jwtExpiry
 		refreshExpiryDays: refreshExpiry,
 		emailSender:       emailSender,
 		otpService:        otp.NewService(rdb),
+		firebaseAuth:      firebaseAuth,
 	}
 }
 

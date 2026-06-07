@@ -29,17 +29,19 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	firebaseauth "firebase.google.com/go/v4/auth"
 )
 
 type Server struct {
 	cfg      *config.Config
 	db       *pgxpool.Pool
 	rdb      *redis.Client
-	mlClient *mlservice.Client
-	pub      *events.Publisher
+	mlClient     *mlservice.Client
+	pub          *events.Publisher
+	firebaseAuth *firebaseauth.Client
 }
 
-func New(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *Server {
+func New(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, firebaseAuth *firebaseauth.Client) *Server {
 	var mlClient *mlservice.Client
 	if cfg.MLServiceURL != "" {
 		mlClient = mlservice.NewClient(mlservice.Config{
@@ -52,9 +54,10 @@ func New(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *Server {
 
 	return &Server{
 		cfg:      cfg,
-		db:       db,
-		rdb:      rdb,
-		mlClient: mlClient,
+		db:           db,
+		rdb:          rdb,
+		mlClient:     mlClient,
+		firebaseAuth: firebaseAuth,
 	}
 }
 
@@ -86,6 +89,7 @@ func (s *Server) Routes() http.Handler {
 			s.cfg.JWTExpiryMinutes,
 			s.cfg.RefreshExpiryDays,
 			emailSender,
+			s.firebaseAuth,
 		)
 		authRateLimit := middleware.RateLimit(s.rdb, 10, 15*60*1e9) // 10 req / 15 min
 

@@ -60,8 +60,9 @@ func NewFCMNotifier(ctx context.Context, cfg *config.Config, db *pgxpool.Pool) (
 	}
 
 	// Create OAuth2 token source using the service account.
-	creds, err := google.CredentialsFromJSON(ctx, credBytes,
-		"https://www.googleapis.com/auth/firebase.messaging")
+	creds, err := google.CredentialsFromJSONWithParams(ctx, credBytes, google.CredentialsParams{
+		Scopes: []string{"https://www.googleapis.com/auth/firebase.messaging"},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("parse FCM credentials: %w", err)
 	}
