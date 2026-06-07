@@ -18,4 +18,10 @@ interface GoalApiService {
 
     @DELETE("goals/{id}")
     suspend fun deleteGoal(@Path("id") id: String): Unit
+
+    @retrofit2.http.PATCH("goals/{id}")
+    suspend fun updateGoal(
+        @Path("id") id: String,
+        @Body request: com.ascend.app.data.remote.dto.UpdateGoalRequest
+    ): ApiEnvelope<GoalResponse>
 }

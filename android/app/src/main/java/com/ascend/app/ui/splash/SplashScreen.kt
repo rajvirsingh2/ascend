@@ -185,14 +185,14 @@ fun SplashScreenContent() {
                             color = Color(0xFF7C3AED).copy(alpha = 0.3f), // Subtle border glow
                             shape = RoundedCornerShape(16.dp)
                         )
-                        .padding(horizontal = 36.dp, vertical = 16.dp), // Padding around the text
+                        .padding(horizontal = 24.dp, vertical = 16.dp), // Padding around the text
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "ASCEND",
-                        fontSize = 45.sp,
+                        fontSize = 40.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 8.sp,
+                        letterSpacing = 6.sp,
                         style = TextStyle(
                             brush = titleBrush,
                             shadow = Shadow(

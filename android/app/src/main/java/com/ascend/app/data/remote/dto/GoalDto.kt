@@ -22,6 +22,12 @@ data class CreateGoalRequest(
     val priority: Int
 )
 
+@JsonClass(generateAdapter = true)
+data class UpdateGoalRequest(
+    val status: String,
+    val progress: Int
+)
+
 fun GoalResponse.toDomain() = com.ascend.app.domain.model.Goal(
     id = id, title = title, description = description,
     skillArea = skillArea, priority = priority,

@@ -112,12 +112,12 @@ fun DashboardScreenContent(
                 .background(SystemBlack)
                 .padding(padding),
             contentPadding = PaddingValues(
-                start = com.ascend.app.ui.theme.LocalSpacing.current.screenPadding,
-                end = com.ascend.app.ui.theme.LocalSpacing.current.screenPadding,
+                start = 16.dp,
+                end = 16.dp,
                 top = 14.dp,
                 bottom = 80.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(com.ascend.app.ui.theme.LocalSpacing.current.itemSpacing)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // ── HUNTER HEADER (combined avatar + name + HP + XP) ──
             item {

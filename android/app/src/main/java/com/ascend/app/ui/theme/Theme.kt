@@ -21,20 +21,9 @@ private val AscendColorScheme = darkColorScheme(
 
 @Composable
 fun AscendTheme(content: @Composable () -> Unit) {
-    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
-
-    val dimensions = when {
-        screenWidth < 600 -> CompactDimensions
-        screenWidth < 840 -> MediumDimensions
-        else -> ExpandedDimensions
-    }
-
-    androidx.compose.runtime.CompositionLocalProvider(LocalSpacing provides dimensions) {
-        MaterialTheme(
-            colorScheme = AscendColorScheme,
-            typography  = AscendTypography,
-            content     = content
-        )
-    }
+    MaterialTheme(
+        colorScheme = AscendColorScheme,
+        typography  = AscendTypography,
+        content     = content
+    )
 }

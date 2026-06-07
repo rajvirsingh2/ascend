@@ -81,7 +81,7 @@ fun AttributesScreenContent(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(com.ascend.app.ui.theme.LocalSpacing.current.screenPadding),
+                        .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // Header Status
@@ -92,7 +92,7 @@ fun AttributesScreenContent(
                         fontSize = 14.sp,
                         letterSpacing = 2.sp
                     )
-                    Spacer(Modifier.height(com.ascend.app.ui.theme.LocalSpacing.current.sm))
+                    Spacer(Modifier.height(8.dp))
                     Text(
                         "LEVEL ${user.level}",
                         fontFamily = orbitron,
@@ -100,13 +100,13 @@ fun AttributesScreenContent(
                         fontSize = 42.sp,
                         fontWeight = FontWeight.Black
                     )
-                    Spacer(Modifier.height(com.ascend.app.ui.theme.LocalSpacing.current.xl))
+                    Spacer(Modifier.height(32.dp))
 
                     // Attribute Bars
                     AttributeBar(label = "STRENGTH", value = user.strength, color = DangerRed)
-                    Spacer(Modifier.height(com.ascend.app.ui.theme.LocalSpacing.current.lg))
+                    Spacer(Modifier.height(24.dp))
                     AttributeBar(label = "AGILITY", value = user.agility, color = CyanAccent)
-                    Spacer(Modifier.height(com.ascend.app.ui.theme.LocalSpacing.current.lg))
+                    Spacer(Modifier.height(24.dp))
                     AttributeBar(label = "MANA", value = user.mana, color = PurplePrimary)
 
                     Spacer(Modifier.weight(1f))
@@ -177,13 +177,13 @@ fun AttributeBar(label: String, value: Int, color: Color) {
                 fontSize = 22.sp
             )
         }
-        Spacer(Modifier.height(com.ascend.app.ui.theme.LocalSpacing.current.sm))
+        Spacer(Modifier.height(8.dp))
         
         // Progress Bar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(com.ascend.app.ui.theme.LocalSpacing.current.md)
+                .height(16.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(Color(0xFF1F1F2E))
                 .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(8.dp))

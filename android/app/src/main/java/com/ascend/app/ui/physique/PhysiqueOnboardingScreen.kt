@@ -624,10 +624,10 @@ private fun StepActivity(
     update: (PhysiqueProfile.() -> PhysiqueProfile) -> Unit
 ) {
     val options = listOf(
-        Triple("sedentary", "SEDENTARY", "Desk-bound · little exercise"),
-        Triple("light",     "LIGHT",     "1–3 days / week"),
-        Triple("moderate",  "MODERATE",  "3–5 days / week"),
-        Triple("intense",   "INTENSE",   "6–7 days / week")
+        Triple("sedentary", "Sedentary", "Little to no exercise"),
+        Triple("light",     "Light",     "1-3 days / week"),
+        Triple("moderate",  "Moderate",  "3-5 days / week"),
+        Triple("active",   "Active",   "6-7 days / week")
     )
 
     Column(
@@ -692,9 +692,9 @@ private fun StepObjective(
     update: (PhysiqueProfile.() -> PhysiqueProfile) -> Unit
 ) {
     val options = listOf(
-        ObjectiveOpt("cut",      "CUT",      "Lose fat",     CyanAccent),
+        ObjectiveOpt("lose_fat",      "CUT",      "Lose fat",     CyanAccent),
         ObjectiveOpt("maintain", "MAINTAIN", "Recomp",       GoldAccent),
-        ObjectiveOpt("bulk",     "BULK",     "Gain muscle",  SuccessGreen)
+        ObjectiveOpt("bulky_muscular",     "BULK",     "Gain muscle",  SuccessGreen)
     )
 
     Row(
@@ -779,15 +779,20 @@ private fun StepSummary(profile: PhysiqueProfile) {
         "sedentary" -> 1.2f
         "light"     -> 1.375f
         "moderate"  -> 1.55f
-        "intense"   -> 1.725f
+        "active"   -> 1.725f
+        "very_active" -> 1.9f
         else        -> 1.2f
     }
     val tdee = (bmr * activityMult).roundToInt()
 
     val goalAdj = when (profile.bodyGoal) {
-        "cut"      -> -0.18f
-        "bulk"     ->  0.15f
-        else       ->  0f
+        "lose_fat"      -> -0.18f
+        "maintain" -> 0f
+        "bulky_muscular"    -> 0.15f
+        "lean_athletic" -> -0.1f
+        "powerlifter" -> 0.2f
+        "endurance" -> 0.05f
+        else       -> 0f
     }
     val target = (tdee * (1f + goalAdj)).roundToInt()
 
@@ -1099,7 +1104,7 @@ fun PhysiquePreview_Step3() {
 fun PhysiquePreview_Step4() {
     MaterialTheme {
         PhysiqueOnboardingScreenContent(
-            profile = PhysiqueProfile(sex = "male", age = 27, heightCm = 178f, weightKg = 74f, activityLevel = "moderate", bodyGoal = "cut"),
+            profile = PhysiqueProfile(sex = "male", age = 27, heightCm = 178f, weightKg = 74f, activityLevel = "moderate", bodyGoal = "lose_fat"),
             step = PhysiqueStep.OBJECTIVE,
             isSaving = false, error = null,
             onUpdateProfile = {}, onNext = {}, onBack = {}
@@ -1112,7 +1117,7 @@ fun PhysiquePreview_Step4() {
 fun PhysiquePreview_Step5() {
     MaterialTheme {
         PhysiqueOnboardingScreenContent(
-            profile = PhysiqueProfile(sex = "male", age = 27, heightCm = 178f, weightKg = 74f, activityLevel = "moderate", bodyGoal = "cut"),
+            profile = PhysiqueProfile(sex = "male", age = 27, heightCm = 178f, weightKg = 74f, activityLevel = "moderate", bodyGoal = "lose_fat"),
             step = PhysiqueStep.SUMMARY,
             isSaving = false, error = null,
             onUpdateProfile = {}, onNext = {}, onBack = {}

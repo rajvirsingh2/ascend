@@ -42,7 +42,28 @@ class GoalsViewModel @Inject constructor(
 
     private fun toggleGoalDone(id: String) {
         viewModelScope.launch {
-            _effects.send(GoalsEffect.ShowSnackbar("Feature pending: Toggle Goal"))
+            val goal = _state.value.goals.find { it.id == id } ?: return@launch
+            val newStatus = if (goal.status == "active") "completed" else "active"
+            val newProgress = if (newStatus == "completed") 100 else 0
+
+            // Optimistic update
+            _state.update { state ->
+                state.copy(goals = state.goals.map { g ->
+                    if (g.id == id) g.copy(status = newStatus, progress = newProgress) else g
+                })
+            }
+
+            try {
+                api.updateGoal(id, com.ascend.app.data.remote.dto.UpdateGoalRequest(status = newStatus, progress = newProgress))
+            } catch (e: Exception) {
+                // Revert on error
+                _state.update { state ->
+                    state.copy(goals = state.goals.map { g ->
+                        if (g.id == id) g.copy(status = goal.status, progress = goal.progress) else g
+                    })
+                }
+                _effects.send(GoalsEffect.ShowSnackbar("Failed to update goal"))
+            }
         }
     }
 

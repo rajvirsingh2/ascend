@@ -226,8 +226,27 @@ func (h *GenerateHandler) persistMLQuests(
 	mlQuests []mlservice.Quest,
 	contextHash string,
 ) []map[string]any {
+	// 1. Load existing active and completed quests to prevent duplicates
+	existingTitles := make(map[string]bool)
+	rows, err := h.db.Query(ctx, `SELECT title FROM quests WHERE user_id = $1`, userID)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var t string
+			if scanErr := rows.Scan(&t); scanErr == nil {
+				existingTitles[strings.ToLower(strings.TrimSpace(t))] = true
+			}
+		}
+	}
+
 	var inserted []map[string]any
 	for _, q := range mlQuests {
+		// Dedup check
+		if existingTitles[strings.ToLower(strings.TrimSpace(q.Title))] {
+			continue
+		}
+		existingTitles[strings.ToLower(strings.TrimSpace(q.Title))] = true
+
 		questID := uuid.NewString()
 		expires := time.Now().Add(24 * time.Hour)
 
