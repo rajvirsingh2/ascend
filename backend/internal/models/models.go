@@ -5,18 +5,18 @@ import (
 )
 
 type Goal struct {
-	ID          string         `json:"id"`
-	UserID      string         `json:"user_id"`
+	ID          string     `json:"id"`
+	UserID      string     `json:"user_id"`
 	Title       string     `json:"title"`
 	Description *string    `json:"description"`
 	Category    *string    `json:"category"`
 	SkillArea   string     `json:"skill_area"`
-	Priority    int            `json:"priority"`
-	TargetDate  *time.Time     `json:"target_date,omitempty"`
-	Status      string         `json:"status"`
-	Progress    int            `json:"progress"`
-	CreatedAt   time.Time      `json:"created_at"`
-	CompletedAt *time.Time     `json:"completed_at,omitempty"`
+	Priority    int        `json:"priority"`
+	TargetDate  *time.Time `json:"target_date,omitempty"`
+	Status      string     `json:"status"`
+	Progress    int        `json:"progress"`
+	CreatedAt   time.Time  `json:"created_at"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
 }
 
 type Habit struct {
