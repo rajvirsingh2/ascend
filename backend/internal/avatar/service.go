@@ -66,8 +66,8 @@ func (s *Service) UploadFromReader(ctx context.Context, userID string, reader io
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	publicID := fmt.Sprintf("ascend/avatars/%s", userID)
 	params := map[string]string{
-		"folder":         "ascend/avatars",
-		"overwrite":      "true",
+		"folder":              "ascend/avatars",
+		"overwrite":           "true",
 		"public_id":           publicID,
 		"signature_algorithm": "sha256",
 		"timestamp":           timestamp,
