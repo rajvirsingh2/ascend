@@ -3,7 +3,9 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"ascend-backend/pkg/response"
@@ -16,7 +18,24 @@ import (
 func RateLimit(rdb *redis.Client, maxRequests int, window time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip := r.RemoteAddr
+			ip := r.Header.Get("X-Real-IP")
+			if ip == "" {
+				ip = r.Header.Get("X-Forwarded-For")
+			}
+			if ip == "" {
+				ip = r.RemoteAddr
+				if strings.Contains(ip, ":") {
+					// Split host and port safely
+					if host, _, err := net.SplitHostPort(ip); err == nil {
+						ip = host
+					}
+				}
+			} else {
+				// X-Forwarded-For can contain multiple IPs, take the first one
+				ips := strings.Split(ip, ",")
+				ip = strings.TrimSpace(ips[0])
+			}
+
 			key := fmt.Sprintf("rate_limit:%s", ip)
 			ctx := context.Background()
 
