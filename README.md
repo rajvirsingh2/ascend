@@ -35,7 +35,7 @@ A gamified personal development application inspired by the hit anime "Solo Leve
 - [Tech Stack](#tech-stack)
 - [Architecture Overview](#architecture-overview)
 - [Module Map](#module-map)
-- [Setup & Development](SETUP_GUIDE.md)
+- [Installation & Setup](#installation--setup)
 - [API Reference](#api-reference)
 - [Security Model](#security-model)
 
@@ -101,9 +101,16 @@ Go API Gateway (port 8080)
 ---
 
 
-## Setup & Development
+## Installation & Setup
 
-Detailed instructions for local setup, environment configuration, troubleshooting, and development commands are available in the **[Setup Guide](SETUP_GUIDE.md)**.
+Ascend is live! The backend is fully hosted on AWS, meaning you don't need to configure any servers or databases to play.
+
+**To start playing:**
+1. Download the latest `app-release.apk` from the [Releases](../../releases) page.
+2. Install the APK on your Android device.
+3. Create your account, set your goals, and start levelling up!
+
+*(Note: If you are a developer and wish to self-host the backend infrastructure or contribute to the project, please refer to the **[Self-Hosting & Development Guide](SETUP_GUIDE.md)**.)*
 
 ---
 
