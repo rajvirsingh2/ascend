@@ -1,5 +1,10 @@
 # Ascend — Complete Setup Guide (Tested & Verified)
 
+> [!TIP]
+> **Ascend is currently live and hosted on AWS!** If you just want to play the game, you do **not** need to follow this guide. Simply download the latest APK from the [Releases](https://github.com/rajvirsingh2/ascend/releases) page.
+> 
+> This guide is intended solely for developers who want to run the backend locally, contribute to the codebase, or host their own private instance of the game.
+
 > This guide provides instructions for **Windows (PowerShell), macOS (zsh), and Linux (bash)**.
 > Last verified: 2026-05-11.
 
