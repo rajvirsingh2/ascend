@@ -329,6 +329,32 @@ fun RegisterScreenContent(
                     modifier = Modifier.clickable { onNavigateToLogin() }
                 )
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ---------- SOCIAL LOGINS ----------
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(
+                    onClick = { /* TODO: Launch Google Sign In Intent */ },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("G SIGN IN", color = Color.Black, fontFamily = jetBrainsMono, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.width(16.dp))
+                Button(
+                    onClick = { /* TODO: Launch Facebook Login */ },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1877F2)),
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("f LOGIN", color = Color.White, fontFamily = jetBrainsMono, fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }
