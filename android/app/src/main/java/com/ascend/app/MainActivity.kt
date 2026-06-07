@@ -202,7 +202,7 @@ fun AscendNavHost() {
                 route = Routes.STATS,
                 deepLinks = listOf(navDeepLink { uriPattern = "ascend://${Routes.STATS}" })
             ) {
-                StatsScreen()
+                StatsScreen(onBackClick = { navController.popBackStack() })
             }
 
             composable(

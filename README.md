@@ -47,7 +47,7 @@ A gamified personal development application inspired by the hit anime "Solo Leve
 
 Instead of another boring to-do list, Ascend treats *you* as the main character. Every task you complete grants Experience Points (XP). Reach XP thresholds to level up your Hunter Rank and unlock achievements.
 
-What truly sets Ascend apart is its **Personalised AI Quest Engine**. The system analyses your long-term goals and quest history to generate daily and weekly challenges tailored specifically to where you are in your journey. 
+What truly sets Ascend apart is its **Personalised AI Quest Engine**. The system is powered by a **custom-trained Large Language Model (LLM)** hosted via a Python microservice on Hugging Face. It actively analyses your long-term goals, body metrics, and quest history to generate highly contextual daily and weekly challenges tailored specifically to where you are in your journey. 
 
 ### Highlight Features
 
@@ -89,7 +89,7 @@ Go API Gateway (port 8080)
     │
     ├──► PostgreSQL (users, quests, habits, goals, progress_logs)
     │
-    └──► Python Quest Generation Service (port 8001)
+    └──► Python LLM Quest Generation Service (port 8001)
 ```
 
 **Key design decisions:**

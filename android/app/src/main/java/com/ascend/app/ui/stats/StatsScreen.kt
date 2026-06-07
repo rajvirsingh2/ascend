@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,10 +55,14 @@ import com.ascend.app.ui.theme.*
  * ROOT
  * ============================================================ */
 @Composable
-fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
+fun StatsScreen(
+    onBackClick: () -> Unit = {},
+    viewModel: StatsViewModel = hiltViewModel()
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     StatsScreenContent(
+        onBackClick = onBackClick,
         isLoading = state.isLoading,
         error = state.error,
         level = state.level,
@@ -86,11 +91,27 @@ fun StatsScreenContent(
     xpHistory: List<Float>,
     totalXpLast30Days: Int,
     questDistribution: List<Triple<String, Int, Color>>,
-    questsThisWeek: Int,
     questsSkipped: Int,
-    onTimePercentage: Float
+    onTimePercentage: Float,
+    onBackClick: () -> Unit = {}
 ) {
-    Scaffold(containerColor = Color(0xFF07070B)) { padding ->
+    Scaffold(
+        containerColor = Color(0xFF07070B),
+        topBar = {
+            TopAppBar(
+                title = { Text("STATS", fontFamily = orbitron, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF07070B),
+                    titleContentColor = Color.White
+                )
+            )
+        }
+    ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -712,7 +733,8 @@ fun StatsScreenPreview() {
             ),
             questsThisWeek = 12,
             questsSkipped = 2,
-            onTimePercentage = 85.5f
+            onTimePercentage = 85.5f,
+            onBackClick = {}
         )
     }
 }
