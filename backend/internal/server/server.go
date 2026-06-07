@@ -118,6 +118,7 @@ func (s *Server) Routes() http.Handler {
 				s.cfg.CloudinaryAPISecret,
 			)
 			r.Route("/me", func(r chi.Router) {
+				r.Use(chimiddleware.Timeout(20 * time.Second))
 				r.Get("/", s.meHandler())
 				r.Get("/stats", userHandler.GetStats)
 				r.Post("/delete", userHandler.RequestDeletion)
@@ -130,14 +131,21 @@ func (s *Server) Routes() http.Handler {
 
 			physiqueHandler := physique.NewHandler(s.db)
 			r.Route("/physique", func(r chi.Router) {
-				r.Post("/", physiqueHandler.Save)
-				r.Get("/", physiqueHandler.Get)
-				r.Post("/generate-quests", s.physiqueQuestHandler())
+				r.Group(func(r chi.Router) {
+					r.Use(chimiddleware.Timeout(20 * time.Second))
+					r.Post("/", physiqueHandler.Save)
+					r.Get("/", physiqueHandler.Get)
+				})
+				r.Group(func(r chi.Router) {
+					r.Use(chimiddleware.Timeout(10 * time.Minute))
+					r.Post("/generate-quests", s.physiqueQuestHandler())
+				})
 			})
 
 			//goals
 			goalHandler := goal.NewHandler(pgstore.NewGoalStore(s.db), s.rdb)
 			r.Route("/goals", func(r chi.Router) {
+				r.Use(chimiddleware.Timeout(20 * time.Second))
 				r.Get("/", goalHandler.List)
 				r.Post("/", goalHandler.Create)
 				r.Patch("/{id}", goalHandler.Update)
@@ -147,6 +155,7 @@ func (s *Server) Routes() http.Handler {
 			// habits
 			habitHandler := habit.NewHandler(pgstore.NewHabitStore(s.db, s.rdb, s.pub, s.cfg.GetLocalLocation()))
 			r.Route("/habits", func(r chi.Router) {
+				r.Use(chimiddleware.Timeout(20 * time.Second))
 				r.Get("/", habitHandler.List)
 				r.Post("/", habitHandler.Create)
 				r.Post("/{id}/complete", habitHandler.Complete)
@@ -157,17 +166,24 @@ func (s *Server) Routes() http.Handler {
 			// quests
 			questHandler := quest.NewHandler(pgstore.NewQuestStore(s.db, s.rdb), tracker)
 			r.Route("/quests", func(r chi.Router) {
-				r.Get("/", questHandler.ListActive)
-				r.Get("/history", questHandler.ListHistory)
-				r.Get("/heatmap", questHandler.GetHeatmap)
-				r.Post("/{id}/complete", questHandler.Complete)
-				r.Post("/{id}/skip", questHandler.Skip)
-				generateHandler := quest.NewGenerateHandler(s.db, s.rdb, s.mlClient, interestsStore, tracker)
-				r.Post("/generate", generateHandler.Generate)
+				r.Group(func(r chi.Router) {
+					r.Use(chimiddleware.Timeout(20 * time.Second))
+					r.Get("/", questHandler.ListActive)
+					r.Get("/history", questHandler.ListHistory)
+					r.Get("/heatmap", questHandler.GetHeatmap)
+					r.Post("/{id}/complete", questHandler.Complete)
+					r.Post("/{id}/skip", questHandler.Skip)
+				})
+				r.Group(func(r chi.Router) {
+					r.Use(chimiddleware.Timeout(10 * time.Minute))
+					generateHandler := quest.NewGenerateHandler(s.db, s.rdb, s.mlClient, interestsStore, tracker)
+					r.Post("/generate", generateHandler.Generate)
+				})
 			})
 
 			// interests
 			r.Route("/interests", func(r chi.Router) {
+				r.Use(chimiddleware.Timeout(20 * time.Second))
 				r.Get("/", interestsHandler.GetMyInterests)
 				r.Post("/", interestsHandler.SaveInterests)
 			})

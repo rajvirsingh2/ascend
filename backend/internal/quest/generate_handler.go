@@ -95,7 +95,7 @@ func (h *GenerateHandler) Generate(w http.ResponseWriter, r *http.Request) {
 		// The HuggingFace Space can cold-start for tens of seconds. Bound the
 		// call so this handler always responds (falling back to seeded quests)
 		// before nginx's proxy_read_timeout fires and returns a 504 to the client.
-		mlCtx, cancel := context.WithTimeout(ctx, 150*time.Second)
+		mlCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 		defer cancel()
 		mlQuests, mlErr := h.mlClient.GenerateQuests(mlCtx, mlProfile)
 		if mlErr == nil && len(mlQuests) > 0 {

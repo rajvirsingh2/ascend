@@ -94,9 +94,9 @@ func main() {
 	httpServer := &http.Server{
 		Addr:         srv.Addr(),
 		Handler:      srv.Routes(),
-		ReadTimeout:  180 * time.Second,
-		WriteTimeout: 180 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  10 * time.Minute,
+		WriteTimeout: 10 * time.Minute,
+		IdleTimeout:  10 * time.Minute,
 	}
 	if err := httpServer.ListenAndServe(); err != nil {
 		log.Fatalf("server error: %v", err)

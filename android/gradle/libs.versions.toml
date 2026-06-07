@@ -20,6 +20,8 @@ ui-unit = "1.10.6"
 runtime = "1.10.6"
 firebase-messaging = "25.0.2"
 firebase-inappmessaging-display = "22.0.3"
+play-services-auth = "21.3.0"
+facebook-login = "17.0.2"
 foundation = "1.11.1"
 foundation-version = "1.11.2"
 ui-text = "1.11.2"
@@ -45,6 +47,9 @@ compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4
 
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-auth = { module = "com.google.firebase:firebase-auth" }
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "play-services-auth" }
+facebook-login = { module = "com.facebook.android:facebook-login", version.ref = "facebook-login" }
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.2.0" }
