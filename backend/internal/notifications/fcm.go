@@ -53,11 +53,8 @@ func NewFCMNotifier(ctx context.Context, cfg *config.Config, db *pgxpool.Pool) (
 		return nil, nil
 	}
 
-	// Read service account credentials file.
-	credBytes, err := os.ReadFile(cfg.FCMCredentialsJSON)
-	if err != nil {
-		return nil, fmt.Errorf("read FCM credentials: %w", err)
-	}
+	// The credentials are provided directly as a JSON string
+	credBytes := []byte(cfg.FCMCredentialsJSON)
 
 	// Create OAuth2 token source using the service account.
 	//nolint:staticcheck // we control the source of the credentials file
