@@ -153,14 +153,6 @@ fun LoginScreenContent(
         onError = onSocialError
     )
 
-    val facebookLoginLauncher = rememberFacebookLoginLauncher(
-        onSuccess = { token ->
-            val credential = com.google.firebase.auth.FacebookAuthProvider.getCredential(token.token)
-            onSocialSignIn(credential)
-        },
-        onError = onSocialError
-    )
-
     val titleBrush = Brush.verticalGradient(
         0f to Color.White,
         0.55f to Color(0xFFC9B8FF),
@@ -372,19 +364,10 @@ fun LoginScreenContent(
                 Button(
                     onClick = googleSignInLauncher,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("G SIGN IN", color = Color.Black, fontFamily = jetBrainsMono, fontWeight = FontWeight.Bold)
-                }
-                Spacer(Modifier.width(16.dp))
-                Button(
-                    onClick = facebookLoginLauncher,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1877F2)),
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("f LOGIN", color = Color.White, fontFamily = jetBrainsMono, fontWeight = FontWeight.Bold)
+                    Text("CONTINUE WITH GOOGLE", color = Color.Black, fontFamily = jetBrainsMono, fontWeight = FontWeight.Bold)
                 }
             }
         }

@@ -8,12 +8,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.ascend.app.R
-import com.facebook.AccessToken
-import com.facebook.CallbackManager
-import com.facebook.FacebookCallback
-import com.facebook.FacebookException
-import com.facebook.login.LoginManager
-import com.facebook.login.LoginResult
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
@@ -50,37 +44,4 @@ fun rememberGoogleSignInLauncher(
     }
 }
 
-@Composable
-fun rememberFacebookLoginLauncher(
-    onSuccess: (AccessToken) -> Unit,
-    onError: (String) -> Unit
-): () -> Unit {
-    val context = LocalContext.current
-    val callbackManager = remember { CallbackManager.Factory.create() }
 
-    DisposableEffect(Unit) {
-        LoginManager.getInstance().registerCallback(callbackManager, object : FacebookCallback<LoginResult> {
-            override fun onSuccess(result: LoginResult) {
-                onSuccess(result.accessToken)
-            }
-            override fun onCancel() {
-                onError("Facebook login cancelled")
-            }
-            override fun onError(error: FacebookException) {
-                onError(error.message ?: "Facebook login failed")
-            }
-        })
-        onDispose {
-            LoginManager.getInstance().unregisterCallback(callbackManager)
-        }
-    }
-
-    return {
-        val activity = context as? Activity
-        if (activity != null) {
-            LoginManager.getInstance().logInWithReadPermissions(activity, listOf("email", "public_profile"))
-        } else {
-            onError("Cannot launch Facebook login without Activity context")
-        }
-    }
-}
