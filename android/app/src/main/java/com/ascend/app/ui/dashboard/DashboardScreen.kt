@@ -257,7 +257,6 @@ fun HunterHeaderPanel(user: User?, onNotificationsClick: () -> Unit) {
 
             // HP cluster + Bell Icon
             Column(
-                modifier = Modifier.width(92.dp),
                 horizontalAlignment = Alignment.End
             ) {
                 Row(
