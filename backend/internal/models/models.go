@@ -1,17 +1,16 @@
 package models
 
 import (
-	"database/sql"
 	"time"
 )
 
 type Goal struct {
 	ID          string         `json:"id"`
 	UserID      string         `json:"user_id"`
-	Title       string         `json:"title"`
-	Description sql.NullString `json:"description"`
-	Category    sql.NullString `json:"category"`
-	SkillArea   string         `json:"skill_area"`
+	Title       string     `json:"title"`
+	Description *string    `json:"description"`
+	Category    *string    `json:"category"`
+	SkillArea   string     `json:"skill_area"`
 	Priority    int            `json:"priority"`
 	TargetDate  *time.Time     `json:"target_date,omitempty"`
 	Status      string         `json:"status"`

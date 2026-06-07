@@ -37,6 +37,7 @@ import com.ascend.app.ui.auth.orbitron
 import com.ascend.app.ui.components.SystemPanel
 import com.ascend.app.ui.levelup.LevelUpModal
 import com.ascend.app.domain.model.StatDelta
+import com.ascend.app.ui.components.*
 import com.ascend.app.ui.theme.*
 import java.util.Locale
 

@@ -9,14 +9,13 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -32,14 +31,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,8 +49,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ascend.app.domain.model.Goal
 import com.ascend.app.ui.auth.jetBrainsMono
 import com.ascend.app.ui.auth.orbitron
+import com.ascend.app.ui.components.*
 import com.ascend.app.ui.theme.*
 import java.util.Locale
+
+
 
 /* ============================================================
  *  ROOT (stateful)
@@ -89,7 +93,7 @@ fun GoalsScreenContent(
 ) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = SystemBlack,
+        containerColor = Color(0xFF07070B),
         floatingActionButton = {
             NewGoalFab(onClick = { onIntent(GoalsIntent.ShowCreateDialog) })
         }
@@ -97,7 +101,7 @@ fun GoalsScreenContent(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(SystemBlack)
+                .background(Color(0xFF07070B))
                 .padding(padding)
         ) {
             // Top atmospheric halo
@@ -110,7 +114,7 @@ fun GoalsScreenContent(
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                PurplePrimary.copy(alpha = 0.08f),
+                                ReactPurple.copy(alpha = 0.10f),
                                 Color.Transparent
                             )
                         )
@@ -120,13 +124,13 @@ fun GoalsScreenContent(
             if (isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = PurplePrimary, strokeWidth = 2.dp)
+                        CircularProgressIndicator(color = ReactPurple, strokeWidth = 2.dp)
                         Spacer(Modifier.height(16.dp))
                         Text(
                             "LOADING GOALS...",
                             fontFamily = jetBrainsMono,
                             fontSize = 11.sp, letterSpacing = 3.sp,
-                            color = TextMuted, fontWeight = FontWeight.Black
+                            color = ReactInkDim, fontWeight = FontWeight.Black
                         )
                     }
                 }
@@ -156,17 +160,17 @@ fun GoalsScreenContent(
                                 "◈ ",
                                 fontFamily = orbitron,
                                 fontSize = 22.sp,
-                                color = CyanAccent
+                                color = ReactCyan
                             )
                             Text(
                                 "LONG-TERM GOALS",
                                 fontFamily = orbitron,
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Black,
-                                letterSpacing = 2.5.sp,
-                                color = PurpleLight,
+                                letterSpacing = 2.sp,
+                                color = ReactPurple,
                                 style = TextStyle(
-                                    shadow = Shadow(PurpleLight.copy(alpha = 0.4f), blurRadius = 10f)
+                                    shadow = Shadow(ReactPurple.copy(alpha = 0.4f), blurRadius = 10f)
                                 )
                             )
                         }
@@ -176,12 +180,12 @@ fun GoalsScreenContent(
                                 fontFamily = jetBrainsMono,
                                 fontSize = 11.sp,
                                 letterSpacing = 1.sp,
-                                color = TextMuted.copy(alpha = 0.7f)
+                                color = ReactInkDim
                             )
                         }
                     }
                     // Border under header
-                    HorizontalDivider(color = PurplePrimary.copy(alpha = 0.2f))
+                    HorizontalDivider(color = ReactPanelLine)
                 }
 
                 if (goals.isEmpty()) {
@@ -210,7 +214,7 @@ fun GoalsScreenContent(
 }
 
 /* ============================================================
- *  GOAL CARD — cyber style with scanline + corner blob
+ *  GOAL CARD
  * ============================================================ */
 @Composable
 fun GoalCard(goal: Goal, onToggleDone: () -> Unit) {
@@ -219,7 +223,9 @@ fun GoalCard(goal: Goal, onToggleDone: () -> Unit) {
     val rank = rankForPriority(goal.priority)
     val rankCol = rankColor(rank)
 
-    val borderColor = if (isDone) SuccessGreen else skillCol.copy(alpha = 0.35f)
+    val borderColor = if (isDone) ReactGreen else ReactPanelLine
+    val glowColor = if (isDone) ReactGreen else skillCol.copy(alpha = 0.5f)
+
     val animProgress by animateFloatAsState(
         (goal.progress / 100f).coerceIn(0f, 1f),
         animationSpec = tween(700, easing = EaseOutCubic),
@@ -229,19 +235,22 @@ fun GoalCard(goal: Goal, onToggleDone: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(PanelMid.copy(alpha = 0.85f))
-            .border(1.dp, borderColor, RoundedCornerShape(10.dp))
-            .scanlineOverlay()
             .then(
                 if (isDone) Modifier.shadow(
                     14.dp, RoundedCornerShape(10.dp),
-                    ambientColor = SuccessGreen, spotColor = SuccessGreen
-                ) else Modifier
+                    ambientColor = ReactGreen, spotColor = ReactGreen
+                ) else Modifier.shadow(
+                    8.dp, RoundedCornerShape(10.dp),
+                    ambientColor = glowColor, spotColor = glowColor
+                )
             )
+            .clip(RoundedCornerShape(10.dp))
+            .background(ReactPanel)
+            .border(if (isDone) 1.5.dp else 1.dp, borderColor, RoundedCornerShape(10.dp))
+            .scanlineHorizontal()
             .padding(14.dp)
     ) {
-        // Corner blob top-right (web: w-16 h-16 bg primary/5 rounded-bl-full)
+        // Corner blob top-right
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -249,7 +258,7 @@ fun GoalCard(goal: Goal, onToggleDone: () -> Unit) {
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            skillCol.copy(alpha = 0.10f),
+                            skillCol.copy(alpha = 0.15f),
                             Color.Transparent
                         ),
                         center = Offset(64f, 0f),
@@ -263,18 +272,18 @@ fun GoalCard(goal: Goal, onToggleDone: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(11.dp),
             verticalAlignment = Alignment.Top
         ) {
-            // Checkbox (web: 22×22 rounded)
+            // Checkbox
             Box(
                 modifier = Modifier
                     .padding(top = 2.dp)
                     .size(22.dp)
                     .clip(RoundedCornerShape(6.dp))
                     .background(
-                        if (isDone) SuccessGreen.copy(alpha = 0.20f) else Color.Transparent
+                        if (isDone) ReactGreen.copy(alpha = 0.15f) else Color.Transparent
                     )
                     .border(
                         1.5.dp,
-                        if (isDone) SuccessGreen else BorderGlow,
+                        if (isDone) ReactGreen else ReactPanelLine,
                         RoundedCornerShape(6.dp)
                     )
                     .clickable { onToggleDone() },
@@ -283,8 +292,8 @@ fun GoalCard(goal: Goal, onToggleDone: () -> Unit) {
                 if (isDone) {
                     Icon(
                         Icons.Filled.Check, null,
-                        tint = SuccessGreen,
-                        modifier = Modifier.size(14.dp)
+                        tint = ReactGreen,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -301,13 +310,11 @@ fun GoalCard(goal: Goal, onToggleDone: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.weight(1f)
                     ) {
-                        // Category chip
                         Chip(
                             text = goal.skillArea.uppercase(Locale.ROOT),
                             color = skillCol,
                             filled = true
                         )
-                        // Rank chip
                         Chip(
                             text = "$rank-RANK",
                             color = rankCol,
@@ -320,7 +327,7 @@ fun GoalCard(goal: Goal, onToggleDone: () -> Unit) {
                         fontSize = 12.sp,
                         letterSpacing = 1.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDone) SuccessGreen else CyanAccent
+                        color = if (isDone) ReactGreen else ReactCyan
                     )
                 }
 
@@ -333,7 +340,7 @@ fun GoalCard(goal: Goal, onToggleDone: () -> Unit) {
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 0.5.sp,
-                    color = if (isDone) TextSecondary else TextPrimary,
+                    color = if (isDone) ReactInkDim else ReactInk,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -345,7 +352,7 @@ fun GoalCard(goal: Goal, onToggleDone: () -> Unit) {
                         text = goal.description,
                         fontFamily = jetBrainsMono,
                         fontSize = 12.sp,
-                        color = TextSecondary.copy(alpha = 0.75f),
+                        color = ReactInkDim.copy(alpha = 0.8f),
                         lineHeight = 17.sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
@@ -354,13 +361,13 @@ fun GoalCard(goal: Goal, onToggleDone: () -> Unit) {
 
                 Spacer(Modifier.height(11.dp))
 
-                // Progress bar with glow leading edge
+                // Progress bar
                 ProgressGlowBar(
                     fraction = animProgress,
                     gradient = if (isDone)
-                        listOf(SuccessGreen, SuccessGreen)
+                        listOf(ReactGreen, ReactGreen)
                     else
-                        listOf(PurplePrimary, CyanAccent)
+                        listOf(ReactPurple, ReactCyan)
                 )
             }
         }
@@ -373,7 +380,7 @@ private fun Chip(text: String, color: Color, filled: Boolean) {
         modifier = Modifier
             .clip(RoundedCornerShape(4.dp))
             .background(if (filled) color.copy(alpha = 0.15f) else Color.Transparent)
-            .border(1.dp, color.copy(alpha = if (filled) 0.45f else 0.35f), RoundedCornerShape(4.dp))
+            .border(1.dp, color.copy(alpha = if (filled) 0.5f else 0.35f), RoundedCornerShape(4.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(
@@ -401,8 +408,7 @@ private fun ProgressGlowBar(fraction: Float, gradient: List<Color>) {
             .fillMaxWidth()
             .height(6.dp)
             .clip(RoundedCornerShape(3.dp))
-            .background(PanelMid)
-            .border(1.dp, BorderGlow.copy(alpha = 0.15f), RoundedCornerShape(3.dp))
+            .background(ReactPanelLine)
     ) {
         Box(
             modifier = Modifier
@@ -447,24 +453,23 @@ private fun EmptyGoalsState() {
             fontSize = 18.sp,
             fontWeight = FontWeight.Black,
             letterSpacing = 2.sp,
-            color = TextMuted
+            color = ReactInkDim
         )
         Spacer(Modifier.height(10.dp))
         Text(
             "Declare a long-term objective and the System will forge quests toward it.",
             fontFamily = jetBrainsMono,
             fontSize = 12.sp,
-            color = TextSecondary.copy(alpha = 0.65f),
+            color = ReactInkFaint,
             lineHeight = 18.sp,
-            modifier = Modifier
-                .widthIn(max = 240.dp),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            modifier = Modifier.widthIn(max = 240.dp),
+            textAlign = TextAlign.Center
         )
     }
 }
 
 /* ============================================================
- *  FAB — gradient pill
+ *  FAB
  * ============================================================ */
 @Composable
 private fun NewGoalFab(onClick: () -> Unit) {
@@ -482,10 +487,10 @@ private fun NewGoalFab(onClick: () -> Unit) {
             .shadow(
                 (glow * 20).dp,
                 RoundedCornerShape(24.dp),
-                ambientColor = PurplePrimary, spotColor = CyanAccent
+                ambientColor = ReactPurple, spotColor = ReactCyan
             )
             .clip(RoundedCornerShape(24.dp))
-            .background(Brush.horizontalGradient(listOf(PurplePrimary, CyanAccent)))
+            .background(Brush.horizontalGradient(listOf(ReactPurple, ReactCyan)))
             .clickable { onClick() }
             .padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center
@@ -493,7 +498,7 @@ private fun NewGoalFab(onClick: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Filled.Add, null,
-                tint = Color.White,
+                tint = Color.Black,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(6.dp))
@@ -503,7 +508,7 @@ private fun NewGoalFab(onClick: () -> Unit) {
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.5.sp,
-                color = Color.White
+                color = Color.Black
             )
         }
     }
@@ -517,7 +522,6 @@ fun CreateGoalBottomSheet(
     onDismiss: () -> Unit,
     onCreate: (String, String, String, Int) -> Unit
 ) {
-    // If we're in a preview, skip the Dialog wrapper as it can cause rendering exceptions
     if (LocalInspectionMode.current) {
         CreateGoalSheetContent(onDismiss, onCreate)
     } else {
@@ -549,14 +553,13 @@ private fun CreateGoalSheetContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF05050A).copy(alpha = 0.78f))
+            .background(Color(0xFF05050A).copy(alpha = 0.85f))
             .clickable(
-                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) { onDismiss() },
         contentAlignment = Alignment.BottomCenter
     ) {
-        // Sheet (stop click propagation by NOT having clickable here)
         AnimatedVisibility(
             visible = true,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
@@ -565,20 +568,20 @@ private fun CreateGoalSheetContent(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .background(PanelDark)
-                    .border(
-                        1.dp,
-                        PurplePrimary.copy(alpha = 0.5f),
-                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
-                    )
                     .shadow(
                         24.dp,
                         RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                        ambientColor = PurplePrimary, spotColor = CyanAccent
+                        ambientColor = ReactPurple, spotColor = ReactCyan
+                    )
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .background(ReactPanel)
+                    .border(
+                        1.dp,
+                        ReactPanelLine,
+                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
                     )
                     .clickable(
-                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                        interactionSource = remember { MutableInteractionSource() },
                         indication = null
                     ) { /* eat clicks */ }
                     .padding(20.dp)
@@ -596,13 +599,13 @@ private fun CreateGoalSheetContent(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 3.sp,
-                            color = CyanAccent
+                            color = ReactCyan
                         )
                         Icon(
                             Icons.Filled.Close, null,
-                            tint = TextMuted,
+                            tint = ReactInkDim,
                             modifier = Modifier
-                                .size(18.dp)
+                                .size(20.dp)
                                 .clickable { onDismiss() }
                         )
                     }
@@ -634,7 +637,7 @@ private fun CreateGoalSheetContent(
                             fontSize = 10.sp,
                             letterSpacing = 2.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextMuted
+                            color = ReactInkDim
                         )
                         Spacer(Modifier.height(8.dp))
                         FlowRowCategoryChips(
@@ -653,10 +656,10 @@ private fun CreateGoalSheetContent(
                             .height(48.dp)
                             .shadow(
                                 14.dp, RoundedCornerShape(10.dp),
-                                ambientColor = PurplePrimary, spotColor = CyanAccent
+                                ambientColor = ReactPurple, spotColor = ReactCyan
                             )
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Brush.horizontalGradient(listOf(PurplePrimary, CyanAccent)))
+                            .background(Brush.horizontalGradient(listOf(ReactPurple, ReactCyan)))
                             .alpha(if (title.isNotBlank()) 1f else 0.45f)
                             .clickable(enabled = title.isNotBlank()) {
                                 onCreate(
@@ -671,7 +674,7 @@ private fun CreateGoalSheetContent(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Filled.Add, null,
-                                tint = Color.White,
+                                tint = Color.Black,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(Modifier.width(8.dp))
@@ -681,7 +684,7 @@ private fun CreateGoalSheetContent(
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 2.sp,
-                                color = Color.White
+                                color = Color.Black
                             )
                         }
                     }
@@ -698,7 +701,7 @@ private fun SheetField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     singleLine: Boolean,
-    minHeight: androidx.compose.ui.unit.Dp = 0.dp
+    minHeight: Dp = 0.dp
 ) {
     Column {
         Text(
@@ -707,7 +710,7 @@ private fun SheetField(
             fontSize = 10.sp,
             letterSpacing = 2.sp,
             fontWeight = FontWeight.Bold,
-            color = TextMuted
+            color = ReactInkDim
         )
         Spacer(Modifier.height(6.dp))
         OutlinedTextField(
@@ -720,23 +723,23 @@ private fun SheetField(
                 Text(
                     placeholder,
                     fontFamily = jetBrainsMono,
-                    color = TextMuted.copy(alpha = 0.5f),
+                    color = ReactInkFaint,
                     fontSize = 14.sp
                 )
             },
             textStyle = TextStyle(
                 fontFamily = jetBrainsMono,
                 fontSize = 14.sp,
-                color = TextPrimary
+                color = ReactInk
             ),
             singleLine = singleLine,
             shape = RoundedCornerShape(8.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = CyanAccent,
-                unfocusedBorderColor = BorderGlow,
+                focusedBorderColor = ReactCyan,
+                unfocusedBorderColor = ReactPanelLine,
                 focusedContainerColor = Color(0xFF0C0C16),
                 unfocusedContainerColor = Color(0xFF0C0C16),
-                cursorColor = CyanAccent
+                cursorColor = ReactCyan
             ),
             keyboardOptions = KeyboardOptions(
                 imeAction = if (singleLine) ImeAction.Next else ImeAction.Done
@@ -745,14 +748,14 @@ private fun SheetField(
     }
 }
 
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FlowRowCategoryChips(
     options: List<String>,
     selected: String,
     onSelect: (String) -> Unit
 ) {
-    androidx.compose.foundation.layout.FlowRow(
+    FlowRow(
         horizontalArrangement = Arrangement.spacedBy(7.dp),
         verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
@@ -762,10 +765,10 @@ private fun FlowRowCategoryChips(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (active) color.copy(alpha = 0.12f) else Color.Transparent)
+                    .background(if (active) color.copy(alpha = 0.15f) else ReactPanelLine.copy(alpha = 0.4f))
                     .border(
                         1.dp,
-                        if (active) color.copy(alpha = 0.55f) else BorderGlow,
+                        if (active) color else ReactPanelLine,
                         RoundedCornerShape(16.dp)
                     )
                     .clickable { onSelect(opt) }
@@ -777,7 +780,7 @@ private fun FlowRowCategoryChips(
                     fontSize = 11.sp,
                     letterSpacing = 1.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (active) color else TextMuted
+                    color = if (active) color else ReactInkDim
                 )
             }
         }
@@ -785,57 +788,14 @@ private fun FlowRowCategoryChips(
 }
 
 /* ============================================================
- *  HELPERS — scanline, color, rank
+ *  HELPERS
  * ============================================================ */
-fun Modifier.scanlineOverlay(): Modifier = drawWithCache {
-    val spacing = 4f
-    onDrawWithContent {
-        drawContent()
-        var y = 0f
-        while (y < size.height) {
-            drawLine(
-                Color.Black.copy(alpha = 0.06f),
-                start = Offset(0f, y),
-                end = Offset(size.width, y),
-                strokeWidth = 1f
-            )
-            y += spacing
-        }
-    }
-}
 
-fun skillAreaColor(area: String): Color = when (area.lowercase(Locale.ROOT)) {
-    "fitness", "physical", "strength", "endurance"  -> Color(0xFFFFB4AB)
-    "learning", "mental", "focus", "meditation"     -> PurpleLight
-    "mindfulness"                                   -> Color(0xFFD2BBFF)
-    "productivity", "coding", "tech", "technology"  -> CyanAccent
-    "social", "networking"                          -> GoldAccent
-    "creativity"                                    -> Color(0xFFFF6B9D)
-    "finance", "investing"                          -> Color(0xFF732EE4)
-    else                                            -> CyanAccent
-}
-
-fun rankForPriority(priority: Int): String = when (priority) {
-    1 -> "S"
-    2 -> "A"
-    3 -> "B"
-    4 -> "C"
-    else -> "D"
-}
-
-fun rankColor(rank: String): Color = when (rank) {
-    "S"  -> GoldAccent
-    "A"  -> PurplePrimary
-    "B"  -> Color(0xFF8B5CF6)
-    "C"  -> CyanAccent
-    "D"  -> Color(0xFF7DB0E8)
-    else -> TextMuted
-}
 
 /* ============================================================
  *  PREVIEWS
  * ============================================================ */
-@Preview(showBackground = true, backgroundColor = 0xFF0D0D12, name = "Goals (Empty)")
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "Goals (Empty)")
 @Composable
 fun GoalsScreenPreview_Empty() {
     MaterialTheme {
@@ -849,7 +809,7 @@ fun GoalsScreenPreview_Empty() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF0D0D12, name = "Goals (Populated)")
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "Goals (Populated)")
 @Composable
 fun GoalsScreenPreview_Populated() {
     MaterialTheme {
@@ -891,11 +851,11 @@ fun GoalsScreenPreview_Populated() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF0D0D12, name = "Create Goal Sheet")
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "Create Goal Sheet")
 @Composable
 fun CreateGoalSheetPreview() {
-    AscendTheme {
-        Box(Modifier.fillMaxSize().background(SystemBlack)) {
+    MaterialTheme {
+        Box(Modifier.fillMaxSize().background(Color(0xFF07070B))) {
             CreateGoalBottomSheet(
                 onDismiss = {},
                 onCreate = { _, _, _, _ -> }

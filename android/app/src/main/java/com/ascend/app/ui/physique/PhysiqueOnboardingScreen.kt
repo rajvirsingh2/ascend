@@ -77,6 +77,8 @@ import com.ascend.app.data.remote.dto.SavePhysiqueRequest
 import com.ascend.app.domain.model.PhysiqueProfile
 import com.ascend.app.ui.auth.jetBrainsMono
 import com.ascend.app.ui.auth.orbitron
+import com.ascend.app.ui.components.reactStyleCard
+import com.ascend.app.ui.components.scanlineHorizontal
 import com.ascend.app.ui.theme.BorderGlow
 import com.ascend.app.ui.theme.CyanAccent
 import com.ascend.app.ui.theme.DangerRed
@@ -1035,42 +1037,7 @@ private fun PhysiqueBottomBar(
  *  HELPERS
  * ============================================================ */
 
-fun Modifier.reactStyleCard(selected: Boolean, glowColor: Color, cornerRadius: Dp = 12.dp): Modifier {
-    return this
-        .alpha(if (selected) 1f else 0.7f)
-        .then(
-            if (selected) Modifier.shadow(
-                elevation = 14.dp,
-                shape = RoundedCornerShape(cornerRadius),
-                ambientColor = glowColor,
-                spotColor = glowColor
-            ) else Modifier
-        )
-        .clip(RoundedCornerShape(cornerRadius))
-        .background(PanelMid)
-        .border(
-            width = 1.dp,
-            color = if (selected) glowColor else BorderGlow.copy(alpha = 0.5f),
-            shape = RoundedCornerShape(cornerRadius)
-        )
-}
 
-fun Modifier.scanlineHorizontal(): Modifier = drawWithCache {
-    val spacing = 4f
-    onDrawWithContent {
-        drawContent()
-        var y = 0f
-        while (y < size.height) {
-            drawLine(
-                Color.Black.copy(alpha = 0.08f),
-                start = Offset(0f, y + 1.5f),
-                end = Offset(size.width, y + 1.5f),
-                strokeWidth = 1.5f
-            )
-            y += spacing
-        }
-    }
-}
 
 /* ============================================================
  *  PREVIEWS

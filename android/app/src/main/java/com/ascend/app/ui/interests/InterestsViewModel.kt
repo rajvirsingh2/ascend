@@ -3,7 +3,8 @@ package com.ascend.app.ui.interests
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ascend.app.domain.model.UserInterest
-// import com.ascend.app.domain.repository.InterestsRepository  // your repo
+import com.ascend.app.domain.model.Result
+import com.ascend.app.data.repository.InterestsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +17,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class InterestsViewModel @Inject constructor(
-    // private val repo: InterestsRepository  // inject your data layer
+    private val repo: InterestsRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(InterestsState())
@@ -33,9 +34,11 @@ class InterestsViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                // val cats = repo.getCategories()
-                val cats = emptyList<com.ascend.app.domain.model.InterestCategory>() // replace
-                _state.update { it.copy(categories = cats, isLoading = false) }
+                when (val result = repo.getCategories()) {
+                    is Result.Success -> _state.update { it.copy(categories = result.data, isLoading = false) }
+                    is Result.Error -> _state.update { it.copy(isLoading = false, error = result.message) }
+                    is Result.Loading -> { /* no-op */ }
+                }
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = e.message) }
             }
@@ -126,16 +129,19 @@ class InterestsViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isSaving = true) }
             try {
-                // repo.saveOnboarding(
-                //     interests = _state.value.selectedInterests,
-                //     proficiency = _state.value.proficiencyByCategory,
-                //     goal = _state.value.globalGoal
-                // )
-                _state.update { it.copy(isSaving = false) }
-                _effects.send(InterestsEffect.NavigateToDashboard)
+                when (val result = repo.saveInterests(_state.value.selectedInterests)) {
+                    is Result.Success -> {
+                        _state.update { it.copy(isSaving = false) }
+                        _effects.send(InterestsEffect.NavigateToDashboard)
+                    }
+                    is Result.Error -> {
+                        _state.update { it.copy(isSaving = false, error = result.message) }
+                    }
+                    is Result.Loading -> { /* no-op */ }
+                }
             } catch (e: Exception) {
                 _state.update { it.copy(isSaving = false, error = e.message) }
             }
         }
     }
-}
+}

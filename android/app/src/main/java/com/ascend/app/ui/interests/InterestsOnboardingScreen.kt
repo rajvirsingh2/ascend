@@ -41,16 +41,7 @@ import com.ascend.app.ui.components.SystemPanel
 import com.ascend.app.ui.theme.*
 import kotlinx.coroutines.flow.collectLatest
 
-// --- Standardized React Mapped Colors ---
-val ReactCyan = Color(0xFF00E5FF)
-val ReactGold = Color(0xFFFFD700)
-val ReactGreen = Color(0xFF00E676)
-val ReactPurple = Color(0xFFB388FF)
-val ReactRed = Color(0xFFFF3B30)
-val ReactPanel = Color(0xFF0C0C16)
-val ReactPanelLine = Color(0xFF2A2A35)
-val ReactInk = Color.White
-val ReactInkDim = Color.Gray
+import com.ascend.app.ui.components.*
 
 @Composable
 fun InterestsOnboardingScreen(
@@ -102,7 +93,7 @@ fun InterestsOnboardingScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFF07070B))
-                .scanlineOverlay()
+                .scanlineOverlay(isLight = true)
                 .padding(padding)
         ) {
             // Top atmospheric halo
@@ -1005,31 +996,13 @@ fun OnboardingBottomBar(
  * HELPERS — reactCard modifier, corner ticks, scanlines
  * ============================================================ */
 
-fun Modifier.reactStyleCard(selected: Boolean, glowColor: Color, cornerRadius: Dp = 12.dp): Modifier {
-    return this
-        .alpha(if (selected) 1f else 0.7f)
-        .then(
-            if (selected) Modifier.shadow(
-                elevation = 14.dp,
-                shape = RoundedCornerShape(cornerRadius),
-                ambientColor = glowColor,
-                spotColor = glowColor
-            ) else Modifier
-        )
-        .clip(RoundedCornerShape(cornerRadius))
-        .background(ReactPanel)
-        .border(
-            width = if (selected) 1.5.dp else 1.dp,
-            color = if (selected) glowColor else ReactPanelLine,
-            shape = RoundedCornerShape(cornerRadius)
-        )
-}
+
 
 private enum class Corner { TopRight, BottomLeft, TopLeft, BottomRight }
 
 @Composable
 private fun CornerTick(modifier: Modifier, color: Color, corner: Corner) {
-    Canvas(
+    androidx.compose.foundation.Canvas(
         modifier = modifier.size(if (corner == Corner.TopRight) 36.dp else 24.dp)
     ) {
         val w = size.width; val h = size.height
@@ -1053,41 +1026,6 @@ private fun CornerTick(modifier: Modifier, color: Color, corner: Corner) {
             }
         }
     }
-}
-
-fun Modifier.scanlineOverlay(): Modifier = drawWithCache {
-    val lineSpacing = 4f
-    onDrawWithContent {
-        drawContent()
-        var y = 0f
-        while (y < size.height) {
-            drawLine(
-                Color.White.copy(alpha = 0.015f),
-                start = Offset(0f, y),
-                end = Offset(size.width, y),
-                strokeWidth = 1f
-            )
-            y += lineSpacing
-        }
-    }
-}
-
-fun categoryIcon(id: String): ImageVector = when (id) {
-    "technology", "tech" -> Icons.Filled.Memory
-    "physical"           -> Icons.Filled.FitnessCenter
-    "mental"             -> Icons.Filled.Psychology
-    "social"             -> Icons.Filled.Groups
-    "finance"            -> Icons.Filled.AccountBalance
-    else                 -> Icons.Filled.Star
-}
-
-fun categoryColor(id: String): Color = when (id) {
-    "technology", "tech" -> ReactCyan
-    "physical"           -> Color(0xFFFFB4AB)
-    "mental"             -> ReactPurple
-    "social"             -> ReactGold
-    "finance"            -> ReactGreen
-    else                 -> ReactPurple
 }
 
 /* ============================================================

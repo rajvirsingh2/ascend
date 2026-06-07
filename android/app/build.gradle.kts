@@ -19,7 +19,7 @@ android {
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/api/v1/\"")
+        buildConfigField("String", "BASE_URL", "\"http://16.170.218.68/api/v1/\"")
         buildConfigField("String", "HMAC_SECRET", "\"${System.getenv("HMAC_SECRET")?: "dev_hmac_secret_32bytes_minimum"}\"")
     }
 
@@ -43,6 +43,11 @@ android {
             // Using your host PC's Wi-Fi LAN IP to bypass ngrok timeouts
             buildConfigField("String","BASE_URL",
                 "\"http://10.125.9.14:8080/api/v1/\"")
+        }
+        create("ec2"){
+            initWith(getByName("release"))
+            buildConfigField("String", "BASE_URL", "\"http://16.170.218.68/api/v1/\"")
+            signingConfig = signingConfigs.getByName("debug")
         }
         release {
             isMinifyEnabled = true

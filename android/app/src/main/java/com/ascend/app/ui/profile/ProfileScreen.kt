@@ -1,6 +1,12 @@
 package com.ascend.app.ui.profile
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,11 +14,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
-import com.ascend.app.ui.profile.share.ShareCardSheet
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,9 +35,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,8 +49,11 @@ import com.ascend.app.domain.model.Achievement
 import com.ascend.app.domain.model.User
 import com.ascend.app.ui.auth.jetBrainsMono
 import com.ascend.app.ui.auth.orbitron
-import com.ascend.app.ui.theme.*
+import com.ascend.app.ui.profile.share.ShareCardSheet
 import java.util.Locale
+
+import com.ascend.app.ui.components.*
+import com.ascend.app.ui.theme.*
 
 /* ============================================================
  *  ROOT
@@ -102,26 +109,25 @@ fun ProfileScreenContent(
     onNavigateToAttributes: () -> Unit,
     onIntent: (ProfileIntent) -> Unit,
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
     var showShareSheet by remember { mutableStateOf(false) }
 
     Scaffold(
-        containerColor = SystemBlack,
+        containerColor = Color(0xFF07070B),
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "SYSTEM STATUS",
                         fontFamily = orbitron,
-                        color = PurpleLight,
+                        color = ReactPurple,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 3.sp,
                         fontSize = 16.sp,
-                        style = TextStyle(shadow = Shadow(PurpleLight.copy(alpha = 0.5f), blurRadius = 10f))
+                        style = TextStyle(shadow = Shadow(ReactPurple.copy(alpha = 0.5f), blurRadius = 10f))
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = SystemBlack.copy(alpha = 0.85f)
+                    containerColor = Color(0xFF07070B).copy(alpha = 0.85f)
                 )
             )
         }
@@ -129,22 +135,22 @@ fun ProfileScreenContent(
 
         when {
             isLoading -> Box(
-                Modifier.fillMaxSize().background(SystemBlack).padding(padding),
+                Modifier.fillMaxSize().background(Color(0xFF07070B)).padding(padding),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = PurplePrimary, strokeWidth = 2.dp)
+                    CircularProgressIndicator(color = ReactPurple, strokeWidth = 2.dp)
                     Spacer(Modifier.height(16.dp))
                     Text(
                         "DECRYPTING HUNTER DATA...",
                         fontFamily = jetBrainsMono,
                         fontSize = 11.sp, letterSpacing = 2.sp,
-                        color = TextMuted, fontWeight = FontWeight.Black
+                        color = ReactInkDim, fontWeight = FontWeight.Black
                     )
                 }
             }
             user == null -> Box(
-                Modifier.fillMaxSize().background(SystemBlack).padding(padding),
+                Modifier.fillMaxSize().background(Color(0xFF07070B)).padding(padding),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -154,23 +160,23 @@ fun ProfileScreenContent(
                         "CANNOT DECRYPT HUNTER DATA",
                         fontFamily = orbitron,
                         fontSize = 13.sp, letterSpacing = 2.sp,
-                        color = TextMuted, fontWeight = FontWeight.Black
+                        color = ReactInkDim, fontWeight = FontWeight.Black
                     )
                 }
             }
             else -> Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(SystemBlack)
+                    .background(Color(0xFF07070B))
                     .gridBackground()
                     .padding(padding)
             ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(com.ascend.app.ui.theme.LocalSpacing.current.screenPadding),
-                    verticalArrangement = Arrangement.spacedBy(com.ascend.app.ui.theme.LocalSpacing.current.itemSpacing)
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // ── HERO PANEL (avatar + rank + name + HP) ──
+                    // ── HERO PANEL ──
                     item {
                         HeroPanel(
                             user = user,
@@ -191,11 +197,12 @@ fun ProfileScreenContent(
                         )
                     }
 
-                    // ── ACHIEVEMENTS (horizontal scroll diamonds) ──
+                    // ── ACHIEVEMENTS ──
                     item {
                         AchievementsRow(achievements = achievements)
                     }
 
+                    // ── ACTIONS PANEL ──
                     item {
                         ActionsPanel(
                             user = user,
@@ -224,7 +231,6 @@ fun ProfileScreenContent(
 
 /* ============================================================
  *  HERO PANEL
- *  Big centered avatar with spinning rings + rank badge + HP
  * ============================================================ */
 @Composable
 private fun HeroPanel(
@@ -235,44 +241,33 @@ private fun HeroPanel(
     val rank = rankForLevel(user.level)
     val rankCol = rankColor(rank)
 
-    // Spinning rings (web: animate-spin 10s + reverse 15s)
     val infiniteTransition = rememberInfiniteTransition(label = "ringSpin")
     val outerRotation by infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            tween(10_000, easing = LinearEasing),
-            RepeatMode.Restart
-        ),
+        animationSpec = infiniteRepeatable(tween(10_000, easing = LinearEasing), RepeatMode.Restart),
         label = "outer"
     )
     val innerRotation by infiniteTransition.animateFloat(
         initialValue = 360f, targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            tween(15_000, easing = LinearEasing),
-            RepeatMode.Restart
-        ),
+        animationSpec = infiniteRepeatable(tween(15_000, easing = LinearEasing), RepeatMode.Restart),
         label = "inner"
-    )
-
-    // HP bar leading edge pulse
-    val edgePulse by infiniteTransition.animateFloat(
-        initialValue = 0.3f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(900, easing = EaseInOutSine), RepeatMode.Reverse),
-        label = "pulse"
     )
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = 15.dp,
+                shape = RoundedCornerShape(14.dp),
+                ambientColor = ReactCyan.copy(alpha = 0.5f),
+                spotColor = ReactCyan.copy(alpha = 0.5f)
+            )
             .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF0E0E1A).copy(alpha = 0.85f))
-            .border(1.dp, CyanAccent.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
-            .shadow(15.dp, RoundedCornerShape(14.dp),
-                ambientColor = CyanAccent, spotColor = CyanAccent)
+            .background(ReactPanel.copy(alpha = 0.85f))
+            .border(1.dp, ReactCyan.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
             .scanlineHorizontal()
             .padding(24.dp)
     ) {
-        // Decorative radial halo behind
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -280,8 +275,8 @@ private fun HeroPanel(
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color(0xFF7C3AED).copy(alpha = 0.4f),
-                            CyanAccent.copy(alpha = 0.4f),
+                            ReactPurple.copy(alpha = 0.4f),
+                            ReactCyan.copy(alpha = 0.4f),
                             Color.Transparent
                         )
                     )
@@ -293,12 +288,10 @@ private fun HeroPanel(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ── Avatar block w/ spinning rings + rank badge ──
             Box(
                 modifier = Modifier.size(132.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Outer ring
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -307,15 +300,14 @@ private fun HeroPanel(
                             2.dp,
                             Brush.sweepGradient(
                                 listOf(
-                                    PurpleLight.copy(alpha = 0.5f),
-                                    PurpleLight.copy(alpha = 0.0f),
-                                    PurpleLight.copy(alpha = 0.5f)
+                                    ReactPurple.copy(alpha = 0.5f),
+                                    ReactPurple.copy(alpha = 0.0f),
+                                    ReactPurple.copy(alpha = 0.5f)
                                 )
                             ),
                             CircleShape
                         )
                 )
-                // Inner ring
                 Box(
                     modifier = Modifier
                         .size(116.dp)
@@ -324,59 +316,40 @@ private fun HeroPanel(
                             1.dp,
                             Brush.sweepGradient(
                                 listOf(
-                                    CyanAccent.copy(alpha = 0.6f),
-                                    CyanAccent.copy(alpha = 0.0f),
-                                    CyanAccent.copy(alpha = 0.6f)
+                                    ReactCyan.copy(alpha = 0.6f),
+                                    ReactCyan.copy(alpha = 0.0f),
+                                    ReactCyan.copy(alpha = 0.6f)
                                 )
                             ),
                             CircleShape
                         )
                 )
 
-                // Avatar (uses your AvatarPicker if available, fallback letter)
                 Box(
                     modifier = Modifier
                         .size(96.dp)
+                        .shadow(15.dp, CircleShape, ambientColor = ReactPurple, spotColor = ReactPurple)
                         .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(listOf(PurplePrimary, CyanAccent))
-                        )
-                        .shadow(15.dp, CircleShape,
-                            ambientColor = PurpleLight, spotColor = PurpleLight)
-                        .clickable {
-                            // Trigger your avatar picker callback path here, e.g. open picker
-                            // For now we wire same flow as your AvatarPicker would; you can
-                            // replace this Box content with: AvatarPicker(...)
-                        },
+                        .background(Brush.linearGradient(listOf(ReactPurple, ReactCyan)))
+                        .clickable { },
                     contentAlignment = Alignment.Center
                 ) {
                     if (isUploadingAvatar) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    } else if (!user.avatarUrl.isNullOrBlank()) {
-                        // If you have Coil set up:
-                        // AsyncImage(model = user.avatarUrl, ...)
-                        // Fallback: show first letter
-                        AvatarLetter(user.username)
+                        CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
                     } else {
                         AvatarLetter(user.username)
                     }
                 }
 
-                // Rank badge bottom-right
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .offset(x = (-4).dp, y = (-4).dp)
                         .size(40.dp)
+                        .shadow(12.dp, RoundedCornerShape(10.dp), ambientColor = rankCol, spotColor = rankCol)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(SystemBlack)
-                        .border(1.5.dp, rankCol, RoundedCornerShape(10.dp))
-                        .shadow(12.dp, RoundedCornerShape(10.dp),
-                            ambientColor = rankCol, spotColor = rankCol),
+                        .background(ReactPanel)
+                        .border(1.5.dp, rankCol, RoundedCornerShape(10.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -391,15 +364,14 @@ private fun HeroPanel(
 
             Spacer(Modifier.height(16.dp))
 
-            // Name
             Text(
                 user.username.uppercase(Locale.ROOT),
                 fontFamily = orbitron,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 3.sp,
-                color = TextPrimary,
-                style = TextStyle(shadow = Shadow(PurpleLight.copy(alpha = 0.4f), blurRadius = 12f))
+                color = ReactInk,
+                style = TextStyle(shadow = Shadow(ReactPurple.copy(alpha = 0.4f), blurRadius = 12f))
             )
             Spacer(Modifier.height(4.dp))
             Text(
@@ -407,67 +379,43 @@ private fun HeroPanel(
                 fontFamily = jetBrainsMono,
                 fontSize = 11.sp,
                 letterSpacing = 3.sp,
-                color = TextMuted
+                color = ReactInkDim
             )
 
-            // HP bar
             Spacer(Modifier.height(20.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    "HP",
-                    fontFamily = jetBrainsMono,
-                    fontSize = 10.sp,
-                    letterSpacing = 2.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = DangerRed
-                )
-                Text(
-                    "${user.hp} / ${user.maxHp}",
-                    fontFamily = jetBrainsMono,
-                    fontSize = 10.sp,
-                    letterSpacing = 1.sp,
-                    color = TextPrimary
-                )
+                Text("HP", fontFamily = jetBrainsMono, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold, color = ReactRed)
+                Text("${user.hp} / ${user.maxHp}", fontFamily = jetBrainsMono, fontSize = 10.sp, letterSpacing = 1.sp, color = ReactInk)
             }
             Spacer(Modifier.height(8.dp))
             val hpFraction = (user.hp.toFloat() / user.maxHp.coerceAtLeast(1)).coerceIn(0f, 1f)
-            val infinitePulse = rememberInfiniteTransition(label = "pulseGlowAnim")
-            val translateX by infinitePulse.animateFloat(
+            val translateX by infiniteTransition.animateFloat(
                 initialValue = -20f, targetValue = 20f,
                 animationSpec = infiniteRepeatable(tween(2000, easing = LinearEasing), RepeatMode.Restart),
                 label = "translate"
             )
-            val opacityFloat by infinitePulse.animateFloat(
-                initialValue = 0f, targetValue = 2f,
-                animationSpec = infiniteRepeatable(tween(2000, easing = LinearEasing), RepeatMode.Restart),
-                label = "opacity"
-            )
-            val pulseOpacity = 1f - kotlin.math.abs(1f - opacityFloat)
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
                     .clip(RoundedCornerShape(3.dp))
-                    .background(Color(0xFF35343A))
-                    .border(1.dp, BorderGlow.copy(alpha = 0.2f), RoundedCornerShape(3.dp))
+                    .background(ReactPanelLine)
+                    .border(1.dp, ReactPanelLine, RoundedCornerShape(3.dp))
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
                         .fillMaxWidth(hpFraction)
+                        .shadow(8.dp, RoundedCornerShape(3.dp), ambientColor = ReactRed, spotColor = ReactRed)
                         .background(
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFF93000A), Color(0xFFFFB4AB))
-                            ),
+                            Brush.horizontalGradient(listOf(Color(0xFF93000A), ReactRed)),
                             RoundedCornerShape(3.dp)
                         )
                         .clip(RoundedCornerShape(3.dp))
-                        .shadow(8.dp, RoundedCornerShape(3.dp),
-                            ambientColor = DangerRed, spotColor = DangerRed)
                 ) {
                     Box(
                         modifier = Modifier
@@ -475,11 +423,8 @@ private fun HeroPanel(
                             .fillMaxHeight()
                             .width(20.dp)
                             .absoluteOffset(x = translateX.dp)
-                            .alpha(pulseOpacity)
                             .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.8f))
-                                )
+                                Brush.horizontalGradient(colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.6f)))
                             )
                     )
                 }
@@ -501,42 +446,29 @@ private fun AvatarLetter(username: String) {
 }
 
 /* ============================================================
- *  2×2 STATS GRID
+ *  2×2 STATS GRID (With Smooth Rolling Odometer)
  * ============================================================ */
 @Composable
 private fun StatsGrid(level: Int, totalXp: Int, quests: Int, streak: Int) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             StatTile(
-                label = "LEVEL",
-                value = level.toString(),
-                accent = PurpleLight,
-                bordered = true,
-                modifier = Modifier.weight(1f)
+                label = "LEVEL", value = level, accent = ReactPurple,
+                bordered = true, modifier = Modifier.weight(1f)
             )
             StatTile(
-                label = "TOTAL XP",
-                value = formatNum(totalXp),
-                accent = TextPrimary,
-                bordered = false,
-                modifier = Modifier.weight(1f)
+                label = "TOTAL XP", value = totalXp, accent = ReactInk,
+                bordered = false, modifier = Modifier.weight(1f)
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             StatTile(
-                label = "QUESTS",
-                value = quests.toString(),
-                accent = TextPrimary,
-                bordered = false,
-                modifier = Modifier.weight(1f)
+                label = "QUESTS", value = quests, accent = ReactInk,
+                bordered = false, modifier = Modifier.weight(1f)
             )
             StatTile(
-                label = "STREAK",
-                value = streak.toString(),
-                accent = GoldAccent,
-                bordered = true,
-                topRightEmoji = "🔥",
-                modifier = Modifier.weight(1f)
+                label = "STREAK", value = streak, accent = ReactGold,
+                bordered = true, topRightEmoji = "🔥", modifier = Modifier.weight(1f)
             )
         }
     }
@@ -545,7 +477,7 @@ private fun StatsGrid(level: Int, totalXp: Int, quests: Int, streak: Int) {
 @Composable
 private fun StatTile(
     label: String,
-    value: String,
+    value: Int,
     accent: Color,
     bordered: Boolean,
     modifier: Modifier = Modifier,
@@ -560,13 +492,7 @@ private fun StatTile(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF1A1A2E).copy(alpha = 0.85f))
-            .border(
-                1.dp,
-                if (bordered) accent.copy(alpha = 0.4f) else BorderGlow.copy(alpha = 0.3f),
-                RoundedCornerShape(10.dp)
-            )
+            .reactStyleCard(selected = bordered, glowColor = accent, cornerRadius = 10.dp)
             .scanlineHorizontal()
             .padding(16.dp)
     ) {
@@ -590,26 +516,30 @@ private fun StatTile(
                 fontSize = 10.sp,
                 letterSpacing = 1.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextMuted
+                color = ReactInkDim
             )
             Spacer(Modifier.height(6.dp))
-            Text(
-                value,
-                fontFamily = orbitron,
-                fontSize = if (label == "LEVEL") 28.sp else 22.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.sp,
+
+            RollingDigitCounter(
+                count = value,
                 color = accent,
-                style = if (bordered) TextStyle(
-                    shadow = Shadow(accent.copy(alpha = 0.4f), blurRadius = 10f)
-                ) else TextStyle.Default
+                textStyle = TextStyle(
+                    fontFamily = orbitron,
+                    fontSize = if (label == "LEVEL") 28.sp else 22.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFeatureSettings = "tnum",
+                    letterSpacing = 1.sp,
+                    shadow = if (bordered) Shadow(accent.copy(alpha = 0.4f), blurRadius = 10f) else null
+                )
             )
         }
     }
 }
 
+
+
 /* ============================================================
- *  ACHIEVEMENTS (diamond row)
+ *  ACHIEVEMENTS
  * ============================================================ */
 @Composable
 private fun AchievementsRow(achievements: List<Achievement>) {
@@ -617,25 +547,20 @@ private fun AchievementsRow(achievements: List<Achievement>) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF1A1A2E).copy(alpha = 0.80f))
-            .border(1.dp, BorderGlow.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+            .background(ReactPanel)
+            .border(1.dp, ReactPanelLine, RoundedCornerShape(12.dp))
             .padding(20.dp)
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "◈ ",
-                    fontFamily = orbitron,
-                    fontSize = 16.sp,
-                    color = CyanAccent
-                )
+                Text("◈ ", fontFamily = orbitron, fontSize = 16.sp, color = ReactCyan)
                 Text(
                     "ACHIEVEMENTS",
                     fontFamily = jetBrainsMono,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 3.sp,
-                    color = TextPrimary
+                    color = ReactInk
                 )
             }
             Spacer(Modifier.height(16.dp))
@@ -647,33 +572,19 @@ private fun AchievementsRow(achievements: List<Achievement>) {
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 if (achievements.isEmpty()) {
-                    // Show 3 locked placeholders
-                    repeat(3) {
-                        DiamondBadge(
-                            label = "???",
-                            icon = Icons.Filled.Lock,
-                            color = TextMuted,
-                            locked = true
-                        )
-                    }
+                    repeat(3) { DiamondBadge(label = "???", icon = Icons.Filled.Lock, color = ReactInkDim, locked = true) }
                 } else {
                     achievements.forEach { ach ->
                         DiamondBadge(
                             label = if (ach.earned) ach.title else "???",
                             icon = achievementIcon(ach.icon),
-                            color = if (ach.earned) GoldAccent else TextMuted,
+                            color = if (ach.earned) ReactGold else ReactInkDim,
                             locked = !ach.earned
                         )
                     }
-                    // Pad with 1-2 locked if few
                     if (achievements.size < 3) {
                         repeat(3 - achievements.size) {
-                            DiamondBadge(
-                                label = "???",
-                                icon = Icons.Filled.Lock,
-                                color = TextMuted,
-                                locked = true
-                            )
+                            DiamondBadge(label = "???", icon = Icons.Filled.Lock, color = ReactInkDim, locked = true)
                         }
                     }
                 }
@@ -696,20 +607,17 @@ private fun DiamondBadge(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Outer rotated box
         Box(
             modifier = Modifier
                 .size(64.dp)
                 .rotate(45f)
-                .clip(RoundedCornerShape(10.dp))
-                .background(SystemBlack)
-                .border(1.dp, color.copy(alpha = if (locked) 0.5f else 0.6f), RoundedCornerShape(10.dp))
                 .then(
-                    if (!locked) Modifier.shadow(
-                        14.dp, RoundedCornerShape(10.dp),
-                        ambientColor = color, spotColor = color
-                    ) else Modifier
-                ),
+                    if (!locked) Modifier.shadow(14.dp, RoundedCornerShape(10.dp), ambientColor = color, spotColor = color)
+                    else Modifier
+                )
+                .clip(RoundedCornerShape(10.dp))
+                .background(ReactPanel)
+                .border(1.dp, if (locked) ReactPanelLine else color.copy(alpha = 0.6f), RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -717,7 +625,7 @@ private fun DiamondBadge(
                 tint = color,
                 modifier = Modifier
                     .size(28.dp)
-                    .rotate(-45f)  // counter-rotate icon
+                    .rotate(-45f)
             )
         }
         Text(
@@ -725,9 +633,9 @@ private fun DiamondBadge(
             fontFamily = jetBrainsMono,
             fontSize = 10.sp,
             letterSpacing = 0.5.sp,
-            color = if (locked) TextMuted else TextSecondary,
+            color = if (locked) ReactInkDim else ReactInk,
             fontWeight = FontWeight.Bold,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = TextAlign.Center,
             lineHeight = 13.sp,
             maxLines = 2
         )
@@ -739,7 +647,7 @@ private fun achievementIcon(key: String?): ImageVector = when (key?.lowercase(Lo
     "bolt", "speed"     -> Icons.Filled.Bolt
     "shield", "iron"    -> Icons.Filled.Shield
     "eye", "awakened"   -> Icons.Filled.Visibility
-    "sword", "blood"    -> Icons.Filled.Bolt  // swap if you got sword icon
+    "sword", "blood"    -> Icons.Filled.Bolt
     null, "lock"        -> Icons.Filled.Lock
     else                -> Icons.Filled.Star
 }
@@ -758,56 +666,26 @@ private fun ActionsPanel(
     onLogout: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        ActionRow(
-            icon = Icons.Filled.BarChart,
-            label = "View Player Stats",
-            accent = PurpleLight,
-            onClick = onViewStats
-        )
-        ActionRow(
-            icon = Icons.Filled.Bolt,
-            label = "RPG Attributes",
-            accent = GoldAccent,
-            onClick = onViewAttributes
-        )
-        ActionRow(
-            icon = Icons.Filled.FitnessCenter,
-            label = "Update Physique",
-            accent = PurpleLight,
-            onClick = onUpdatePhysique
-        )
-        ActionRow(
-            icon = Icons.Filled.AutoAwesome,  // closest to "sword" iconography
-            label = "Edit Quest Areas",
-            accent = CyanAccent,
-            onClick = onEditQuestAreas
-        )
-        ActionRow(
-            icon = Icons.Filled.Share,
-            label = "Share Hunter Rank",
-            accent = PurpleLight,
-            onClick = onShare
-        )
+        ActionRow(icon = Icons.Filled.BarChart, label = "View Player Stats", accent = ReactPurple, onClick = onViewStats)
+        ActionRow(icon = Icons.Filled.Bolt, label = "RPG Attributes", accent = ReactGold, onClick = onViewAttributes)
+        ActionRow(icon = Icons.Filled.FitnessCenter, label = "Update Physique", accent = ReactPurple, onClick = onUpdatePhysique)
+        ActionRow(icon = Icons.Filled.AutoAwesome, label = "Edit Quest Areas", accent = ReactCyan, onClick = onEditQuestAreas)
+        ActionRow(icon = Icons.Filled.Share, label = "Share Hunter Rank", accent = ReactPurple, onClick = onShare)
 
         Spacer(Modifier.height(6.dp))
 
-        // Logout (destructive)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(DangerRed.copy(alpha = 0.05f))
-                .border(1.dp, DangerRed.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                .background(ReactRed.copy(alpha = 0.05f))
+                .border(1.dp, ReactRed.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
                 .clickable { onLogout() },
             contentAlignment = Alignment.Center
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Logout, null,
-                    tint = DangerRed,
-                    modifier = Modifier.size(15.dp)
-                )
+                Icon(Icons.AutoMirrored.Filled.Logout, null, tint = ReactRed, modifier = Modifier.size(15.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(
                     "SYSTEM LOGOUT",
@@ -815,7 +693,7 @@ private fun ActionsPanel(
                     fontSize = 12.sp,
                     letterSpacing = 2.sp,
                     fontWeight = FontWeight.Black,
-                    color = DangerRed
+                    color = ReactRed
                 )
             }
         }
@@ -833,19 +711,8 @@ private fun ActionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(
-                Brush.horizontalGradient(
-                    listOf(
-                        Color(0xFF1F1F25).copy(alpha = 0.6f),
-                        Color(0xFF2A292F).copy(alpha = 0.6f)
-                    )
-                )
-            )
-            .border(
-                1.dp,
-                accent.copy(alpha = 0.3f),
-                RoundedCornerShape(10.dp)
-            )
+            .background(ReactPanel)
+            .border(1.dp, ReactPanelLine, RoundedCornerShape(10.dp))
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
@@ -865,12 +732,12 @@ private fun ActionRow(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.5.sp,
-                    color = TextPrimary
+                    color = ReactInk
                 )
             }
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForwardIos, null,
-                tint = TextMuted.copy(alpha = 0.5f),
+                tint = ReactInkDim.copy(alpha = 0.5f),
                 modifier = Modifier.size(13.dp)
             )
         }
@@ -880,65 +747,7 @@ private fun ActionRow(
 /* ============================================================
  *  HELPERS
  * ============================================================ */
-fun Modifier.scanlineHorizontal(): Modifier = drawWithCache {
-    val spacing = 4f
-    onDrawWithContent {
-        drawContent()
-        var y = 0f
-        while (y < size.height) {
-            drawLine(
-                Color.Black.copy(alpha = 0.18f),
-                start = Offset(0f, y + 1.5f),
-                end = Offset(size.width, y + 1.5f),
-                strokeWidth = 2f
-            )
-            y += spacing
-        }
-    }
-}
 
-/** Grid background pattern (web: linear-gradient overlay) */
-fun Modifier.gridBackground(): Modifier = drawWithCache {
-    val spacing = 32f
-    val color = Color(0xFFD2BBFF).copy(alpha = 0.03f)
-    onDrawWithContent {
-        drawContent()
-        var x = 0f
-        while (x < size.width) {
-            drawLine(color, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1f)
-            x += spacing
-        }
-        var y = 0f
-        while (y < size.height) {
-            drawLine(color, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
-            y += spacing
-        }
-    }
-}
-
-fun rankForLevel(level: Int): String = when {
-    level >= 80 -> "SS"
-    level >= 60 -> "S"
-    level >= 45 -> "A"
-    level >= 30 -> "B"
-    level >= 18 -> "C"
-    level >= 8  -> "D"
-    else        -> "E"
-}
-
-fun rankColor(rank: String): Color = when (rank) {
-    "E"  -> Color(0xFF8B9DA8)
-    "D"  -> Color(0xFF7DB0E8)
-    "C"  -> CyanAccent
-    "B"  -> Color(0xFF8B5CF6)
-    "A"  -> PurplePrimary
-    "S"  -> GoldAccent
-    "SS" -> Color(0xFFFF3D7F)
-    else -> CyanAccent
-}
-
-fun formatNum(n: Int): String =
-    if (n >= 1000) "%,d".format(n) else n.toString()
 
 /* ============================================================
  *  PREVIEWS
@@ -970,36 +779,6 @@ fun ProfileScreenPreview_Success() {
             onNavigateToStats = {},
             onNavigateToAttributes = {},
             onIntent = {}
-        )
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "Profile - Loading")
-@Composable
-fun ProfileScreenPreview_Loading() {
-    MaterialTheme {
-        ProfileScreenContent(
-            isLoading = true, user = null,
-            completedQuestCount = 0, achievements = emptyList(),
-            isUploadingAvatar = false,
-            bestStreak = 0,
-            onNavigateToPhysiqueSetup = {}, onNavigateToInterests = {},
-            onNavigateToStats = {}, onNavigateToAttributes = {}, onIntent = {}
-        )
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "Profile - Null")
-@Composable
-fun ProfileScreenPreview_NullUser() {
-    MaterialTheme {
-        ProfileScreenContent(
-            isLoading = false, user = null,
-            completedQuestCount = 0, achievements = emptyList(),
-            isUploadingAvatar = false,
-            bestStreak = 0,
-            onNavigateToPhysiqueSetup = {}, onNavigateToInterests = {},
-            onNavigateToStats = {}, onNavigateToAttributes = {}, onIntent = {}
         )
     }
 }

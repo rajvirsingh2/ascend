@@ -44,10 +44,7 @@ import androidx.core.content.FileProvider
 import com.ascend.app.domain.model.User
 import com.ascend.app.ui.auth.jetBrainsMono
 import com.ascend.app.ui.auth.orbitron
-import com.ascend.app.ui.profile.formatNum
-import com.ascend.app.ui.profile.rankColor
-import com.ascend.app.ui.profile.rankForLevel
-import com.ascend.app.ui.profile.scanlineHorizontal
+import com.ascend.app.ui.components.*
 import com.ascend.app.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

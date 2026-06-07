@@ -45,6 +45,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.ascend.app.domain.model.StatDelta
 import com.ascend.app.ui.auth.jetBrainsMono
 import com.ascend.app.ui.auth.orbitron
+import com.ascend.app.ui.components.*
 import kotlinx.coroutines.delay
 import kotlin.math.cos
 import kotlin.math.sin
@@ -726,41 +727,7 @@ private class Particle(
     }
 }
 
-/* ============================================================
- * HELPERS
- * ============================================================ */
-private fun Modifier.scanlineOverlay(): Modifier = drawWithCache {
-    val spacing = 4f
-    onDrawWithContent {
-        drawContent()
-        val height = size.height
-        if (height <= 0f || height > 5000f) return@onDrawWithContent
 
-        var y = 0f
-        val maxLines = 1500
-        var linesDrawn = 0
-        while (y < height && linesDrawn < maxLines) {
-            drawLine(
-                Color.Black.copy(alpha = 0.10f),
-                start = Offset(0f, y + 1.5f),
-                end = Offset(size.width, y + 1.5f),
-                strokeWidth = 1.5f
-            )
-            y += spacing
-            linesDrawn++
-        }
-    }
-}
-
-private fun rankForLevel(level: Int): String = when {
-    level >= 80 -> "SS"
-    level >= 60 -> "S"
-    level >= 45 -> "A"
-    level >= 30 -> "B"
-    level >= 18 -> "C"
-    level >= 8  -> "D"
-    else        -> "E"
-}
 
 /* ============================================================
  * PREVIEWS

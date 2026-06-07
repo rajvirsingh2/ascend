@@ -47,17 +47,8 @@ import java.util.Locale
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-// --- React Mapped Colors ---
-val ReactCyan = Color(0xFF00E5FF)
-val ReactGold = Color(0xFFFFD700)
-val ReactGreen = Color(0xFF00E676)
-val ReactRed = Color(0xFFFF3B30)
-val ReactPurple = Color(0xFFB388FF)
-val ReactInk = Color.White
-val ReactInkDim = Color.Gray
-val ReactInkFaint = Color(0xFF555555)
-val ReactPanel = Color(0xFF0C0C16)
-val ReactPanelLine = Color(0xFF2A2A35)
+import com.ascend.app.ui.components.*
+import com.ascend.app.ui.theme.*
 
 /* ============================================================
  * ROOT
@@ -184,41 +175,7 @@ fun StatsScreenContent(
     }
 }
 
-/* ============================================================
- * ROLLING DIGIT ODOMETER (Restricted to MetricTiles)
- * ============================================================ */
-@Composable
-fun RollingDigitCounter(
-    count: Int,
-    textStyle: TextStyle,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    val isPreview = LocalInspectionMode.current
-    var animatedTarget by remember { mutableIntStateOf(if (isPreview) count else 0) }
-    LaunchedEffect(count) { animatedTarget = count }
 
-    val countString = if (animatedTarget >= 1000) "%,d".format(animatedTarget) else animatedTarget.toString()
-
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        countString.forEachIndexed { index, char ->
-            AnimatedContent(
-                targetState = char,
-                transitionSpec = {
-                    (slideInVertically(spring(dampingRatio = 0.7f, stiffness = 80f)) { it } + fadeIn(tween(300))) togetherWith
-                            (slideOutVertically(spring(dampingRatio = 0.7f, stiffness = 80f)) { -it } + fadeOut(tween(300)))
-                },
-                label = "RollingDigit_$index"
-            ) { digit ->
-                Text(
-                    text = digit.toString(),
-                    style = textStyle,
-                    color = color
-                )
-            }
-        }
-    }
-}
 
 /* ============================================================
  * UI COMPONENTS
@@ -732,37 +689,7 @@ fun pseudoSeq(n: Int, seed: Int): List<Float> {
     return out
 }
 
-fun blendColors(c1: Color, c2: Color, weight: Float): Color {
-    val w = weight.coerceIn(0f, 1f)
-    return Color(
-        red   = c1.red * w + c2.red * (1 - w),
-        green = c1.green * w + c2.green * (1 - w),
-        blue  = c1.blue * w + c2.blue * (1 - w),
-        alpha = c1.alpha * w + c2.alpha * (1 - w)
-    )
-}
 
-fun categoryEmoji(name: String): String = when (name.lowercase(Locale.ROOT)) {
-    "tech"     -> "💻"
-    "physical" -> "⚔"
-    "mental"   -> "🧠"
-    "social"   -> "🗣"
-    "finance"  -> "📈"
-    else       -> "◈"
-}
-
-fun rankColor(rank: String): Color = when (rank) {
-    "E" -> Color(0xFF8B9DA8)
-    "D" -> Color(0xFF7DB0E8)
-    "C" -> ReactCyan
-    "B" -> Color(0xFF8B5CF6)
-    "A" -> ReactPurple
-    "S" -> ReactGold
-    else -> ReactCyan
-}
-
-fun formatBigNum(n: Int): String =
-    if (n >= 1000) "%,d".format(n) else n.toString()
 
 /* ============================================================
  * PREVIEWS
