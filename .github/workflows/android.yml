@@ -72,7 +72,7 @@ jobs:
             ],
             "configuration_version": "1"
           }
-          EOF
+EOF
 
       - name: Run lint
         working-directory: android
