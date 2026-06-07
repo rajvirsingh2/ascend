@@ -377,7 +377,9 @@ fun RegisterScreenPreview_Default() {
             onEmailChanged = {},
             onPasswordChanged = {},
             onSubmitRegister = {},
-            onNavigateToLogin = {}
+            onNavigateToLogin = {},
+            onSocialSignIn = {},
+            onSocialError = {}
         )
     }
 }
@@ -397,7 +399,9 @@ fun RegisterScreenPreview_Active() {
             onEmailChanged = {},
             onPasswordChanged = {},
             onSubmitRegister = {},
-            onNavigateToLogin = {}
+            onNavigateToLogin = {},
+            onSocialSignIn = {},
+            onSocialError = {}
         )
     }
 }
@@ -417,7 +421,9 @@ fun RegisterScreenPreview_Loading() {
             onEmailChanged = {},
             onPasswordChanged = {},
             onSubmitRegister = {},
-            onNavigateToLogin = {}
+            onNavigateToLogin = {},
+            onSocialSignIn = {},
+            onSocialError = {}
         )
     }
 }
@@ -437,7 +443,9 @@ fun RegisterScreenPreview_Error() {
             onEmailChanged = {},
             onPasswordChanged = {},
             onSubmitRegister = {},
-            onNavigateToLogin = {}
+            onNavigateToLogin = {},
+            onSocialSignIn = {},
+            onSocialError = {}
         )
     }
 }

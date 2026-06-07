@@ -449,7 +449,9 @@ fun LoginScreenPreview_Default() {
             onPasswordChanged = {},
             onSubmitLogin = {},
             onNavigateToRegister = {},
-            onNavigateToForgotPassword = {}
+            onNavigateToForgotPassword = {},
+            onSocialSignIn = {},
+            onSocialError = {}
         )
     }
 }
@@ -469,7 +471,9 @@ fun LoginScreenPreview_Active() {
             onPasswordChanged = {},
             onSubmitLogin = {},
             onNavigateToRegister = {},
-            onNavigateToForgotPassword = {}
+            onNavigateToForgotPassword = {},
+            onSocialSignIn = {},
+            onSocialError = {}
         )
     }
 }
@@ -489,7 +493,9 @@ fun LoginScreenPreview_Loading() {
             onPasswordChanged = {},
             onSubmitLogin = {},
             onNavigateToRegister = {},
-            onNavigateToForgotPassword = {}
+            onNavigateToForgotPassword = {},
+            onSocialSignIn = {},
+            onSocialError = {}
         )
     }
 }
@@ -509,7 +515,9 @@ fun LoginScreenPreview_Error() {
             onPasswordChanged = {},
             onSubmitLogin = {},
             onNavigateToRegister = {},
-            onNavigateToForgotPassword = {}
+            onNavigateToForgotPassword = {},
+            onSocialSignIn = {},
+            onSocialError = {}
         )
     }
 }
