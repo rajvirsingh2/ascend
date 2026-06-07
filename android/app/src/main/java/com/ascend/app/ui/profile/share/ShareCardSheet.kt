@@ -347,16 +347,25 @@ fun HunterShareCard(
                                 ambientColor = PurplePrimary, spotColor = CyanAccent),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            user.username.firstOrNull()?.uppercase() ?: "?",
-                            fontFamily = orbitron,
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White,
-                            style = TextStyle(
-                                shadow = Shadow(Color.White.copy(alpha = 0.4f), blurRadius = 12f)
+                        if (user.avatarUrl != null) {
+                            coil.compose.AsyncImage(
+                                model = user.avatarUrl,
+                                contentDescription = "Avatar",
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
                             )
-                        )
+                        } else {
+                            Text(
+                                user.username.firstOrNull()?.uppercase() ?: "?",
+                                fontFamily = orbitron,
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White,
+                                style = TextStyle(
+                                    shadow = Shadow(Color.White.copy(alpha = 0.4f), blurRadius = 12f)
+                                )
+                            )
+                        }
                     }
                     // Rank badge
                     Box(

@@ -214,13 +214,22 @@ fun HunterHeaderPanel(user: User?, onNotificationsClick: () -> Unit) {
                         ambientColor = PurplePrimary, spotColor = CyanAccent),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    username.firstOrNull()?.uppercase() ?: "H",
-                    fontFamily = orbitron,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White
-                )
+                if (user?.avatarUrl != null) {
+                    coil.compose.AsyncImage(
+                        model = user.avatarUrl,
+                        contentDescription = "Avatar",
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(
+                        username.firstOrNull()?.uppercase() ?: "H",
+                        fontFamily = orbitron,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White
+                    )
+                }
             }
 
             // Name + rank/lvl

@@ -43,9 +43,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.ascend.app.domain.model.Achievement
+import com.ascend.app.util.ImageUtils
 import com.ascend.app.domain.model.User
 import com.ascend.app.ui.auth.jetBrainsMono
 import com.ascend.app.ui.auth.orbitron
@@ -241,6 +248,19 @@ private fun HeroPanel(
     val rank = rankForLevel(user.level)
     val rankCol = rankColor(rank)
 
+    val context = LocalContext.current
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                val base64 = ImageUtils.uriToBase64(context, uri)
+                if (base64 != null) {
+                    onAvatarSelected(base64)
+                }
+            }
+        }
+    )
+
     val infiniteTransition = rememberInfiniteTransition(label = "ringSpin")
     val outerRotation by infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 360f,
@@ -331,11 +351,24 @@ private fun HeroPanel(
                         .shadow(15.dp, CircleShape, ambientColor = ReactPurple, spotColor = ReactPurple)
                         .clip(CircleShape)
                         .background(Brush.linearGradient(listOf(ReactPurple, ReactCyan)))
-                        .clickable { },
+                        .clickable { 
+                            if (!isUploadingAvatar) {
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     if (isUploadingAvatar) {
                         CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
+                    } else if (user.avatarUrl != null) {
+                        AsyncImage(
+                            model = user.avatarUrl,
+                            contentDescription = "Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     } else {
                         AvatarLetter(user.username)
                     }
