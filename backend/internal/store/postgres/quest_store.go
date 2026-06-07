@@ -184,8 +184,8 @@ func (s *QuestStore) Skip(ctx context.Context, id, userID string) (*store.SkipRe
 		SkipsUsed: skipsUsed,
 	}
 
-	if skipsUsed >= 5 {
-		hpDamage := (skipsUsed - 4) * 5
+	if skipsUsed > 5 {
+		hpDamage := (skipsUsed - 5) * 5
 		xpResult, err := game.AwardXP(ctx, s.db, userID, "quest", id, "quest_skipped", "General", 0, -hpDamage)
 		if err != nil {
 			return nil, err
