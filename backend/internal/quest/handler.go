@@ -82,7 +82,7 @@ func (h *Handler) Complete(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Skip(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
 	id := chi.URLParam(r, "id")
-	
+
 	result, err := h.store.Skip(r.Context(), id, userID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

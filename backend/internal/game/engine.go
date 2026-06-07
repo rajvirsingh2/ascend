@@ -135,10 +135,16 @@ func AwardXP(ctx context.Context, db *pgxpool.Pool, userID, entityType, entityID
 		dAgi -= 1
 		dMana -= 1
 		// Make sure they don't drop below 0 stats
-		if str+dStr < 0 { dStr = -str }
-		if agi+dAgi < 0 { dAgi = -agi }
-		if mana+dMana < 0 { dMana = -mana }
-		
+		if str+dStr < 0 {
+			dStr = -str
+		}
+		if agi+dAgi < 0 {
+			dAgi = -agi
+		}
+		if mana+dMana < 0 {
+			dMana = -mana
+		}
+
 		result.StatDeltas = []StatDelta{
 			{"STRENGTH", str, str + dStr, dStr},
 			{"AGILITY", agi, agi + dAgi, dAgi},
