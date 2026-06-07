@@ -48,6 +48,28 @@ location = /api/v1/ws {
     proxy_send_timeout 86400s;
 }
 
+# ── AI quest generation (slow: HF Space can cold-start) ──
+# The ML model is hosted on a free HuggingFace Space that can take tens of
+# seconds to wake up. The default 60s proxy_read_timeout returns a 504 before
+# generation finishes, so this endpoint gets a longer window. The backend
+# itself caps the ML call at 150s and falls back to seeded quests.
+location = /api/v1/quests/generate {
+    limit_req zone=api burst=10 nodelay;
+
+    proxy_pass http://ascend_backend;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+
+    proxy_connect_timeout 10s;
+    proxy_send_timeout    180s;
+    proxy_read_timeout    180s;
+}
+
 # ── All other API endpoints ──────────────────────────────
 location / {
     limit_req zone=api burst=40 nodelay;
