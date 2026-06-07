@@ -73,6 +73,15 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        // Opt in to the future behaviour where an un-targeted annotation (e.g.
+        // Moshi's @Json on a data-class constructor param) applies to both the
+        // parameter and the generated property. Silences the KT-73255 warnings.
+        freeCompilerArgs.add("-Xannotation-default-target=param-property")
+    }
+}
+
 dependencies {
     implementation(libs.androidx.animation.core)
     implementation(libs.androidx.core.ktx)
