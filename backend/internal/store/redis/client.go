@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -12,6 +13,10 @@ func NewClient(redisURL string) (*redis.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing redis URL: %w", err)
 	}
+
+	opts.PoolSize = 100
+	opts.MinIdleConns = 20
+	opts.ConnMaxIdleTime = 30 * time.Minute
 
 	client := redis.NewClient(opts)
 

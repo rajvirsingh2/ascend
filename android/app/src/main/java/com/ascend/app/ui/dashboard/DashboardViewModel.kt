@@ -136,6 +136,7 @@ class DashboardViewModel @Inject constructor(
                     val hpRestored = result.data.hpRestored ?: 0
                     if (awarded > 0) {
                         userRepo.refresh()
+                        habitRepo.refresh()
                         val hpMsg = if (hpRestored > 0) ", +$hpRestored HP \uD83D\uDC9A" else ""
                         _effects.send(DashboardEffect.ShowSnackbar("+$awarded XP$hpMsg"))
                     } else {

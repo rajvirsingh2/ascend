@@ -132,8 +132,8 @@ fun DashboardScreenContent(
                 )
             }
 
-            val dailyQuests = activeQuests.filter { it.type.equals("daily", ignoreCase = true) }
-            val otherQuests = activeQuests.filter { !it.type.equals("daily", ignoreCase = true) }
+            val dailyQuests = activeQuests.filter { it.type.equals("daily") }
+            val otherQuests = activeQuests.filter { !it.type.equals("daily") }
 
             // ── DAILY QUESTS ──
             item {
@@ -174,14 +174,7 @@ fun DashboardScreenContent(
             }
 
             // ── DAILY MISSIONS ──
-            item {
-                Spacer(Modifier.height(4.dp))
-                val doneCount = todayHabits.count { it.completedToday }
-                SectionHeader(
-                    title = "DAILY MISSIONS",
-                    rightText = "$doneCount/${todayHabits.size} DONE"
-                )
-            }
+
             items(todayHabits, key = { it.id }) { habit ->
                 HabitCard(
                     habit = habit,

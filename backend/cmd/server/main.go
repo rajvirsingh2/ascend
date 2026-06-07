@@ -5,6 +5,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"ascend-backend/internal/interests"
 	"ascend-backend/internal/mlservice"
@@ -90,7 +91,14 @@ func main() {
 	})
 
 	log.Printf("starting ascend backend on %s [%s]", srv.Addr(), cfg.AppEnv)
-	if err := http.ListenAndServe(srv.Addr(), srv.Routes()); err != nil {
+	httpServer := &http.Server{
+		Addr:         srv.Addr(),
+		Handler:      srv.Routes(),
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 20 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	if err := httpServer.ListenAndServe(); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
 }

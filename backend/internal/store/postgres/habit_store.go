@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"math"
 	"time"
 
 	"ascend-backend/internal/events"
@@ -82,7 +83,7 @@ func calculateEffectiveStreak(h *models.Habit, freezesAvailable int, loc *time.L
 	last := h.LastCompletedAt.In(loc)
 	lastDay := time.Date(last.Year(), last.Month(), last.Day(), 0, 0, 0, 0, loc)
 	nowDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
-	daysDiff := int(nowDay.Sub(lastDay).Hours() / 24)
+	daysDiff := int(math.Round(nowDay.Sub(lastDay).Hours() / 24))
 
 	if daysDiff <= 1 {
 		return h.CurrentStreak
@@ -141,7 +142,7 @@ func (s *HabitStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 		// calculate whole days between last completion and now
 		lastDay := time.Date(last.Year(), last.Month(), last.Day(), 0, 0, 0, 0, s.loc)
 		nowDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, s.loc)
-		daysDiff := int(nowDay.Sub(lastDay).Hours() / 24)
+		daysDiff := int(math.Round(nowDay.Sub(lastDay).Hours() / 24))
 
 		if daysDiff == 1 {
 			newStreak = h.CurrentStreak + 1
