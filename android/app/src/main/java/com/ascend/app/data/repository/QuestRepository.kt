@@ -57,8 +57,18 @@ class QuestRepository @Inject constructor(
     suspend fun skipQuest(id: String): Result<com.ascend.app.data.remote.api.SkipResponse> {
         return try {
             val response = api.skipQuest(id)
-            dao.updateStatus(id, "skipped")
-            Result.Success(response.data!!)
+            if (response.isSuccessful) {
+                dao.updateStatus(id, "skipped")
+                val body = response.body()
+                if (body != null && body.data != null) {
+                    Result.Success(body.data)
+                } else {
+                    // Fallback if the server returned 204 or an empty body
+                    Result.Success(com.ascend.app.data.remote.api.SkipResponse())
+                }
+            } else {
+                Result.Error("Failed to skip: ${response.code()}")
+            }
         } catch (e: Exception) {
             Result.Error(e.message ?: "Network error")
         }

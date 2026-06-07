@@ -10,6 +10,7 @@ import com.ascend.app.data.remote.dto.CompletionResponse
 
 import com.squareup.moshi.JsonClass
 import com.ascend.app.data.remote.dto.StatDeltaResponse
+import com.squareup.moshi.Json
 
 @JsonClass(generateAdapter = true)
 data class SkipResponse(
@@ -28,7 +29,7 @@ interface QuestApiService {
     suspend fun completeQuest(@Path("id") id: String): ApiEnvelope<CompletionResponse>
 
     @POST("quests/{id}/skip")
-    suspend fun skipQuest(@Path("id") id: String): ApiEnvelope<SkipResponse>
+    suspend fun skipQuest(@Path("id") id: String): retrofit2.Response<ApiEnvelope<SkipResponse>>
 
     @POST("quests/generate")
     suspend fun generateQuests(): ApiEnvelope<List<QuestResponse>>
