@@ -1,0 +1,140 @@
+##############################################
+# Ascend — Production Docker Compose
+# Target: AWS EC2 t3.micro (1 GB RAM, 2 vCPU)
+##############################################
+
+services:
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ascend_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: always
+    # Tune Postgres for low-memory environment
+    command: >
+      postgres
+        -c shared_buffers=64MB
+        -c effective_cache_size=128MB
+        -c work_mem=4MB
+        -c maintenance_work_mem=32MB
+        -c max_connections=30
+        -c wal_buffers=2MB
+        -c checkpoint_completion_target=0.9
+        -c random_page_cost=1.1
+
+  redis:
+    image: redis:7-alpine
+    container_name: ascend_redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 80M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: always
+    # Tune Redis for low-memory environment
+    command: >
+      redis-server
+        --maxmemory 50mb
+        --maxmemory-policy allkeys-lru
+        --save 60 100
+        --appendonly yes
+
+  # ── Run migrations before starting backend ──────────────────────
+  migrate:
+    image: migrate/migrate
+    container_name: ascend_migrate
+    volumes:
+      - ./backend/internal/store/postgres/migrations:/migrations:ro
+    command: >
+      -path=/migrations
+      -database=postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
+      up
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # ── Go API backend ─────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ascend_backend
+    ports:
+      - "127.0.0.1:8080:8080"
+    env_file:
+      - .env.prod
+    environment:
+      DB_HOST: postgres
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      APP_ENV: production
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: always
+
+  # ── XP Worker — consumes Redis Streams, awards XP ──────────────
+  xp-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ascend_xp_worker
+    env_file:
+      - .env.prod
+    environment:
+      DB_HOST: postgres
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      WORKER_MODE: "true"
+      WORKER_TYPE: xp
+      APP_ENV: production
+    deploy:
+      resources:
+        limits:
+          memory: 80M
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: always
+    command: ["/ascend-worker"]
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -69,11 +69,10 @@ What truly sets Ascend apart is its **Personalised AI Quest Engine**. The system
 |---|---|
 | Android client | Kotlin · Jetpack Compose · MVI · Room · Retrofit |
 | Go API | Go 1.23 · Chi router · JWT |
-| AI / ML | Python · FastAPI · LangChain |
-| Database | PostgreSQL 16 |
+| Database | PostgreSQL 16 (pgvector) |
 | Cache & streams | Redis 7 · Redis Streams (async event processing) |
 | Containerisation | Docker · Docker Compose |
-| Cloud (free) | Railway (no credit card required) |
+| Cloud | AWS EC2 (free tier) · Nginx · GitHub Actions CD |
 
 ---
 

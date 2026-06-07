@@ -17,6 +17,7 @@ rag-service/*.egg-info/
 
 # Environment
 .env
+.env.prod
 .env.staging
 .env.production
 

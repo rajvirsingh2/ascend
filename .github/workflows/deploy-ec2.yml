@@ -1,0 +1,44 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "backend/**"
+      - "docker-compose.prod.yml"
+      - "nginx/**"
+      - "scripts/**"
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    timeout-minutes: 10
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          script: |
+            cd ~/ascend
+            bash scripts/deploy.sh
+
+      - name: Verify deployment
+        run: |
+          echo "→ Waiting 10s for services to stabilise..."
+          sleep 10
+          echo "→ Checking health endpoint..."
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+            "http://${{ secrets.EC2_HOST }}/health" || echo "000")
+          if [ "$STATUS" = "200" ]; then
+            echo "✓ Deployment healthy (HTTP 200)"
+          else
+            echo "✗ Health check returned HTTP ${STATUS}"
+            exit 1
+          fi
