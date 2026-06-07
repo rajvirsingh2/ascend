@@ -50,6 +50,9 @@ func (s *HabitStore) ListByUser(ctx context.Context, userID string) ([]*models.H
 	}
 	defer rows.Close()
 
+	var freezesAvailable int
+	_ = s.db.QueryRow(ctx, "SELECT streak_freezes FROM users WHERE id=$1", userID).Scan(&freezesAvailable)
+
 	var habits []*models.Habit
 	for rows.Next() {
 		h := &models.Habit{}
@@ -61,9 +64,32 @@ func (s *HabitStore) ListByUser(ctx context.Context, userID string) ([]*models.H
 		if err != nil {
 			return nil, err
 		}
+		h.CurrentStreak = calculateEffectiveStreak(h, freezesAvailable)
 		habits = append(habits, h)
 	}
 	return habits, nil
+}
+
+func calculateEffectiveStreak(h *models.Habit, freezesAvailable int) int {
+	if h.LastCompletedAt == nil {
+		return 0
+	}
+	now := time.Now()
+	last := *h.LastCompletedAt
+	lastDay := time.Date(last.Year(), last.Month(), last.Day(), 0, 0, 0, 0, last.Location())
+	nowDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	daysDiff := int(nowDay.Sub(lastDay).Hours() / 24)
+
+	if daysDiff <= 1 {
+		return h.CurrentStreak
+	}
+
+	missedDays := daysDiff - 1
+	if freezesAvailable >= missedDays {
+		return h.CurrentStreak // Streak is preserved by freezes
+	}
+
+	return 0 // Streak broken
 }
 
 func (s *HabitStore) GetByID(ctx context.Context, id, userID string) (*models.Habit, error) {
@@ -78,6 +104,11 @@ func (s *HabitStore) GetByID(ctx context.Context, id, userID string) (*models.Ha
 		&h.XPReward, &h.CurrentStreak, &h.LongestStreak,
 		&h.LastCompletedAt, &h.IsActive, &h.CreatedAt,
 	)
+	if err == nil {
+		var freezesAvailable int
+		_ = s.db.QueryRow(ctx, "SELECT streak_freezes FROM users WHERE id=$1", userID).Scan(&freezesAvailable)
+		h.CurrentStreak = calculateEffectiveStreak(h, freezesAvailable)
+	}
 	return h, err
 }
 
