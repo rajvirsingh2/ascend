@@ -42,8 +42,7 @@ jobs:
       - name: Create mock google-services.json
         working-directory: android/app
         run: |
-          cat <<EOF > google-services.json
-          {
+          echo '{
             "project_info": {
               "project_number": "1234567890",
               "project_id": "mock-project",
@@ -71,8 +70,7 @@ jobs:
               }
             ],
             "configuration_version": "1"
-          }
-EOF
+          }' > google-services.json
 
       - name: Run lint
         working-directory: android
