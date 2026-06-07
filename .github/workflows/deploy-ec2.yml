@@ -21,8 +21,8 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.EC2_HOST || vars.EC2_HOST }}
-          username: ${{ secrets.EC2_USER || vars.EC2_USER }}
+          host: ${{ secrets.EC2_HOST && secrets.EC2_HOST || vars.EC2_HOST }}
+          username: ${{ secrets.EC2_USER && secrets.EC2_USER || vars.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/ascend
@@ -34,7 +34,7 @@ jobs:
           sleep 10
           echo "→ Checking health endpoint..."
           STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
-            "http://${{ secrets.EC2_HOST || vars.EC2_HOST }}/health" || echo "000")
+            "http://${{ secrets.EC2_HOST && secrets.EC2_HOST || vars.EC2_HOST }}/health" || echo "000")
           if [ "$STATUS" = "200" ]; then
             echo "✓ Deployment healthy (HTTP 200)"
           else
