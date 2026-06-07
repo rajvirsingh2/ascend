@@ -31,7 +31,8 @@ echo "✓ Code updated"
 
 # ── 2. Build images ───────────────────────────────────
 echo "→ Building Docker images..."
-docker compose -f "${COMPOSE_FILE}" build
+docker compose -f "${COMPOSE_FILE}" build backend
+docker compose -f "${COMPOSE_FILE}" build xp-worker
 echo "✓ Images built"
 
 # ── 3. Stop worker first (graceful) ───────────────────
