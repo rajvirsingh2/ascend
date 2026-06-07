@@ -79,6 +79,7 @@ fun StatsScreen(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreenContent(
     isLoading: Boolean,
@@ -91,6 +92,7 @@ fun StatsScreenContent(
     xpHistory: List<Float>,
     totalXpLast30Days: Int,
     questDistribution: List<Triple<String, Int, Color>>,
+    questsThisWeek: Int,
     questsSkipped: Int,
     onTimePercentage: Float,
     onBackClick: () -> Unit = {}

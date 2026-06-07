@@ -3,7 +3,7 @@ package avatar
 import (
 	"bytes"
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -68,9 +68,10 @@ func (s *Service) UploadFromReader(ctx context.Context, userID string, reader io
 	params := map[string]string{
 		"folder":         "ascend/avatars",
 		"overwrite":      "true",
-		"public_id":      publicID,
-		"timestamp":      timestamp,
-		"transformation": "c_fill,g_face,h_256,w_256,r_max,q_auto,f_auto",
+		"public_id":           publicID,
+		"signature_algorithm": "sha256",
+		"timestamp":           timestamp,
+		"transformation":      "c_fill,g_face,h_256,w_256,r_max,q_auto,f_auto",
 	}
 
 	signature := s.sign(params)
@@ -131,12 +132,13 @@ func (s *Service) DeleteAvatar(ctx context.Context, publicID string) error {
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	params := map[string]string{
-		"public_id": publicID,
-		"timestamp": timestamp,
+		"public_id":           publicID,
+		"signature_algorithm": "sha256",
+		"timestamp":           timestamp,
 	}
 	signature := s.sign(params)
 
-	payload := fmt.Sprintf("public_id=%s&timestamp=%s&api_key=%s&signature=%s",
+	payload := fmt.Sprintf("public_id=%s&signature_algorithm=sha256&timestamp=%s&api_key=%s&signature=%s",
 		publicID, timestamp, s.apiKey, signature)
 
 	destroyURL := fmt.Sprintf("https://api.cloudinary.com/v1_1/%s/image/destroy", s.cloudName)
@@ -171,7 +173,7 @@ func (s *Service) sign(params map[string]string) string {
 	}
 	toSign := strings.Join(parts, "&") + s.apiSecret
 
-	h := sha1.New()
+	h := sha256.New()
 	h.Write([]byte(toSign))
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
