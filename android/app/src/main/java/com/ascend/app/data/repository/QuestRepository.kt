@@ -54,11 +54,11 @@ class QuestRepository @Inject constructor(
         }
     }
 
-    suspend fun skipQuest(id: String): Result<Unit> {
+    suspend fun skipQuest(id: String): Result<com.ascend.app.data.remote.api.SkipResponse> {
         return try {
-            api.skipQuest(id)
+            val response = api.skipQuest(id)
             dao.updateStatus(id, "skipped")
-            Result.Success(Unit)
+            Result.Success(response.data!!)
         } catch (e: Exception) {
             Result.Error(e.message ?: "Network error")
         }

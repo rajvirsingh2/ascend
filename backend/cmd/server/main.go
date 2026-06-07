@@ -74,9 +74,10 @@ func main() {
 			DB:             db,
 			MLClient:       workerMLClient,
 			InterestsStore: interestsStore,
+			Loc:            cfg.GetLocalLocation(),
 		})
 	}
-	go notifications.RunDailyReminder(ctx, db, fcmNotifier)
+	go notifications.RunDailyReminder(ctx, db, fcmNotifier, cfg.GetLocalLocation())
 	go workers.RunXPWorker(ctx, workers.XPWorkerConfig{
 		Redis:    rdb,
 		DB:       db,

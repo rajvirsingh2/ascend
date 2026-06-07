@@ -17,10 +17,14 @@ type HabitStore struct {
 	db  *pgxpool.Pool
 	rdb *redis.Client
 	pub *events.Publisher
+	loc *time.Location
 }
 
-func NewHabitStore(db *pgxpool.Pool, rdb *redis.Client, pub *events.Publisher) *HabitStore {
-	return &HabitStore{db: db, rdb: rdb, pub: pub}
+func NewHabitStore(db *pgxpool.Pool, rdb *redis.Client, pub *events.Publisher, loc *time.Location) *HabitStore {
+	if loc == nil {
+		loc = time.UTC
+	}
+	return &HabitStore{db: db, rdb: rdb, pub: pub, loc: loc}
 }
 
 func (s *HabitStore) Create(ctx context.Context, h *models.Habit) error {
@@ -64,20 +68,20 @@ func (s *HabitStore) ListByUser(ctx context.Context, userID string) ([]*models.H
 		if err != nil {
 			return nil, err
 		}
-		h.CurrentStreak = calculateEffectiveStreak(h, freezesAvailable)
+		h.CurrentStreak = calculateEffectiveStreak(h, freezesAvailable, s.loc)
 		habits = append(habits, h)
 	}
 	return habits, nil
 }
 
-func calculateEffectiveStreak(h *models.Habit, freezesAvailable int) int {
+func calculateEffectiveStreak(h *models.Habit, freezesAvailable int, loc *time.Location) int {
 	if h.LastCompletedAt == nil {
 		return 0
 	}
-	now := time.Now()
-	last := *h.LastCompletedAt
-	lastDay := time.Date(last.Year(), last.Month(), last.Day(), 0, 0, 0, 0, last.Location())
-	nowDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	now := time.Now().In(loc)
+	last := h.LastCompletedAt.In(loc)
+	lastDay := time.Date(last.Year(), last.Month(), last.Day(), 0, 0, 0, 0, loc)
+	nowDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 	daysDiff := int(nowDay.Sub(lastDay).Hours() / 24)
 
 	if daysDiff <= 1 {
@@ -107,7 +111,7 @@ func (s *HabitStore) GetByID(ctx context.Context, id, userID string) (*models.Ha
 	if err == nil {
 		var freezesAvailable int
 		_ = s.db.QueryRow(ctx, "SELECT streak_freezes FROM users WHERE id=$1", userID).Scan(&freezesAvailable)
-		h.CurrentStreak = calculateEffectiveStreak(h, freezesAvailable)
+		h.CurrentStreak = calculateEffectiveStreak(h, freezesAvailable, s.loc)
 	}
 	return h, err
 }
@@ -119,11 +123,11 @@ func (s *HabitStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 		return nil, err
 	}
 
-	now := time.Now()
+	now := time.Now().In(s.loc)
 
 	// idempotency check — already completed today
 	if h.LastCompletedAt != nil {
-		last := *h.LastCompletedAt
+		last := h.LastCompletedAt.In(s.loc)
 		if last.Year() == now.Year() && last.YearDay() == now.YearDay() {
 			return nil, nil // signal: already done today
 		}
@@ -133,10 +137,10 @@ func (s *HabitStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 	var freezesUsed int
 
 	if h.LastCompletedAt != nil {
-		last := *h.LastCompletedAt
+		last := h.LastCompletedAt.In(s.loc)
 		// calculate whole days between last completion and now
-		lastDay := time.Date(last.Year(), last.Month(), last.Day(), 0, 0, 0, 0, last.Location())
-		nowDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		lastDay := time.Date(last.Year(), last.Month(), last.Day(), 0, 0, 0, 0, s.loc)
+		nowDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, s.loc)
 		daysDiff := int(nowDay.Sub(lastDay).Hours() / 24)
 
 		if daysDiff == 1 {
@@ -205,5 +209,6 @@ func (s *HabitStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 
 	}
 
-	return game.AwardXP(ctx, s.db, userID, "habit", id, "habit_completed", "General", h.XPReward)
+	hpRestored := newStreak * 2
+	return game.AwardXP(ctx, s.db, userID, "habit", id, "habit_completed", "General", h.XPReward, hpRestored)
 }

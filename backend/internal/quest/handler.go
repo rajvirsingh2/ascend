@@ -82,7 +82,9 @@ func (h *Handler) Complete(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Skip(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
 	id := chi.URLParam(r, "id")
-	if err := h.store.Skip(r.Context(), id, userID); err != nil {
+	
+	result, err := h.store.Skip(r.Context(), id, userID)
+	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			response.Error(w, http.StatusNotFound, "quest not found")
 			return
@@ -96,7 +98,13 @@ func (h *Handler) Skip(w http.ResponseWriter, r *http.Request) {
 		_ = h.tracker.LogOutcome(r.Context(), id, "skipped")
 	}
 
-	response.NoContent(w)
+	response.JSON(w, http.StatusOK, map[string]any{
+		"hp_damage":   result.HPDamage,
+		"hp_after":    result.HPAfter,
+		"skips_used":  result.SkipsUsed,
+		"died":        result.Died,
+		"stat_deltas": result.StatDeltas,
+	})
 }
 
 func (h *Handler) GetHeatmap(w http.ResponseWriter, r *http.Request) {

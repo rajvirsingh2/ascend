@@ -9,6 +9,14 @@ import (
 	"ascend-backend/internal/models"
 )
 
+type SkipResult struct {
+	HPDamage   int
+	HPAfter    int
+	SkipsUsed  int
+	Died       bool
+	StatDeltas []game.StatDelta
+}
+
 type GoalStore interface {
 	Create(ctx context.Context, goal *models.Goal) error
 	ListByUser(ctx context.Context, userID string) ([]*models.Goal, error)
@@ -29,7 +37,7 @@ type QuestStore interface {
 	ListHistory(ctx context.Context, userID string) ([]*models.Quest, error)
 	GetByID(ctx context.Context, id, userID string) (*models.Quest, error)
 	Complete(ctx context.Context, id, userID string) (*game.XPResult, error)
-	Skip(ctx context.Context, id, userID string) error
+	Skip(ctx context.Context, id, userID string) (*SkipResult, error)
 	ExpireOld(ctx context.Context) error
 	GetHeatmap(ctx context.Context, userID string) ([]models.HeatmapPoint, error)
 	GetExpiringQuests(ctx context.Context, duration time.Duration) ([]*models.Quest, error)

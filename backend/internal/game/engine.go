@@ -42,22 +42,26 @@ type XPResult struct {
 	LevelAfter  int
 	LeveledUp   bool
 	StatDeltas  []StatDelta
+	HPRestored  int
+	HPDamage    int
+	HPAfter     int
+	Died        bool
 }
 
 // AwardXP adds xpDelta to the user, handles level-ups, and writes a
 // progress_log entry. Runs in a single transaction.
-func AwardXP(ctx context.Context, db *pgxpool.Pool, userID, entityType, entityID, eventType, skillArea string, xpDelta int) (*XPResult, error) {
+func AwardXP(ctx context.Context, db *pgxpool.Pool, userID, entityType, entityID, eventType, skillArea string, xpDelta int, hpDelta int) (*XPResult, error) {
 	tx, err := db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	var currentXP, level, str, agi, mana int
+	var currentXP, level, str, agi, mana, hp, maxHp int
 	err = tx.QueryRow(ctx,
-		`SELECT current_xp, level, strength, agility, mana FROM users WHERE id = $1 FOR UPDATE`,
+		`SELECT current_xp, level, strength, agility, mana, hp, max_hp FROM users WHERE id = $1 FOR UPDATE`,
 		userID,
-	).Scan(&currentXP, &level, &str, &agi, &mana)
+	).Scan(&currentXP, &level, &str, &agi, &mana, &hp, &maxHp)
 	if err != nil {
 		return nil, err
 	}
@@ -108,12 +112,53 @@ func AwardXP(ctx context.Context, db *pgxpool.Pool, userID, entityType, entityID
 		}
 	}
 
+	var hpRestored, hpDamage int
+	var died bool
+	newHp := hp + hpDelta
+	if hpDelta > 0 {
+		if newHp > maxHp {
+			newHp = maxHp
+		}
+		hpRestored = newHp - hp
+	} else if hpDelta < 0 {
+		hpDamage = -hpDelta
+	}
+
+	if newHp <= 0 {
+		died = true
+		newHp = maxHp
+		if newLevel > 1 {
+			newLevel--
+			newXP = 0
+		}
+		dStr -= 1
+		dAgi -= 1
+		dMana -= 1
+		// Make sure they don't drop below 0 stats
+		if str+dStr < 0 { dStr = -str }
+		if agi+dAgi < 0 { dAgi = -agi }
+		if mana+dMana < 0 { dMana = -mana }
+		
+		result.StatDeltas = []StatDelta{
+			{"STRENGTH", str, str + dStr, dStr},
+			{"AGILITY", agi, agi + dAgi, dAgi},
+			{"MANA", mana, mana + dMana, dMana},
+		}
+	}
+
+	result.HPRestored = hpRestored
+	result.HPDamage = hpDamage
+	result.HPAfter = newHp
+	result.Died = died
+	result.LevelAfter = newLevel
+	result.XPAfter = newXP
+
 	_, err = tx.Exec(ctx,
 		`UPDATE users
 		 SET current_xp = $1, level = $2, total_xp = total_xp + $3, updated_at = $4,
-		 strength = strength + $5, agility = agility + $6, mana = mana + $7
-		 WHERE id = $8`,
-		newXP, newLevel, xpDelta, time.Now(), dStr, dAgi, dMana, userID,
+		 strength = strength + $5, agility = agility + $6, mana = mana + $7, hp = $8
+		 WHERE id = $9`,
+		newXP, newLevel, xpDelta, time.Now(), dStr, dAgi, dMana, newHp, userID,
 	)
 	if err != nil {
 		return nil, err

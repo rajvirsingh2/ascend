@@ -11,7 +11,7 @@ import (
 // RunDailyReminder sends daily reminder push notifications to users
 // who have incomplete quests/habits at a configured time each day.
 // Runs as a goroutine — no external scheduler needed.
-func RunDailyReminder(ctx context.Context, db *pgxpool.Pool, notifier *FCMNotifier) {
+func RunDailyReminder(ctx context.Context, db *pgxpool.Pool, notifier *FCMNotifier, loc *time.Location) {
 	if notifier == nil {
 		log.Println("[reminder-worker] FCM not configured — reminders disabled")
 		return
@@ -21,8 +21,12 @@ func RunDailyReminder(ctx context.Context, db *pgxpool.Pool, notifier *FCMNotifi
 
 	for {
 		// Calculate time until next reminder (8:00 PM local server time).
-		now := time.Now()
-		next := time.Date(now.Year(), now.Month(), now.Day(), 20, 0, 0, 0, now.Location())
+		// Calculate time until next reminder (8:00 PM local server time).
+		if loc == nil {
+			loc = time.UTC
+		}
+		now := time.Now().In(loc)
+		next := time.Date(now.Year(), now.Month(), now.Day(), 20, 0, 0, 0, loc)
 		if now.After(next) {
 			// Already past 8 PM today — schedule for tomorrow.
 			next = next.Add(24 * time.Hour)

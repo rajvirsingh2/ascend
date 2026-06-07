@@ -18,6 +18,7 @@ type QuestGenerationWorkerConfig struct {
 	MLClient       *mlservice.Client
 	InterestsStore *interests.Store
 	QuestTracker   *quest.InteractionTracker
+	Loc            *time.Location
 }
 
 func StartQuestGenerationWorker(ctx context.Context, cfg QuestGenerationWorkerConfig) {
@@ -25,8 +26,12 @@ func StartQuestGenerationWorker(ctx context.Context, cfg QuestGenerationWorkerCo
 
 	// Helper to calculate time until next midnight
 	timeUntilMidnight := func() time.Duration {
-		now := time.Now()
-		next := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+		loc := cfg.Loc
+		if loc == nil {
+			loc = time.UTC
+		}
+		now := time.Now().In(loc)
+		next := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, loc)
 		return next.Sub(now)
 	}
 

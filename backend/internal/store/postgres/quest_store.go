@@ -7,7 +7,9 @@ import (
 	"ascend-backend/internal/events"
 	"ascend-backend/internal/game"
 	"ascend-backend/internal/models"
+	"ascend-backend/internal/store"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -144,15 +146,61 @@ func (s *QuestStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 	}
 
 	// award XP synchronously
-	return game.AwardXP(ctx, s.db, userID, "quest", id, "quest_completed", q.SkillArea, q.XPReward)
+	return game.AwardXP(ctx, s.db, userID, "quest", id, "quest_completed", q.SkillArea, q.XPReward, 0)
 }
 
-func (s *QuestStore) Skip(ctx context.Context, id, userID string) error {
-	_, err := s.db.Exec(ctx,
-		`UPDATE quests SET status='skipped' WHERE id=$1 AND user_id=$2`,
+func (s *QuestStore) Skip(ctx context.Context, id, userID string) (*store.SkipResult, error) {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	res, err := tx.Exec(ctx,
+		`UPDATE quests SET status='skipped', completed_at=NOW() WHERE id=$1 AND user_id=$2 AND status='active'`,
 		id, userID,
 	)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	if res.RowsAffected() == 0 {
+		return nil, pgx.ErrNoRows
+	}
+
+	var skipsUsed int
+	err = tx.QueryRow(ctx,
+		`SELECT COUNT(*) FROM quests WHERE user_id=$1 AND status='skipped' AND date_trunc('month', completed_at) = date_trunc('month', NOW())`,
+		userID,
+	).Scan(&skipsUsed)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	result := &store.SkipResult{
+		SkipsUsed: skipsUsed,
+	}
+
+	if skipsUsed >= 5 {
+		hpDamage := (skipsUsed - 4) * 5
+		xpResult, err := game.AwardXP(ctx, s.db, userID, "quest", id, "quest_skipped", "General", 0, -hpDamage)
+		if err != nil {
+			return nil, err
+		}
+		result.HPDamage = xpResult.HPDamage
+		result.HPAfter = xpResult.HPAfter
+		result.Died = xpResult.Died
+		result.StatDeltas = xpResult.StatDeltas
+	} else {
+		var hp int
+		_ = s.db.QueryRow(ctx, "SELECT hp FROM users WHERE id=$1", userID).Scan(&hp)
+		result.HPAfter = hp
+	}
+
+	return result, nil
 }
 
 func (s *QuestStore) ExpireOld(ctx context.Context) error {

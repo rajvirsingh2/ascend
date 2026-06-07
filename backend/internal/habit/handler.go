@@ -76,5 +76,7 @@ func (h *Handler) Complete(w http.ResponseWriter, r *http.Request) {
 		"xp_after":    result.XPAfter,
 		"level_after": result.LevelAfter,
 		"leveled_up":  result.LeveledUp,
+		"hp_restored": result.HPRestored,
+		"hp_after":    result.HPAfter,
 	})
 }

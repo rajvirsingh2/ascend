@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -41,6 +42,18 @@ type Config struct {
 	FCMCredentialsJSON  string
 	FCMProjectID        string
 	ResendAPIKey        string
+
+	Timezone string
+}
+
+// GetLocalLocation returns the time.Location parsed from the Timezone config.
+// Defaults to UTC if parsing fails.
+func (c *Config) GetLocalLocation() *time.Location {
+	loc, err := time.LoadLocation(c.Timezone)
+	if err != nil {
+		return time.UTC
+	}
+	return loc
 }
 
 func Load() (*Config, error) {
@@ -85,6 +98,7 @@ func Load() (*Config, error) {
 		FCMCredentialsJSON:  getEnv("FCM_CREDENTIALS_JSON", ""),
 		FCMProjectID:        getEnv("FCM_PROJECT_ID", ""),
 		ResendAPIKey:        getEnv("RESEND_API_KEY", ""),
+		Timezone:            getEnv("TIMEZONE", "Asia/Kolkata"),
 	}
 
 	return cfg, nil

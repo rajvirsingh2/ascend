@@ -103,7 +103,29 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun skipQuest(questId: String) {
-        viewModelScope.launch { questRepo.skipQuest(questId) }
+        viewModelScope.launch {
+            when (val result = questRepo.skipQuest(questId)) {
+                is Result.Success -> {
+                    val skips = result.data.skips_used
+                    val damage = result.data.hp_damage
+                    val died = result.data.died
+                    
+                    if (died) {
+                        userRepo.refresh()
+                        _effects.send(DashboardEffect.ShowSnackbar("YOU DIED! Level and stats reduced \uD83D\uDC80"))
+                    } else if (damage > 0) {
+                        userRepo.refresh()
+                        _effects.send(DashboardEffect.ShowSnackbar("Skipped quest! -$damage HP (\uD83E\uDE78 $skips used)"))
+                    } else {
+                        _effects.send(DashboardEffect.ShowSnackbar("Skipped quest! (\uD83C\uDF1F $skips/5 free skips)"))
+                    }
+                }
+                is Result.Error -> {
+                    _effects.send(DashboardEffect.ShowSnackbar("Failed to skip quest: ${result.message}"))
+                }
+                else -> Unit
+            }
+        }
     }
 
     private fun completeHabit(habitId: String) {
@@ -111,9 +133,11 @@ class DashboardViewModel @Inject constructor(
             when (val result = habitRepo.completeHabit(habitId)) {
                 is Result.Success -> {
                     val awarded = result.data.xpAwarded ?: 0
+                    val hpRestored = result.data.hpRestored ?: 0
                     if (awarded > 0) {
                         userRepo.refresh()
-                        _effects.send(DashboardEffect.ShowSnackbar("+$awarded XP"))
+                        val hpMsg = if (hpRestored > 0) ", +$hpRestored HP \uD83D\uDC9A" else ""
+                        _effects.send(DashboardEffect.ShowSnackbar("+$awarded XP$hpMsg"))
                     } else {
                         _effects.send(DashboardEffect.ShowSnackbar("Already completed today"))
                     }

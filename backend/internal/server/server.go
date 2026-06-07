@@ -145,7 +145,7 @@ func (s *Server) Routes() http.Handler {
 			})
 
 			// habits
-			habitHandler := habit.NewHandler(pgstore.NewHabitStore(s.db, s.rdb, s.pub))
+			habitHandler := habit.NewHandler(pgstore.NewHabitStore(s.db, s.rdb, s.pub, s.cfg.GetLocalLocation()))
 			r.Route("/habits", func(r chi.Router) {
 				r.Get("/", habitHandler.List)
 				r.Post("/", habitHandler.Create)
