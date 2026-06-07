@@ -9,7 +9,7 @@ import (
 )
 
 // StartExpiryWorker runs in a goroutine and marks overdue quests expired every hour.
-func StartExpiryWorker(ctx context.Context, qs store.QuestStore) {
+func StartExpiryWorker(ctx context.Context, qs store.QuestStore, tracker *InteractionTracker) {
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 
@@ -20,6 +20,11 @@ func StartExpiryWorker(ctx context.Context, qs store.QuestStore) {
 		case <-ticker.C:
 			if err := qs.ExpireOld(ctx); err != nil {
 				log.Printf("expiry worker error: %v", err)
+			}
+			if tracker != nil {
+				if err := tracker.AbandonStale(ctx); err != nil {
+					log.Printf("abandon stale worker error: %v", err)
+				}
 			}
 		case <-ctx.Done():
 			log.Println("quest expiry worker stopped")

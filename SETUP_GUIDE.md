@@ -554,6 +554,17 @@ The backend connects to the ML model via the `ML_SERVICE_URL` variable in your `
 docker compose logs ascend_backend --tail 30
 ```
 
+### 8.3 — Export Preference Data (DPO)
+
+The backend automatically logs user interactions (completed vs skipped quests). Once enough data is collected, you can export it to train the next version of the model:
+
+```powershell
+# Requires Python and psycopg2
+pip install psycopg2
+python scripts/ml/export_preferences.py --db "postgres://ascend_user:ascend_pass@localhost:5432/ascend_db?sslmode=disable"
+```
+This generates `data/preferences.jsonl` which can be uploaded to Google Drive to run the Colab training notebook located at `scripts/ml/notebooks/Ascend_Phase5_DPO.ipynb`.
+
 ---
 
 ## PART 9 — Daily workflow

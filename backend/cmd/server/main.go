@@ -58,7 +58,8 @@ func main() {
 
 	// start background workers
 	questStore := postgres.NewQuestStore(db, rdb)
-	go quest.StartExpiryWorker(ctx, questStore)
+	tracker := quest.NewInteractionTracker(db)
+	go quest.StartExpiryWorker(ctx, questStore, tracker)
 	go user.PurgeScheduled(ctx, db)
 
 	// Quest Generation Worker
