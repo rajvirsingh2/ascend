@@ -56,6 +56,7 @@ func main() {
 
 	var firebaseAuthClient *firebaseauth.Client
 	if cfg.FCMCredentialsJSON != "" {
+		//nolint:staticcheck // SA1019: option.WithCredentialsJSON is deprecated
 		opt := option.WithCredentialsJSON([]byte(cfg.FCMCredentialsJSON))
 		app, err := firebase.NewApp(ctx, nil, opt)
 		if err != nil {
