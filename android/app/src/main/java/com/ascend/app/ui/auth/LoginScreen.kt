@@ -108,6 +108,8 @@ fun LoginScreen(
         onEmailChanged = { viewModel.onLoginIntent(AuthIntent.EmailChanged(it)) },
         onPasswordChanged = { viewModel.onLoginIntent(AuthIntent.PasswordChanged(it)) },
         onSubmitLogin = { viewModel.onLoginIntent(AuthIntent.SubmitLogin) },
+        onSocialSignIn = { credential -> viewModel.signInWithCredential(credential) },
+        onSocialError = { error -> /* Let snackbar handle it if we want, or do nothing */ },
         onNavigateToRegister = onNavigateToRegister,
         onNavigateToForgotPassword = { navController.navigate(Routes.FORGOT_PASSWORD) }
     )
@@ -124,6 +126,8 @@ fun LoginScreenContent(
     onEmailChanged: (String) -> Unit,
     onPasswordChanged: (String) -> Unit,
     onSubmitLogin: () -> Unit,
+    onSocialSignIn: (com.google.firebase.auth.AuthCredential) -> Unit,
+    onSocialError: (String) -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit
 ) {
@@ -139,6 +143,22 @@ fun LoginScreenContent(
         initialValue = 0.30f, targetValue = 0.65f,
         animationSpec = infiniteRepeatable(tween(1800, easing = EaseInOutSine), RepeatMode.Reverse),
         label = "halo"
+    )
+
+    val googleSignInLauncher = rememberGoogleSignInLauncher(
+        onSuccess = { token ->
+            val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(token, null)
+            onSocialSignIn(credential)
+        },
+        onError = onSocialError
+    )
+
+    val facebookLoginLauncher = rememberFacebookLoginLauncher(
+        onSuccess = { token ->
+            val credential = com.google.firebase.auth.FacebookAuthProvider.getCredential(token.token)
+            onSocialSignIn(credential)
+        },
+        onError = onSocialError
     )
 
     val titleBrush = Brush.verticalGradient(
@@ -350,7 +370,7 @@ fun LoginScreenContent(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 Button(
-                    onClick = { /* TODO: Launch Google Sign In Intent */ },
+                    onClick = googleSignInLauncher,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(8.dp)
@@ -359,7 +379,7 @@ fun LoginScreenContent(
                 }
                 Spacer(Modifier.width(16.dp))
                 Button(
-                    onClick = { /* TODO: Launch Facebook Login */ },
+                    onClick = facebookLoginLauncher,
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1877F2)),
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(8.dp)

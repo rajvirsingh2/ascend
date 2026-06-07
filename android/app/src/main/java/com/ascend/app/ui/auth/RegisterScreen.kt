@@ -93,6 +93,8 @@ fun RegisterScreen(
         onEmailChanged = { viewModel.onRegisterIntent(AuthIntent.EmailChanged(it)) },
         onPasswordChanged = { viewModel.onRegisterIntent(AuthIntent.PasswordChanged(it)) },
         onSubmitRegister = { viewModel.onRegisterIntent(AuthIntent.SubmitRegister) },
+        onSocialSignIn = { credential -> viewModel.signInWithCredential(credential) },
+        onSocialError = { error -> /* Let snackbar handle it if we want */ },
         onNavigateToLogin = onNavigateToLogin
     )
 }
@@ -109,6 +111,8 @@ fun RegisterScreenContent(
     onEmailChanged: (String) -> Unit,
     onPasswordChanged: (String) -> Unit,
     onSubmitRegister: () -> Unit,
+    onSocialSignIn: (com.google.firebase.auth.AuthCredential) -> Unit,
+    onSocialError: (String) -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     // Halo throb behind logo
@@ -123,6 +127,22 @@ fun RegisterScreenContent(
         0f to Color.White,
         0.55f to Color(0xFFC9B8FF),
         1f to CyanAccent
+    )
+
+    val googleSignInLauncher = rememberGoogleSignInLauncher(
+        onSuccess = { token ->
+            val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(token, null)
+            onSocialSignIn(credential)
+        },
+        onError = onSocialError
+    )
+
+    val facebookLoginLauncher = rememberFacebookLoginLauncher(
+        onSuccess = { token ->
+            val credential = com.google.firebase.auth.FacebookAuthProvider.getCredential(token.token)
+            onSocialSignIn(credential)
+        },
+        onError = onSocialError
     )
 
     // Lighter purple glow for panel (web: glow="var(--purple-2)")
@@ -338,7 +358,7 @@ fun RegisterScreenContent(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 Button(
-                    onClick = { /* TODO: Launch Google Sign In Intent */ },
+                    onClick = googleSignInLauncher,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(8.dp)
@@ -347,7 +367,7 @@ fun RegisterScreenContent(
                 }
                 Spacer(Modifier.width(16.dp))
                 Button(
-                    onClick = { /* TODO: Launch Facebook Login */ },
+                    onClick = facebookLoginLauncher,
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1877F2)),
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(8.dp)

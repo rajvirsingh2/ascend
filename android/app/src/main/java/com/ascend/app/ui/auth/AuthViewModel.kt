@@ -68,6 +68,10 @@ class AuthViewModel @Inject constructor(
             _loginState.update { it.copy(emailError = "Email is required") }
             return
         }
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(state.email).matches()) {
+            _loginState.update { it.copy(emailError = "Invalid email address") }
+            return
+        }
         if (state.password.length < 8) {
             _loginState.update { it.copy(passwordError = "Minimum 8 characters") }
             return
@@ -90,6 +94,30 @@ class AuthViewModel @Inject constructor(
                     } else {
                         viewModelScope.launch {
                             _effects.send(AuthEffect.ShowError(task.exception?.message ?: "Login failed"))
+                            _loginState.update { it.copy(isLoading = false) }
+                        }
+                    }
+                }
+        }
+    }
+
+    fun signInWithCredential(credential: com.google.firebase.auth.AuthCredential) {
+        viewModelScope.launch {
+            _loginState.update { it.copy(isLoading = true) }
+            com.google.firebase.auth.FirebaseAuth.getInstance().signInWithCredential(credential)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        task.result?.user?.getIdToken(true)?.addOnSuccessListener { tokenResult ->
+                            tokenResult.token?.let { firebaseLogin(it) }
+                        }?.addOnFailureListener { e ->
+                            viewModelScope.launch {
+                                _effects.send(AuthEffect.ShowError("Failed to get Firebase token: ${e.message}"))
+                                _loginState.update { it.copy(isLoading = false) }
+                            }
+                        }
+                    } else {
+                        viewModelScope.launch {
+                            _effects.send(AuthEffect.ShowError(task.exception?.message ?: "Social sign-in failed"))
                             _loginState.update { it.copy(isLoading = false) }
                         }
                     }
@@ -126,6 +154,15 @@ class AuthViewModel @Inject constructor(
 
     private fun submitRegister() {
         val state = _registerState.value
+        if (state.email.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(state.email).matches()) {
+            _registerState.update { it.copy(error = "Invalid email address") }
+            return
+        }
+        if (state.password.length < 8) {
+            _registerState.update { it.copy(error = "Password must be at least 8 characters") }
+            return
+        }
+
         viewModelScope.launch {
             _registerState.update { it.copy(isLoading = true) }
             com.google.firebase.auth.FirebaseAuth.getInstance()
