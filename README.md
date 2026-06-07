@@ -62,6 +62,13 @@ What truly sets Ascend apart is its **Personalised AI Quest Engine**. The system
 3. Earn XP, level up, unlock titles
 4. The AI remembers your history and dynamically evolves your next quests
 
+### 🩸 HP & Death Mechanics
+Ascend is designed to be punishing if you fall off track:
+- **Free Skips**: You get 5 free quest skips per calendar month.
+- **HP Damage**: Skipping quests beyond your free limit directly damages your Health Points (HP). The damage scales up with every additional skip.
+- **Healing via Consistency**: Completing daily habits restores your HP. The longer your current streak, the more HP you heal!
+- **Death Penalty**: If your HP drops to zero, you suffer a lethal penalty: your Level decreases by 1, and your core stats (Strength, Agility, Mana) are permanently reduced. You are then revived back to Max HP to start rebuilding.
+
 ---
 
 ## Custom Quest Generation Model
