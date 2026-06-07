@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
 import javax.inject.Inject
 
 
@@ -45,21 +47,37 @@ class SplashViewModel @Inject constructor(
                 _destination.value= SplashDestination.Login
                 return@launch
             }
-            when(val res=interestsRepository.getMyInterests()){
-                is Result.Success ->{
-                    val (configured,_) = res.data
-                    _destination.value=if(!configured){
-                        SplashDestination.InterestsOnboarding
-                    } else{
-                        SplashDestination.Dashboard
+            
+            // Fast path: bypass network if interests already configured locally
+            val locallyConfigured = tokenDataStore.interestsConfigured.first()
+            if(locallyConfigured == true) {
+                _destination.value = SplashDestination.Dashboard
+                return@launch
+            }
+            
+            // Slow path: fetch from network with 3s timeout
+            try {
+                withTimeout(3000) {
+                    when(val res=interestsRepository.getMyInterests()){
+                        is Result.Success ->{
+                            val (configured,_) = res.data
+                            tokenDataStore.setInterestsConfigured(configured)
+                            _destination.value=if(!configured){
+                                SplashDestination.InterestsOnboarding
+                            } else{
+                                SplashDestination.Dashboard
+                            }
+                        }
+                        is Result.Error ->{
+                            _destination.value= SplashDestination.Dashboard
+                        }
+                        is Result.Loading ->{/*TODO*/}
                     }
                 }
-
-                is Result.Error ->{
-                    _destination.value= SplashDestination.Dashboard
-                }
-
-                is Result.Loading ->{/*TODO*/}
+            } catch (e: TimeoutCancellationException) {
+                // If the backend takes too long (e.g. cold start), don't freeze the splash screen.
+                // Just fall back to the dashboard.
+                _destination.value = SplashDestination.Dashboard
             }
         }
     }

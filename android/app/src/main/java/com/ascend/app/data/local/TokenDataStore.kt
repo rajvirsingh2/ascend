@@ -3,6 +3,7 @@ package com.ascend.app.data.local
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -20,15 +21,26 @@ class TokenDataStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val accessTokenKey = stringPreferencesKey("access_token")
+    private val interestsConfiguredKey = booleanPreferencesKey("interests_configured")
 
     val accessToken: Flow<String?>
         get() = context.dataStore.data.map { it[accessTokenKey] }
+
+    val interestsConfigured: Flow<Boolean?>
+        get() = context.dataStore.data.map { it[interestsConfiguredKey] }
 
     suspend fun saveToken(token: String) {
         context.dataStore.edit { it[accessTokenKey] = token }
     }
 
     suspend fun clearToken() {
-        context.dataStore.edit { it.remove(accessTokenKey) }
+        context.dataStore.edit { 
+            it.remove(accessTokenKey) 
+            it.remove(interestsConfiguredKey)
+        }
+    }
+
+    suspend fun setInterestsConfigured(configured: Boolean) {
+        context.dataStore.edit { it[interestsConfiguredKey] = configured }
     }
 }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ascend.app.domain.model.UserInterest
 import com.ascend.app.domain.model.Result
+import com.ascend.app.data.local.TokenDataStore
 import com.ascend.app.data.repository.InterestsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -17,7 +18,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class InterestsViewModel @Inject constructor(
-    private val repo: InterestsRepository
+    private val repo: InterestsRepository,
+    private val tokenDataStore: TokenDataStore
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(InterestsState())
@@ -131,6 +133,7 @@ class InterestsViewModel @Inject constructor(
             try {
                 when (val result = repo.saveInterests(_state.value.selectedInterests)) {
                     is Result.Success -> {
+                        tokenDataStore.setInterestsConfigured(true)
                         _state.update { it.copy(isSaving = false) }
                         _effects.send(InterestsEffect.NavigateToDashboard)
                     }
