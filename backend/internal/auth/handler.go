@@ -238,7 +238,7 @@ func (h *Handler) FirebaseLogin(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// Ensure email is marked verified since Firebase verified it
-		h.db.Exec(r.Context(), `UPDATE users SET email_verified = true, email_verified_at = NOW() WHERE id = $1 AND email_verified = false`, userID)
+		_, _ = h.db.Exec(r.Context(), `UPDATE users SET email_verified = true, email_verified_at = NOW() WHERE id = $1 AND email_verified = false`, userID)
 	}
 
 	accessToken, err := GenerateAccessToken(userID, h.jwtSecret, h.jwtExpiryMinutes)
