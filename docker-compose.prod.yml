@@ -88,6 +88,8 @@ services:
       - "127.0.0.1:8080:8080"
     env_file:
       - .env.prod
+    volumes:
+      - ./firebase-service-account.json:/firebase-service-account.json:ro
     environment:
       DB_HOST: postgres
       DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
@@ -114,6 +116,8 @@ services:
     container_name: ascend_xp_worker
     env_file:
       - .env.prod
+    volumes:
+      - ./firebase-service-account.json:/firebase-service-account.json:ro
     environment:
       DB_HOST: postgres
       DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
