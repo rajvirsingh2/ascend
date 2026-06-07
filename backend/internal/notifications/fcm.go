@@ -8,8 +8,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
-
 	"time"
 
 	"ascend-backend/pkg/config"
