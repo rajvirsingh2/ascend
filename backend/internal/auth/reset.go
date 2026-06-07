@@ -14,7 +14,6 @@ const resetPrefix = "pwd_reset:"
 const resetTTL = 15 * time.Minute
 
 func GenerateResetOTP(ctx context.Context, rdb *redis.Client, email string) (string, error) {
-	// rate limit: 3 requests per hour
 	ratioKey := "reset_rate:" + email
 	count, _ := rdb.Incr(ctx, ratioKey).Result()
 	if count == 1 {
