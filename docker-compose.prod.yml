@@ -85,7 +85,7 @@ services:
       dockerfile: Dockerfile
     container_name: ascend_backend
     ports:
-      - "127.0.0.1:8080:8080"
+      - "8000:8080"
     env_file:
       - .env.prod
     volumes:
