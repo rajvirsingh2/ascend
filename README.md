@@ -16,26 +16,26 @@ Built to showcase end-to-end full-stack engineering, Ascend features a resilient
 
 ## Screenshots
 
-<p align="center">
-  <img src="docs/images/splash.png" width="22%" />
-  <img src="docs/images/login.png" width="22%" />
-  <img src="docs/images/register.png" width="22%" />
-  <img src="docs/images/verification.png" width="22%" />
-</p>
-
-<p align="center">
-  <img src="docs/images/focus.png" width="22%" />
-  <img src="docs/images/dashboard.png" width="22%" />
-  <img src="docs/images/goals.png" width="22%" />
-  <img src="docs/images/notifications.png" width="22%" />
-</p>
-
-<p align="center">
-  <img src="docs/images/profile.png" width="22%" />
-  <img src="docs/images/stats.png" width="22%" />
-  <img src="docs/images/share.png" width="22%" />
-  <img src="docs/images/recover.png" width="22%" />
-</p>
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/images/splash.png" width="100%" /><br><b>Splash Screen</b></td>
+    <td align="center"><img src="docs/images/login.png" width="100%" /><br><b>Login</b></td>
+    <td align="center"><img src="docs/images/register.png" width="100%" /><br><b>Register</b></td>
+    <td align="center"><img src="docs/images/verification.png" width="100%" /><br><b>OTP Verification</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/focus.png" width="100%" /><br><b>Focus Mode</b></td>
+    <td align="center"><img src="docs/images/dashboard.png" width="100%" /><br><b>Dashboard & Quests</b></td>
+    <td align="center"><img src="docs/images/goals.png" width="100%" /><br><b>Goal Setting</b></td>
+    <td align="center"><img src="docs/images/notifications.png" width="100%" /><br><b>Push Notifications</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/profile.png" width="100%" /><br><b>User Profile</b></td>
+    <td align="center"><img src="docs/images/stats.png" width="100%" /><br><b>GitHub-Style Heatmaps</b></td>
+    <td align="center"><img src="docs/images/share.png" width="100%" /><br><b>Hunter Card Sharing</b></td>
+    <td align="center"><img src="docs/images/recover.png" width="100%" /><br><b>HP Recovery</b></td>
+  </tr>
+</table>
 
 ---
 
