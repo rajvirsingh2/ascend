@@ -30,6 +30,7 @@ class InterestsViewModel @Inject constructor(
 
     init {
         loadCategories()
+        loadExistingInterests()
     }
 
     private fun loadCategories() {
@@ -43,6 +44,33 @@ class InterestsViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    private fun loadExistingInterests() {
+        viewModelScope.launch {
+            try {
+                when (val result = repo.getMyInterests()) {
+                    is Result.Success -> {
+                        val interests = result.data.second
+                        if (interests.isNotEmpty()) {
+                            _state.update { s ->
+                                val pickedCatIds = interests.map { i -> i.category }.toSet()
+                                val profMap = interests.associate { i -> i.category to i.proficiency }
+                                s.copy(
+                                    selectedInterests = interests,
+                                    pickedCategoryIds = pickedCatIds,
+                                    proficiencyByCategory = profMap,
+                                    globalGoal = interests.firstOrNull { i -> i.customGoal.isNotEmpty() }?.customGoal ?: ""
+                                )
+                            }
+                        }
+                    }
+                    else -> Unit
+                }
+            } catch (e: Exception) {
+                // ignore
             }
         }
     }
