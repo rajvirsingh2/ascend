@@ -78,20 +78,6 @@ import com.ascend.app.data.remote.dto.SavePhysiqueRequest
 import com.ascend.app.domain.model.PhysiqueProfile
 import com.ascend.app.ui.auth.jetBrainsMono
 import com.ascend.app.ui.auth.orbitron
-import com.ascend.app.ui.components.reactStyleCard
-import com.ascend.app.ui.components.scanlineHorizontal
-import com.ascend.app.ui.theme.BorderGlow
-import com.ascend.app.ui.theme.CyanAccent
-import com.ascend.app.ui.theme.DangerRed
-import com.ascend.app.ui.theme.GoldAccent
-import com.ascend.app.ui.theme.PanelMid
-import com.ascend.app.ui.theme.PurpleLight
-import com.ascend.app.ui.theme.PurplePrimary
-import com.ascend.app.ui.theme.SuccessGreen
-import com.ascend.app.ui.theme.SystemBlack
-import com.ascend.app.ui.theme.TextMuted
-import com.ascend.app.ui.theme.TextPrimary
-import com.ascend.app.ui.theme.TextSecondary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -100,6 +86,18 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.pow
 import kotlin.math.roundToInt
+
+// --- Standardized React Mapped Colors ---
+val ReactCyan = Color(0xFF00E5FF)
+val ReactGold = Color(0xFFFFD700)
+val ReactGreen = Color(0xFF00E676)
+val ReactPurple = Color(0xFFB388FF)
+val ReactRed = Color(0xFFFF3B30)
+val ReactPanel = Color(0xFF0C0C16)
+val ReactPanelLine = Color(0xFF2A2A35)
+val ReactInk = Color.White
+val ReactInkDim = Color.Gray
+val ReactInkFaint = Color(0xFF555555)
 
 // ─── ViewModel ───────────────────────────────────────────────────────────────
 
@@ -159,7 +157,7 @@ class PhysiqueViewModel @Inject constructor(
 }
 
 /* ============================================================
- *  STEPS
+ * STEPS
  * ============================================================ */
 enum class PhysiqueStep {
     BIOMETRIC_SCAN,
@@ -171,7 +169,7 @@ enum class PhysiqueStep {
 }
 
 /* ============================================================
- *  ROOT
+ * ROOT
  * ============================================================ */
 @Composable
 fun PhysiqueOnboardingScreen(
@@ -207,11 +205,11 @@ fun PhysiqueOnboardingScreenContent(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    Scaffold(containerColor = SystemBlack) { padding ->
+    Scaffold(containerColor = Color(0xFF07070B)) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(SystemBlack)
+                .background(Color(0xFF07070B))
                 .scanlineHorizontal()
                 .padding(padding)
         ) {
@@ -223,7 +221,7 @@ fun PhysiqueOnboardingScreenContent(
                     .blur(50.dp)
                     .background(
                         Brush.radialGradient(
-                            listOf(PurplePrimary.copy(alpha = 0.10f), Color.Transparent)
+                            listOf(ReactPurple.copy(alpha = 0.10f), Color.Transparent)
                         )
                     )
             )
@@ -262,7 +260,7 @@ fun PhysiqueOnboardingScreenContent(
                         it,
                         fontFamily = jetBrainsMono,
                         fontSize = 11.sp,
-                        color = DangerRed,
+                        color = ReactRed,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                     )
@@ -291,7 +289,7 @@ private fun canProceed(step: PhysiqueStep, p: PhysiqueProfile): Boolean = when (
 }
 
 /* ============================================================
- *  HEADER
+ * HEADER
  * ============================================================ */
 @Composable
 private fun PhysiqueHeader(step: PhysiqueStep) {
@@ -314,13 +312,13 @@ private fun PhysiqueHeader(step: PhysiqueStep) {
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier=Modifier.weight(1f)
+                modifier = Modifier.weight(1f)
             ) {
                 Text(
                     "◈ ",
                     fontFamily = orbitron,
                     fontSize = 18.sp,
-                    color = CyanAccent
+                    color = ReactCyan
                 )
                 Text(
                     "PHYSIQUE · $title",
@@ -328,7 +326,7 @@ private fun PhysiqueHeader(step: PhysiqueStep) {
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 2.sp,
-                    color = PurpleLight,
+                    color = ReactPurple,
                     maxLines = 1,
                     modifier = Modifier.basicMarquee(
                         iterations = Int.MAX_VALUE,
@@ -336,14 +334,14 @@ private fun PhysiqueHeader(step: PhysiqueStep) {
                         initialDelayMillis = 1500,
                         velocity = 30.dp
                     ),
-                    style = TextStyle(shadow = Shadow(PurpleLight.copy(alpha = 0.4f), blurRadius = 10f))
+                    style = TextStyle(shadow = Shadow(ReactPurple.copy(alpha = 0.4f), blurRadius = 10f))
                 )
             }
             Spacer(Modifier.width(12.dp))
             Box(
                 modifier = Modifier
-                    .border(1.dp, BorderGlow.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
-                    .background(PanelMid.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                    .border(1.dp, ReactPanelLine, RoundedCornerShape(4.dp))
+                    .background(ReactPanel.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
                     .padding(horizontal = 8.dp, vertical = 2.dp)
             ) {
                 Text(
@@ -351,7 +349,7 @@ private fun PhysiqueHeader(step: PhysiqueStep) {
                     fontFamily = jetBrainsMono,
                     fontSize = 9.5.sp,
                     letterSpacing = 2.sp,
-                    color = TextMuted,
+                    color = ReactInkDim,
                     maxLines = 1,
                     softWrap = false
                 )
@@ -377,15 +375,15 @@ private fun ProgressBarWithEdge(progress: Float) {
             .fillMaxWidth()
             .height(6.dp)
             .clip(RoundedCornerShape(3.dp))
-            .background(PanelMid)
-            .border(1.dp, BorderGlow.copy(alpha = 0.2f), RoundedCornerShape(3.dp))
+            .background(ReactPanelLine)
+            .border(1.dp, ReactPanelLine, RoundedCornerShape(3.dp))
     ) {
         Box(
             modifier = Modifier
                 .fillMaxHeight()
                 .fillMaxWidth(anim)
                 .background(
-                    Brush.horizontalGradient(listOf(PurplePrimary, CyanAccent)),
+                    Brush.horizontalGradient(listOf(ReactPurple, ReactCyan)),
                     RoundedCornerShape(3.dp)
                 )
         ) {
@@ -402,7 +400,7 @@ private fun ProgressBarWithEdge(progress: Float) {
 }
 
 /* ============================================================
- *  STEP 1 — BIOMETRIC SCAN (sex)
+ * STEP 1 — BIOMETRIC SCAN (sex)
  * ============================================================ */
 @Composable
 private fun StepBiometric(
@@ -410,7 +408,7 @@ private fun StepBiometric(
     update: (PhysiqueProfile.() -> PhysiqueProfile) -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp), // Added bottom padding to prevent shadow bleed
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         SexCard(
@@ -438,7 +436,7 @@ private fun SexCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val color = CyanAccent
+    val color = ReactCyan
     Box(
         modifier = modifier
             .reactStyleCard(selected, color)
@@ -450,7 +448,7 @@ private fun SexCard(
             Text(
                 symbol,
                 fontSize = 56.sp,
-                color = if (selected) color else TextSecondary,
+                color = if (selected) color else ReactInkDim,
                 style = TextStyle(
                     shadow = Shadow(
                         if (selected) color.copy(alpha = 0.6f) else Color.Transparent,
@@ -465,14 +463,14 @@ private fun SexCard(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 2.5.sp,
-                color = if (selected) color else TextPrimary
+                color = if (selected) color else ReactInk
             )
         }
     }
 }
 
 /* ============================================================
- *  STEP 2 — AGE (slider + huge value)
+ * STEP 2 — AGE (slider + huge value)
  * ============================================================ */
 @Composable
 private fun StepAge(
@@ -484,7 +482,8 @@ private fun StepAge(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp), // Added padding for scroll bleed
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(24.dp))
@@ -493,15 +492,15 @@ private fun StepAge(
             fontFamily = orbitron,
             fontSize = 88.sp,
             fontWeight = FontWeight.Black,
-            color = CyanAccent,
-            style = TextStyle(shadow = Shadow(CyanAccent.copy(alpha = 0.5f), blurRadius = 28f))
+            color = ReactCyan,
+            style = TextStyle(shadow = Shadow(ReactCyan.copy(alpha = 0.5f), blurRadius = 28f))
         )
         Text(
             "YEARS",
             fontFamily = jetBrainsMono,
             fontSize = 11.sp,
             letterSpacing = 4.sp,
-            color = TextMuted
+            color = ReactInkDim
         )
 
         Spacer(Modifier.height(32.dp))
@@ -510,7 +509,7 @@ private fun StepAge(
             value = ageValue.toFloat(),
             range = 14f..80f,
             steps = 0,
-            accentColor = CyanAccent,
+            accentColor = ReactCyan,
             onValueChange = { update { copy(age = it.roundToInt()) } }
         )
         Spacer(Modifier.height(10.dp))
@@ -526,7 +525,7 @@ private fun StepAge(
 }
 
 /* ============================================================
- *  STEP 3 — BODY METRICS (height + weight)
+ * STEP 3 — BODY METRICS (height + weight)
  * ============================================================ */
 @Composable
 private fun StepBodyMetrics(
@@ -536,7 +535,8 @@ private fun StepBodyMetrics(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp), // Added padding for scroll bleed
         verticalArrangement = Arrangement.spacedBy(28.dp)
     ) {
         Spacer(Modifier.height(8.dp))
@@ -546,18 +546,18 @@ private fun StepBodyMetrics(
             unit = "cm",
             value = if (profile.heightCm > 0) profile.heightCm else 178f,
             range = 120f..220f,
-            accent = CyanAccent,
+            accent = ReactCyan,
             onChange = { update { copy(heightCm = it) } }
         )
 
-        HorizontalDivider(color = BorderGlow.copy(alpha = 0.2f))
+        HorizontalDivider(color = ReactPanelLine)
 
         MetricSlider(
             label = "WEIGHT",
             unit = "kg",
             value = if (profile.weightKg > 0) profile.weightKg else 74f,
             range = 40f..160f,
-            accent = CyanAccent,
+            accent = ReactCyan,
             onChange = { update { copy(weightKg = it) } }
         )
     }
@@ -584,7 +584,7 @@ private fun MetricSlider(
                 fontSize = 11.sp,
                 letterSpacing = 2.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextMuted
+                color = ReactInkDim
             )
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
@@ -600,7 +600,7 @@ private fun MetricSlider(
                     unit,
                     fontFamily = jetBrainsMono,
                     fontSize = 12.sp,
-                    color = TextMuted,
+                    color = ReactInkDim,
                     modifier = Modifier.padding(bottom = 5.dp)
                 )
             }
@@ -617,7 +617,7 @@ private fun MetricSlider(
 }
 
 /* ============================================================
- *  STEP 4 — ACTIVITY LEVEL
+ * STEP 4 — ACTIVITY LEVEL
  * ============================================================ */
 @Composable
 private fun StepActivity(
@@ -634,7 +634,8 @@ private fun StepActivity(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp), // Added padding for scroll bleed
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         options.forEach { (key, title, desc) ->
@@ -642,7 +643,7 @@ private fun StepActivity(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .reactStyleCard(selected, PurpleLight)
+                    .reactStyleCard(selected, ReactPurple)
                     .clickable { update { copy(activityLevel = key) } }
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -651,23 +652,23 @@ private fun StepActivity(
                 Icon(
                     Icons.Filled.FitnessCenter,
                     null,
-                    tint = if (selected) PurpleLight else TextMuted,
+                    tint = if (selected) ReactPurple else ReactInkDim,
                     modifier = Modifier.size(22.dp)
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        title,
+                        title.uppercase(),
                         fontFamily = orbitron,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 1.5.sp,
-                        color = if (selected) PurpleLight else TextPrimary
+                        color = if (selected) ReactPurple else ReactInk
                     )
                     Text(
                         desc,
                         fontFamily = jetBrainsMono,
                         fontSize = 11.sp,
-                        color = TextSecondary.copy(alpha = 0.75f),
+                        color = ReactInkDim,
                         lineHeight = 15.sp
                     )
                 }
@@ -675,7 +676,7 @@ private fun StepActivity(
                     Icon(
                         Icons.Filled.CheckCircle,
                         null,
-                        tint = PurpleLight,
+                        tint = ReactPurple,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -685,7 +686,7 @@ private fun StepActivity(
 }
 
 /* ============================================================
- *  STEP 5 — OBJECTIVE (Cut / Maintain / Bulk)
+ * STEP 5 — OBJECTIVE (Cut / Maintain / Bulk)
  * ============================================================ */
 @Composable
 private fun StepObjective(
@@ -693,15 +694,16 @@ private fun StepObjective(
     update: (PhysiqueProfile.() -> PhysiqueProfile) -> Unit
 ) {
     val options = listOf(
-        ObjectiveOpt("lose_fat",      "CUT",      "Lose fat",     CyanAccent),
-        ObjectiveOpt("maintain", "MAINTAIN", "Recomp",       GoldAccent),
-        ObjectiveOpt("bulky_muscular",     "BULK",     "Gain muscle",  SuccessGreen)
+        ObjectiveOpt("lose_fat",      "CUT",      "Lose fat",     ReactCyan),
+        ObjectiveOpt("maintain", "MAINTAIN", "Recomp",       ReactGold),
+        ObjectiveOpt("bulky_muscular",     "BULK",     "Gain muscle",  ReactGreen)
     )
 
+    // Removed the verticalScroll modifier that was incorrectly placed on a Row
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState()),
+            .padding(bottom = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         options.forEach { opt ->
@@ -746,13 +748,13 @@ private fun ObjectiveCard(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.5.sp,
-                color = if (selected) opt.color else TextPrimary
+                color = if (selected) opt.color else ReactInk
             )
             Text(
                 opt.desc,
                 fontFamily = jetBrainsMono,
                 fontSize = 10.sp,
-                color = TextMuted,
+                color = ReactInkDim,
                 textAlign = TextAlign.Center
             )
         }
@@ -760,7 +762,7 @@ private fun ObjectiveCard(
 }
 
 /* ============================================================
- *  STEP 6 — SUMMARY (BMI + BMR + TDEE + Target)
+ * STEP 6 — SUMMARY (BMI + BMR + TDEE + Target)
  * ============================================================ */
 @Composable
 private fun StepSummary(profile: PhysiqueProfile) {
@@ -800,14 +802,15 @@ private fun StepSummary(profile: PhysiqueProfile) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp), // Added padding for scroll bleed
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // BMI panel
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .reactStyleCard(selected = true, glowColor = GoldAccent)
+                .reactStyleCard(selected = true, glowColor = ReactGold)
                 .padding(vertical = 20.dp)
         ) {
             Column(
@@ -819,7 +822,7 @@ private fun StepSummary(profile: PhysiqueProfile) {
                     fontFamily = jetBrainsMono,
                     fontSize = 10.sp,
                     letterSpacing = 2.sp,
-                    color = CyanAccent,
+                    color = ReactCyan,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(8.dp))
@@ -828,15 +831,15 @@ private fun StepSummary(profile: PhysiqueProfile) {
                     fontFamily = orbitron,
                     fontSize = 58.sp,
                     fontWeight = FontWeight.Black,
-                    color = GoldAccent,
-                    style = TextStyle(shadow = Shadow(GoldAccent.copy(alpha = 0.5f), blurRadius = 24f))
+                    color = ReactGold,
+                    style = TextStyle(shadow = Shadow(ReactGold.copy(alpha = 0.5f), blurRadius = 24f))
                 )
                 Spacer(Modifier.height(10.dp))
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
-                        .background(SuccessGreen.copy(alpha = 0.12f))
-                        .border(1.dp, SuccessGreen.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                        .background(ReactGreen.copy(alpha = 0.12f))
+                        .border(1.dp, ReactGreen.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
@@ -845,7 +848,7 @@ private fun StepSummary(profile: PhysiqueProfile) {
                         fontSize = 9.5.sp,
                         letterSpacing = 1.5.sp,
                         fontWeight = FontWeight.Black,
-                        color = SuccessGreen
+                        color = ReactGreen
                     )
                 }
             }
@@ -856,9 +859,9 @@ private fun StepSummary(profile: PhysiqueProfile) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            SummaryTile(label = "BMR",    value = bmr,    color = PurpleLight,   modifier = Modifier.weight(1f))
-            SummaryTile(label = "TDEE",   value = tdee,   color = CyanAccent,    modifier = Modifier.weight(1f))
-            SummaryTile(label = "TARGET", value = target, color = SuccessGreen,  modifier = Modifier.weight(1f))
+            SummaryTile(label = "BMR",    value = bmr,    color = ReactPurple,   modifier = Modifier.weight(1f))
+            SummaryTile(label = "TDEE",   value = tdee,   color = ReactCyan,    modifier = Modifier.weight(1f))
+            SummaryTile(label = "TARGET", value = target, color = ReactGreen,  modifier = Modifier.weight(1f))
         }
     }
 }
@@ -886,7 +889,7 @@ private fun SummaryTile(
                 fontFamily = jetBrainsMono,
                 fontSize = 9.sp,
                 letterSpacing = 1.5.sp,
-                color = TextMuted
+                color = ReactInkDim
             )
             Text(
                 anim.toString(),
@@ -901,14 +904,14 @@ private fun SummaryTile(
                 fontFamily = jetBrainsMono,
                 fontSize = 8.sp,
                 letterSpacing = 1.5.sp,
-                color = TextMuted.copy(alpha = 0.6f)
+                color = ReactInkDim.copy(alpha = 0.6f)
             )
         }
     }
 }
 
 /* ============================================================
- *  ASCEND SLIDER (custom cyber slider)
+ * ASCEND SLIDER (custom cyber slider)
  * ============================================================ */
 @Composable
 private fun AscendSlider(
@@ -926,7 +929,7 @@ private fun AscendSlider(
         colors = SliderDefaults.colors(
             thumbColor = accentColor,
             activeTrackColor = accentColor,
-            inactiveTrackColor = PanelMid,
+            inactiveTrackColor = ReactPanelLine,
             activeTickColor = Color.Transparent,
             inactiveTickColor = Color.Transparent
         ),
@@ -946,12 +949,12 @@ private fun SliderLegend(text: String) {
         fontFamily = jetBrainsMono,
         fontSize = 9.5.sp,
         letterSpacing = 1.sp,
-        color = TextMuted.copy(alpha = 0.6f)
+        color = ReactInkDim.copy(alpha = 0.6f)
     )
 }
 
 /* ============================================================
- *  BOTTOM BAR
+ * BOTTOM BAR
  * ============================================================ */
 @Composable
 private fun PhysiqueBottomBar(
@@ -973,7 +976,6 @@ private fun PhysiqueBottomBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(24.dp)
             .zIndex(100f)
             .padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -985,7 +987,7 @@ private fun PhysiqueBottomBar(
                     .width(96.dp)
                     .height(48.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, BorderGlow, RoundedCornerShape(10.dp))
+                    .border(1.dp, ReactPanelLine, RoundedCornerShape(10.dp))
                     .clickable { onBack() },
                 contentAlignment = Alignment.Center
             ) {
@@ -995,35 +997,36 @@ private fun PhysiqueBottomBar(
                     fontSize = 11.sp,
                     letterSpacing = 2.sp,
                     fontWeight = FontWeight.Black,
-                    color = TextSecondary
+                    color = ReactInkDim
                 )
             }
         }
 
+        // Ordered modifiers correctly: alpha before shadow
         Box(
             modifier = Modifier
                 .weight(1f)
                 .height(48.dp)
+                .alpha(if (proceedEnabled) 1f else 0.45f)
                 .shadow(
                     elev, RoundedCornerShape(10.dp),
-                    ambientColor = PurplePrimary, spotColor = CyanAccent
+                    ambientColor = ReactPurple, spotColor = ReactCyan
                 )
                 .clip(RoundedCornerShape(10.dp))
-                .background(Brush.horizontalGradient(listOf(PurplePrimary, CyanAccent)))
-                .alpha(if (proceedEnabled) 1f else 0.45f)
+                .background(Brush.horizontalGradient(listOf(ReactPurple, ReactCyan)))
                 .clickable(enabled = proceedEnabled && !isSaving) { onNext() },
             contentAlignment = Alignment.Center
         ) {
             if (isSaving) {
                 CircularProgressIndicator(
-                    Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp
+                    Modifier.size(20.dp), color = Color.Black, strokeWidth = 2.dp
                 )
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         if (isFinalStep) Icons.Filled.Check else Icons.AutoMirrored.Filled.ArrowForward,
                         null,
-                        tint = Color.White,
+                        tint = Color.Black,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(8.dp))
@@ -1033,7 +1036,7 @@ private fun PhysiqueBottomBar(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 2.sp,
-                        color = Color.White
+                        color = Color.Black
                     )
                 }
             }
@@ -1042,13 +1045,48 @@ private fun PhysiqueBottomBar(
 }
 
 /* ============================================================
- *  HELPERS
+ * HELPERS
  * ============================================================ */
 
+fun Modifier.reactStyleCard(selected: Boolean, glowColor: Color, cornerRadius: Dp = 12.dp): Modifier {
+    return this
+        .alpha(if (selected) 1f else 0.7f)
+        .then(
+            if (selected) Modifier.shadow(
+                elevation = 14.dp,
+                shape = RoundedCornerShape(cornerRadius),
+                ambientColor = glowColor,
+                spotColor = glowColor
+            ) else Modifier
+        )
+        .clip(RoundedCornerShape(cornerRadius))
+        .background(ReactPanel)
+        .border(
+            width = if (selected) 1.5.dp else 1.dp,
+            color = if (selected) glowColor else ReactPanelLine,
+            shape = RoundedCornerShape(cornerRadius)
+        )
+}
 
+fun Modifier.scanlineHorizontal(): Modifier = drawWithCache {
+    val spacing = 4f
+    onDrawWithContent {
+        drawContent()
+        var y = 0f
+        while (y < size.height) {
+            drawLine(
+                Color.Black.copy(alpha = 0.18f),
+                start = Offset(0f, y + 1.5f),
+                end = Offset(size.width, y + 1.5f),
+                strokeWidth = 2f
+            )
+            y += spacing
+        }
+    }
+}
 
 /* ============================================================
- *  PREVIEWS
+ * PREVIEWS
  * ============================================================ */
 @Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "1 - Biometric")
 @Composable
