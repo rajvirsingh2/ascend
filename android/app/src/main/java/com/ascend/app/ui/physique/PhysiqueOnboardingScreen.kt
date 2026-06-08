@@ -68,6 +68,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -972,6 +973,7 @@ private fun PhysiqueBottomBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(24.dp)
             .zIndex(100f)
             .padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),

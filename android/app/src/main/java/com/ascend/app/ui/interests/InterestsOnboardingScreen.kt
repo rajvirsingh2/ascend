@@ -935,6 +935,7 @@ fun OnboardingBottomBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .shadow(24.dp)
             .zIndex(100f)
             .background(Color(0xFF07070B).copy(alpha = 0.92f))
             .padding(horizontal = 16.dp, vertical = 12.dp),
