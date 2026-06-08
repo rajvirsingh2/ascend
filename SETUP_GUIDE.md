@@ -228,8 +228,11 @@ APP_ENV=development
 APP_PORT=8080
 ALLOWED_ORIGINS=http://localhost:3000
 
-# ── Services ─────────────────────────────────────────────────────────
-RAG_SERVICE_URL=http://rag-service:8001
+# ── ML Model (HuggingFace Spaces) ──────────────────────────────────
+ML_SERVICE_URL=https://your-huggingface-space-url.hf.space
+HF_TOKEN=
+
+# ── Worker ───────────────────────────────────────────────────────────
 WORKER_TYPE=xp
 
 # ── 3rd Party Integrations (Optional) ────────────────────────────────
