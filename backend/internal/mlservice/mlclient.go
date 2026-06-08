@@ -44,8 +44,6 @@ type UserProfile struct {
 	RequestedWeekly int        `json:"requested_weekly"`
 }
 
-
-
 func cleanJSONString(s string) string {
 	s = strings.TrimSpace(s)
 	if strings.HasPrefix(s, "```") {
