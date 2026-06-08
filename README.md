@@ -107,7 +107,10 @@ A core technical pillar of Ascend is its independent AI infrastructure. Rather t
 ```
 Android app (Kotlin/Compose)
     │
-    │  REST + WebSocket (JWT auth)
+    │  REST + WebSocket (HTTPS/WSS)
+    ▼
+Nginx Reverse Proxy (port 80/443)
+    │
     ▼
 Go API Gateway (port 8080)
     │  validates, persists, publishes
@@ -310,8 +313,10 @@ ascend/
 │       └── workers/           background sync workers
 │
 ├── docs/images/               screenshots for README
-├── scripts/                   seed.sql, dev-tunnel.sh, export_preferences.py
-├── docker-compose.yml         full local stack
+├── nginx/                     reverse proxy configs (nginx.conf, ascend-proxy.inc)
+├── scripts/                   deploy.sh, dev-tunnel.sh, seed.sql
+├── docker-compose.yml         local stack
+├── docker-compose.prod.yml    production stack
 ├── Makefile                   dev task runner
 └── .env.example               environment template
 ```
