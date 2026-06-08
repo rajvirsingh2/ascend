@@ -79,73 +79,35 @@ class AuthViewModel @Inject constructor(
 
         viewModelScope.launch {
             _loginState.update { it.copy(isLoading = true) }
-            com.google.firebase.auth.FirebaseAuth.getInstance()
-                .signInWithEmailAndPassword(state.email, state.password)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        task.result?.user?.getIdToken(true)?.addOnSuccessListener { tokenResult ->
-                            tokenResult.token?.let { firebaseLogin(it) }
-                        }?.addOnFailureListener { e ->
-                            viewModelScope.launch {
-                                _effects.send(AuthEffect.ShowError("Failed to get Firebase token: ${e.message}"))
-                                _loginState.update { it.copy(isLoading = false) }
-                            }
-                        }
-                    } else {
-                        viewModelScope.launch {
-                            _effects.send(AuthEffect.ShowError(task.exception?.message ?: "Login failed"))
-                            _loginState.update { it.copy(isLoading = false) }
-                        }
-                    }
-                }
-        }
-    }
-
-    fun signInWithCredential(credential: com.google.firebase.auth.AuthCredential) {
-        viewModelScope.launch {
-            _loginState.update { it.copy(isLoading = true) }
-            com.google.firebase.auth.FirebaseAuth.getInstance().signInWithCredential(credential)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        task.result?.user?.getIdToken(true)?.addOnSuccessListener { tokenResult ->
-                            tokenResult.token?.let { firebaseLogin(it) }
-                        }?.addOnFailureListener { e ->
-                            viewModelScope.launch {
-                                _effects.send(AuthEffect.ShowError("Failed to get Firebase token: ${e.message}"))
-                                _loginState.update { it.copy(isLoading = false) }
-                            }
-                        }
-                    } else {
-                        viewModelScope.launch {
-                            _effects.send(AuthEffect.ShowError(task.exception?.message ?: "Social sign-in failed"))
-                            _loginState.update { it.copy(isLoading = false) }
-                        }
-                    }
-                }
-        }
-    }
-
-    fun firebaseLogin(firebaseToken: String) {
-        viewModelScope.launch {
-            _loginState.update { it.copy(isLoading = true) }
             try {
-                val response = authApi.firebaseLogin(
-                    AuthApiService.FirebaseLoginRequest(token = firebaseToken)
-                )
+                val response = authApi.login(LoginRequest(state.email, state.password))
                 if (response.data != null) {
                     tokenDataStore.saveToken(response.data.accessToken)
+                    // Register FCM token for push notifications
+                    FirebaseMessaging.getInstance().token.addOnSuccessListener { fcmToken ->
+                        viewModelScope.launch {
+                            try { userApi.registerFCMToken(FCMTokenRequest(fcmToken)) }
+                            catch (e: Exception) { /* non-fatal */ }
+                        }
+                    }
                     _effects.send(AuthEffect.NavigateToSplash)
                 } else {
-                    _effects.send(AuthEffect.ShowError(response.error ?: "Firebase login failed"))
-                }
-                FirebaseMessaging.getInstance().token.addOnSuccessListener { fcmToken ->
-                    viewModelScope.launch {
-                        try { userApi.registerFCMToken(FCMTokenRequest(fcmToken)) }
-                        catch (e: Exception) { /* non-fatal */ }
+                    val error = response.error ?: "Login failed"
+                    if (error.contains("not verified", ignoreCase = true)) {
+                        _effects.send(AuthEffect.NavigateToOtp(state.email))
+                    } else {
+                        _effects.send(AuthEffect.ShowError(error))
                     }
                 }
+            } catch (e: retrofit2.HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                if (e.code() == 403 && errorBody?.contains("not verified", ignoreCase = true) == true) {
+                    _effects.send(AuthEffect.NavigateToOtp(state.email))
+                } else {
+                    _effects.send(AuthEffect.ShowError("Login failed: ${e.message()}"))
+                }
             } catch (e: Exception) {
-                _effects.send(AuthEffect.ShowError(e.message.toString()))
+                _effects.send(AuthEffect.ShowError(e.message ?: "Login failed"))
             } finally {
                 _loginState.update { it.copy(isLoading = false) }
             }
@@ -165,23 +127,20 @@ class AuthViewModel @Inject constructor(
 
         viewModelScope.launch {
             _registerState.update { it.copy(isLoading = true) }
-            com.google.firebase.auth.FirebaseAuth.getInstance()
-                .createUserWithEmailAndPassword(state.email, state.password)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        task.result?.user?.sendEmailVerification()?.addOnCompleteListener {
-                            viewModelScope.launch {
-                                _registerState.update { it.copy(isLoading = false) }
-                                _effects.send(AuthEffect.ShowError("Registration successful! Please check your email to verify your account."))
-                                _effects.send(AuthEffect.NavigateToLogin)
-                            }
-                        }
-                    } else {
-                        viewModelScope.launch {
-                            _registerState.update { it.copy(error = task.exception?.message ?: "Registration failed", isLoading = false) }
-                        }
-                    }
+            try {
+                val response = authApi.register(
+                    RegisterRequest(state.email, state.password, state.username)
+                )
+                if (response.data != null) {
+                    _effects.send(AuthEffect.NavigateToOtp(state.email))
+                } else {
+                    _registerState.update { it.copy(error = response.error ?: "Registration failed") }
                 }
+            } catch (e: Exception) {
+                _registerState.update { it.copy(error = e.message ?: "Registration failed") }
+            } finally {
+                _registerState.update { it.copy(isLoading = false) }
+            }
         }
     }
 
@@ -222,6 +181,5 @@ class AuthViewModel @Inject constructor(
             } catch (e: Exception) { onError("Reset failed — check your code") }
         }
     }
-
 
 }

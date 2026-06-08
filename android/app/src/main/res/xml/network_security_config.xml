@@ -6,7 +6,7 @@
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
         <domain includeSubdomains="true">10.125.9.14</domain>
-        <domain includeSubdomains="true">16.170.218.68</domain>
+        <domain includeSubdomains="true">13.48.43.172</domain>
     </domain-config>
 
     <!-- production: HTTPS only, pin your server certificate -->

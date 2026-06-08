@@ -26,5 +26,6 @@ sealed interface AuthIntent {
 
 sealed interface AuthEffect {
     data object NavigateToSplash : AuthEffect
+    data class NavigateToOtp(val email: String) : AuthEffect
     data class ShowError(val message: String) : AuthEffect
 }

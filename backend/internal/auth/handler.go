@@ -13,8 +13,6 @@ import (
 	"ascend-backend/pkg/response"
 	"ascend-backend/pkg/validator"
 
-	firebaseauth "firebase.google.com/go/v4/auth"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -28,10 +26,9 @@ type Handler struct {
 	refreshExpiryDays int
 	emailSender       *email.Sender
 	otpService        *otp.Service
-	firebaseAuth      *firebaseauth.Client
 }
 
-func NewHandler(db *pgxpool.Pool, rdb *redis.Client, jwtSecret string, jwtExpiry, refreshExpiry int, emailSender *email.Sender, firebaseAuth *firebaseauth.Client) *Handler {
+func NewHandler(db *pgxpool.Pool, rdb *redis.Client, jwtSecret string, jwtExpiry, refreshExpiry int, emailSender *email.Sender) *Handler {
 	return &Handler{
 		db:                db,
 		rdb:               rdb,
@@ -40,7 +37,6 @@ func NewHandler(db *pgxpool.Pool, rdb *redis.Client, jwtSecret string, jwtExpiry
 		refreshExpiryDays: refreshExpiry,
 		emailSender:       emailSender,
 		otpService:        otp.NewService(rdb),
-		firebaseAuth:      firebaseAuth,
 	}
 }
 
@@ -184,97 +180,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// --- Firebase Login ---
-
-type firebaseLoginRequest struct {
-	Token string `json:"token"`
-}
-
-func (h *Handler) FirebaseLogin(w http.ResponseWriter, r *http.Request) {
-	if h.firebaseAuth == nil {
-		response.Error(w, http.StatusServiceUnavailable, "Firebase Auth is not configured")
-		return
-	}
-
-	var req firebaseLoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-
-	token, err := h.firebaseAuth.VerifyIDToken(r.Context(), req.Token)
-	if err != nil {
-		response.Error(w, http.StatusUnauthorized, "invalid firebase token")
-		return
-	}
-
-	email, ok := token.Claims["email"].(string)
-	if !ok || email == "" {
-		response.Error(w, http.StatusBadRequest, "token does not contain email")
-		return
-	}
-
-	emailVerified, _ := token.Claims["email_verified"].(bool)
-	if !emailVerified {
-		response.Error(w, http.StatusForbidden, "Please verify your email address before logging in")
-		return
-	}
-
-	var userID string
-	err = h.db.QueryRow(r.Context(),
-		`SELECT id FROM users WHERE email = $1 AND is_active = true AND deleted_at IS NULL`,
-		email,
-	).Scan(&userID)
-
-	if err != nil {
-		// User does not exist, create them
-		userID = uuid.NewString()
-		username := email // default username, app can prompt to change
-		// generate a random un-usable password hash for firebase users
-		hash, _ := HashPassword(uuid.NewString())
-
-		_, err = h.db.Exec(r.Context(),
-			`INSERT INTO users (id, email, password_hash, username, email_verified, email_verified_at)
-			 VALUES ($1, $2, $3, $4, true, NOW())`,
-			userID, email, hash, username,
-		)
-		if err != nil {
-			response.Error(w, http.StatusInternalServerError, "failed to create user")
-			return
-		}
-	} else {
-		// Ensure email is marked verified since Firebase verified it
-		_, _ = h.db.Exec(r.Context(), `UPDATE users SET email_verified = true, email_verified_at = NOW() WHERE id = $1 AND email_verified = false`, userID)
-	}
-
-	accessToken, err := GenerateAccessToken(userID, h.jwtSecret, h.jwtExpiryMinutes)
-	if err != nil {
-		response.Error(w, http.StatusInternalServerError, "failed to generate token")
-		return
-	}
-
-	refreshToken := GenerateRefreshToken()
-	expiry := time.Duration(h.refreshExpiryDays) * 24 * time.Hour
-	if err := StoreRefreshToken(r.Context(), h.rdb, refreshToken, userID, expiry); err != nil {
-		response.Error(w, http.StatusInternalServerError, "failed to create session")
-		return
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshToken,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		Path:     "/api/v1/auth",
-		MaxAge:   h.refreshExpiryDays * 24 * 60 * 60,
-	})
-
-	response.JSON(w, http.StatusOK, map[string]string{
-		"access_token": accessToken,
-		"token_type":   "Bearer",
-	})
-}
 
 // --- Refresh ---
 

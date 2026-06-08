@@ -21,11 +21,7 @@ interface AuthApiService {
     @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): ApiEnvelope<TokenResponse>
 
-    @JsonClass(generateAdapter = true)
-    data class FirebaseLoginRequest(val token: String)
 
-    @POST("auth/firebase-login")
-    suspend fun firebaseLogin(@Body request: FirebaseLoginRequest): ApiEnvelope<TokenResponse>
 
     @POST("auth/logout")
     suspend fun logout(): Unit

@@ -18,10 +18,6 @@ import (
 	"ascend-backend/internal/workers"
 	"ascend-backend/pkg/config"
 	logger "ascend-backend/pkg/logger"
-
-	firebase "firebase.google.com/go/v4"
-	firebaseauth "firebase.google.com/go/v4/auth"
-	"google.golang.org/api/option"
 )
 
 func main() {
@@ -54,25 +50,7 @@ func main() {
 		log.Fatalf("running database migrations: %v", err)
 	}
 
-	var firebaseAuthClient *firebaseauth.Client
-	if cfg.FCMCredentialsJSON != "" {
-		opt := option.WithCredentialsFile(cfg.FCMCredentialsJSON)
-		app, err := firebase.NewApp(ctx, nil, opt)
-		if err != nil {
-			log.Printf("error initializing firebase app: %v", err)
-		} else {
-			firebaseAuthClient, err = app.Auth(ctx)
-			if err != nil {
-				log.Printf("error getting Auth client: %v", err)
-			} else {
-				slog.Info("Firebase Auth initialized")
-			}
-		}
-	} else {
-		slog.Warn("FCM_CREDENTIALS_JSON not set — Firebase Auth disabled")
-	}
-
-	srv := server.New(cfg, db, rdb, firebaseAuthClient)
+	srv := server.New(cfg, db, rdb)
 
 	fcmNotifier, err := notifications.NewFCMNotifier(ctx, cfg, db)
 	if err != nil {

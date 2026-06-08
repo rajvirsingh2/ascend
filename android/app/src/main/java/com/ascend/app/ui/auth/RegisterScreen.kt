@@ -46,7 +46,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -75,6 +74,9 @@ fun RegisterScreen(
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
+                is AuthEffect.NavigateToOtp -> {
+                    navController.navigate("otp/${effect.email}")
+                }
                 is AuthEffect.NavigateToSplash -> {
                     navController.navigate("otp/${state.email}")
                 }
@@ -94,8 +96,6 @@ fun RegisterScreen(
         onEmailChanged = { viewModel.onRegisterIntent(AuthIntent.EmailChanged(it)) },
         onPasswordChanged = { viewModel.onRegisterIntent(AuthIntent.PasswordChanged(it)) },
         onSubmitRegister = { viewModel.onRegisterIntent(AuthIntent.SubmitRegister) },
-        onSocialSignIn = { credential -> viewModel.signInWithCredential(credential) },
-        onSocialError = { error -> /* Let snackbar handle it if we want */ },
         onNavigateToLogin = onNavigateToLogin
     )
 }
@@ -112,8 +112,6 @@ fun RegisterScreenContent(
     onEmailChanged: (String) -> Unit,
     onPasswordChanged: (String) -> Unit,
     onSubmitRegister: () -> Unit,
-    onSocialSignIn: (com.google.firebase.auth.AuthCredential) -> Unit,
-    onSocialError: (String) -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     // Halo throb behind logo
@@ -128,14 +126,6 @@ fun RegisterScreenContent(
         0f to Color.White,
         0.55f to Color(0xFFC9B8FF),
         1f to CyanAccent
-    )
-
-    val googleSignInLauncher = rememberGoogleSignInLauncher(
-        onSuccess = { token ->
-            val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(token, null)
-            onSocialSignIn(credential)
-        },
-        onError = onSocialError
     )
 
     // Lighter purple glow for panel (web: glow="var(--purple-2)")
@@ -342,30 +332,6 @@ fun RegisterScreenContent(
                     modifier = Modifier.clickable { onNavigateToLogin() }
                 )
             }
-
-            Spacer(Modifier.height(16.dp))
-
-            // ---------- SOCIAL LOGINS ----------
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Button(
-                    onClick = googleSignInLauncher,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = com.ascend.app.R.drawable.ic_google),
-                        contentDescription = "Google Logo",
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.Unspecified
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text("CONTINUE WITH GOOGLE", color = Color.Black, fontFamily = jetBrainsMono, fontWeight = FontWeight.Bold)
-                }
-            }
         }
     }
 }
@@ -385,9 +351,7 @@ fun RegisterScreenPreview_Default() {
             onEmailChanged = {},
             onPasswordChanged = {},
             onSubmitRegister = {},
-            onNavigateToLogin = {},
-            onSocialSignIn = {},
-            onSocialError = {}
+            onNavigateToLogin = {}
         )
     }
 }
@@ -407,9 +371,7 @@ fun RegisterScreenPreview_Active() {
             onEmailChanged = {},
             onPasswordChanged = {},
             onSubmitRegister = {},
-            onNavigateToLogin = {},
-            onSocialSignIn = {},
-            onSocialError = {}
+            onNavigateToLogin = {}
         )
     }
 }
@@ -429,9 +391,7 @@ fun RegisterScreenPreview_Loading() {
             onEmailChanged = {},
             onPasswordChanged = {},
             onSubmitRegister = {},
-            onNavigateToLogin = {},
-            onSocialSignIn = {},
-            onSocialError = {}
+            onNavigateToLogin = {}
         )
     }
 }
@@ -451,9 +411,7 @@ fun RegisterScreenPreview_Error() {
             onEmailChanged = {},
             onPasswordChanged = {},
             onSubmitRegister = {},
-            onNavigateToLogin = {},
-            onSocialSignIn = {},
-            onSocialError = {}
+            onNavigateToLogin = {}
         )
     }
 }

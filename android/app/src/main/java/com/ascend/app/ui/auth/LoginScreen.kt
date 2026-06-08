@@ -49,8 +49,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -95,6 +93,7 @@ fun LoginScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is AuthEffect.NavigateToSplash -> onNavigateToDashboard()
+                is AuthEffect.NavigateToOtp -> navController.navigate("otp/${effect.email}")
                 is AuthEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
         }
@@ -110,8 +109,6 @@ fun LoginScreen(
         onEmailChanged = { viewModel.onLoginIntent(AuthIntent.EmailChanged(it)) },
         onPasswordChanged = { viewModel.onLoginIntent(AuthIntent.PasswordChanged(it)) },
         onSubmitLogin = { viewModel.onLoginIntent(AuthIntent.SubmitLogin) },
-        onSocialSignIn = { credential -> viewModel.signInWithCredential(credential) },
-        onSocialError = { error -> /* Let snackbar handle it if we want, or do nothing */ },
         onNavigateToRegister = onNavigateToRegister,
         onNavigateToForgotPassword = { navController.navigate(Routes.FORGOT_PASSWORD) }
     )
@@ -128,8 +125,6 @@ fun LoginScreenContent(
     onEmailChanged: (String) -> Unit,
     onPasswordChanged: (String) -> Unit,
     onSubmitLogin: () -> Unit,
-    onSocialSignIn: (com.google.firebase.auth.AuthCredential) -> Unit,
-    onSocialError: (String) -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit
 ) {
@@ -145,14 +140,6 @@ fun LoginScreenContent(
         initialValue = 0.30f, targetValue = 0.65f,
         animationSpec = infiniteRepeatable(tween(1800, easing = EaseInOutSine), RepeatMode.Reverse),
         label = "halo"
-    )
-
-    val googleSignInLauncher = rememberGoogleSignInLauncher(
-        onSuccess = { token ->
-            val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(token, null)
-            onSocialSignIn(credential)
-        },
-        onError = onSocialError
     )
 
     val titleBrush = Brush.verticalGradient(
@@ -355,30 +342,6 @@ fun LoginScreenContent(
                     modifier = Modifier.clickable { onNavigateToRegister() }
                 )
             }
-
-            Spacer(Modifier.height(16.dp))
-
-            // ---------- SOCIAL LOGINS ----------
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Button(
-                    onClick = googleSignInLauncher,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = com.ascend.app.R.drawable.ic_google),
-                        contentDescription = "Google Logo",
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.Unspecified
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text("CONTINUE WITH GOOGLE", color = Color.Black, fontFamily = jetBrainsMono, fontWeight = FontWeight.Bold)
-                }
-            }
         }
     }
 }
@@ -458,9 +421,7 @@ fun LoginScreenPreview_Default() {
             onPasswordChanged = {},
             onSubmitLogin = {},
             onNavigateToRegister = {},
-            onNavigateToForgotPassword = {},
-            onSocialSignIn = {},
-            onSocialError = {}
+            onNavigateToForgotPassword = {}
         )
     }
 }
@@ -480,9 +441,7 @@ fun LoginScreenPreview_Active() {
             onPasswordChanged = {},
             onSubmitLogin = {},
             onNavigateToRegister = {},
-            onNavigateToForgotPassword = {},
-            onSocialSignIn = {},
-            onSocialError = {}
+            onNavigateToForgotPassword = {}
         )
     }
 }
@@ -502,9 +461,7 @@ fun LoginScreenPreview_Loading() {
             onPasswordChanged = {},
             onSubmitLogin = {},
             onNavigateToRegister = {},
-            onNavigateToForgotPassword = {},
-            onSocialSignIn = {},
-            onSocialError = {}
+            onNavigateToForgotPassword = {}
         )
     }
 }
@@ -524,9 +481,7 @@ fun LoginScreenPreview_Error() {
             onPasswordChanged = {},
             onSubmitLogin = {},
             onNavigateToRegister = {},
-            onNavigateToForgotPassword = {},
-            onSocialSignIn = {},
-            onSocialError = {}
+            onNavigateToForgotPassword = {}
         )
     }
 }

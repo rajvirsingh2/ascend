@@ -1,6 +1,4 @@
 <resources>
     <string name="app_name_capital">ASCEND</string>
     <string name="app_name">Ascend</string>
-    <!-- TODO: Replace with your actual Firebase Web Client ID from Google Cloud Console -->
-    <string name="default_web_client_id">1092249099942-d5ov00e1sh0gsub3hl525qsms3j1947r.apps.googleusercontent.com</string>
 </resources>
