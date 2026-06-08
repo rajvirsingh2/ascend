@@ -180,7 +180,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-
 // --- Refresh ---
 
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
