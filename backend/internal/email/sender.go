@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"net/smtp"
+	"strings"
 	"time"
 
 	"ascend-backend/pkg/config"
@@ -88,11 +89,15 @@ func (s *Sender) send(ctx context.Context, toEmail, subject, html string) error 
 func (s *Sender) sendSMTP(toEmail, subject, html string) error {
 	auth := smtp.PlainAuth("", s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPHost)
 
+	// Sanitize inputs to prevent CRLF email header injection
+	safeTo := strings.ReplaceAll(strings.ReplaceAll(toEmail, "\r", ""), "\n", "")
+	safeSubject := strings.ReplaceAll(strings.ReplaceAll(subject, "\r", ""), "\n", "")
+
 	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s",
-		s.cfg.EmailFrom, toEmail, subject, html)
+		s.cfg.EmailFrom, safeTo, safeSubject, html)
 
 	addr := fmt.Sprintf("%s:%s", s.cfg.SMTPHost, s.cfg.SMTPPort)
-	err := smtp.SendMail(addr, auth, s.cfg.SMTPUser, []string{toEmail}, []byte(msg))
+	err := smtp.SendMail(addr, auth, s.cfg.SMTPUser, []string{safeTo}, []byte(msg))
 	if err != nil {
 		return fmt.Errorf("smtp send: %w", err)
 	}
