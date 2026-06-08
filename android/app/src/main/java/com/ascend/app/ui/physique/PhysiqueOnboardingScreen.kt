@@ -972,6 +972,7 @@ private fun PhysiqueBottomBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .zIndex(100f)
             .padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
