@@ -66,8 +66,8 @@ location = /api/v1/quests/generate {
     proxy_set_header Connection "";
 
     proxy_connect_timeout 10s;
-    proxy_send_timeout    180s;
-    proxy_read_timeout    180s;
+    proxy_send_timeout    600s;
+    proxy_read_timeout    600s;
 }
 
 # ── All other API endpoints ──────────────────────────────
