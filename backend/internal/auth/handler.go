@@ -214,6 +214,12 @@ func (h *Handler) FirebaseLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	emailVerified, _ := token.Claims["email_verified"].(bool)
+	if !emailVerified {
+		response.Error(w, http.StatusForbidden, "Please verify your email address before logging in")
+		return
+	}
+
 	var userID string
 	err = h.db.QueryRow(r.Context(),
 		`SELECT id FROM users WHERE email = $1 AND is_active = true AND deleted_at IS NULL`,

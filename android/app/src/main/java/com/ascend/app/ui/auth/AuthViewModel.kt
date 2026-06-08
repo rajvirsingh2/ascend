@@ -169,12 +169,11 @@ class AuthViewModel @Inject constructor(
                 .createUserWithEmailAndPassword(state.email, state.password)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        // Registration success. Now get token and send to backend
-                        task.result?.user?.getIdToken(true)?.addOnSuccessListener { tokenResult ->
-                            tokenResult.token?.let { firebaseLogin(it) }
-                        }?.addOnFailureListener { e ->
+                        task.result?.user?.sendEmailVerification()?.addOnCompleteListener {
                             viewModelScope.launch {
-                                _registerState.update { it.copy(error = "Failed to get Firebase token: ${e.message}", isLoading = false) }
+                                _registerState.update { it.copy(isLoading = false) }
+                                _effects.send(AuthEffect.ShowError("Registration successful! Please check your email to verify your account."))
+                                _effects.send(AuthEffect.NavigateToLogin)
                             }
                         }
                     } else {
