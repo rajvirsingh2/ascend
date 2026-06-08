@@ -1,14 +1,16 @@
 # ⚔️ ASCEND — Your Life, Gamified
 
-> *"What if the protagonist of the story wasn't on a screen, but in the mirror?"*
+> **An Offline-First Android RPG powered by a Custom Fine-Tuned LLM and a Go Microservices Backend.**
 
-**Ascend is not a to-do list.** It is a full-blown, high-stakes RPG where **YOU** are the main character. Inspired by the legendary progression fantasy of *Solo Leveling*, Ascend obliterates procrastination by turning your real-world habits, workouts, and ambitions into epic quests.
+**Ascend** is a production-ready, gamified personal development application that turns real-world habits and goals into a high-stakes RPG. 
 
-We didn't just build an app; we built a **custom-trained, fine-tuned AI "System"** that constantly analyzes your real-life goals, tracks your stats, and generates entirely unique, highly personalized challenges every single day. 
+Built to showcase end-to-end full-stack engineering, Ascend features a resilient **Offline-First Android App** (Kotlin, Jetpack Compose, Room), a highly concurrent **Go API Gateway**, and a **Custom Fine-Tuned AI Engine** (Phi-3 Mini + LoRA) that dynamically generates personalized RPG quests based on a user's goals and biometric data.
 
-Complete your daily quests to earn XP, level up your Hunter Rank, and unlock permanent stat boosts. But beware—**skip too many quests, and you take real HP damage**. Let your HP drop to zero, and your character dies, suffering brutal permanent penalties to your level and core stats.
-
-**This is your Awakening.** Are you ready to Ascend?
+### 🚀 Technical Highlights at a Glance
+- **📱 Android Client**: 100% Kotlin, Jetpack Compose, MVI Architecture, and a local-first Room database for instantaneous UI interactions with asynchronous background sync.
+- **⚙️ Backend Services**: High-performance Go 1.23 REST API, utilizing Redis Streams for asynchronous event-driven background processing (XP calculation, Push Notifications).
+- **🧠 Custom AI Engine**: A fully independent, serverless AI microservice running a Quantized GGUF model fine-tuned from scratch on a custom synthetic dataset.
+- **☁️ Infrastructure**: Dockerized microservices deployed to AWS EC2 behind an Nginx reverse proxy, backed by PostgreSQL (pgvector) and Redis.
 
 ---
 
