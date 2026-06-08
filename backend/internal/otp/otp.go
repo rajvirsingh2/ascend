@@ -105,10 +105,10 @@ func (s *Service) TTLRemaining(ctx context.Context, email string) int {
 }
 
 func generateCode() (string, error) {
-	max := big.NewInt(1_000_000)
+	max := big.NewInt(100_000)
 	n, err := rand.Int(rand.Reader, max)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%06s", strconv.Itoa(int(n.Int64()))), nil
+	return fmt.Sprintf("%05s", strconv.Itoa(int(n.Int64()))), nil
 }

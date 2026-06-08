@@ -8,30 +8,29 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/smtp"
 	"time"
+
+	"ascend-backend/pkg/config"
 )
 
 // Sender sends transactional emails.
-// In dev (no API key) it logs the email to stdout instead of sending.
+// It uses SMTP if configured, falls back to Resend if configured,
+// and logs to stdout if neither is available.
 type Sender struct {
-	apiKey   string
-	fromAddr string
-	devMode  bool
+	cfg     *config.Config
+	devMode bool
 }
 
 // NewSender creates a Sender.
-//
-//	apiKey   — Resend API key (re_xxx). Get free at resend.com — no credit card.
-//	fromAddr — verified sender, e.g. "Ascend <noreply@yourdomain.com>"
-//	           In dev use "Ascend <onboarding@resend.dev>" (Resend's test address).
-func NewSender(apiKey, fromAddr string) *Sender {
-	if apiKey == "" {
-		log.Println("[email] WARNING: no RESEND_API_KEY set — emails will be logged to console only")
+func NewSender(cfg *config.Config) *Sender {
+	devMode := cfg.ResendAPIKey == "" && cfg.SMTPHost == ""
+	if devMode {
+		log.Println("[email] WARNING: no RESEND_API_KEY or SMTP_HOST set — emails will be logged to console only")
 	}
 	return &Sender{
-		apiKey:   apiKey,
-		fromAddr: fromAddr,
-		devMode:  apiKey == "",
+		cfg:     cfg,
+		devMode: devMode,
 	}
 }
 
@@ -73,8 +72,38 @@ func (s *Sender) send(ctx context.Context, toEmail, subject, html string) error 
 		return nil
 	}
 
+	// Try SMTP first if configured
+	if s.cfg.SMTPHost != "" && s.cfg.SMTPUser != "" && s.cfg.SMTPPassword != "" {
+		return s.sendSMTP(toEmail, subject, html)
+	}
+
+	// Fallback to Resend
+	if s.cfg.ResendAPIKey != "" {
+		return s.sendResend(ctx, toEmail, subject, html)
+	}
+
+	return fmt.Errorf("no email provider configured")
+}
+
+func (s *Sender) sendSMTP(toEmail, subject, html string) error {
+	auth := smtp.PlainAuth("", s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPHost)
+	
+	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s", 
+		s.cfg.EmailFrom, toEmail, subject, html)
+
+	addr := fmt.Sprintf("%s:%s", s.cfg.SMTPHost, s.cfg.SMTPPort)
+	err := smtp.SendMail(addr, auth, s.cfg.SMTPUser, []string{toEmail}, []byte(msg))
+	if err != nil {
+		return fmt.Errorf("smtp send: %w", err)
+	}
+
+	log.Printf("[email] sent %q to %s via SMTP", subject, toEmail)
+	return nil
+}
+
+func (s *Sender) sendResend(ctx context.Context, toEmail, subject, html string) error {
 	payload := resendPayload{
-		From:    s.fromAddr,
+		From:    s.cfg.EmailFrom,
 		To:      []string{toEmail},
 		Subject: subject,
 		HTML:    html,
@@ -88,7 +117,7 @@ func (s *Sender) send(ctx context.Context, toEmail, subject, html string) error 
 	if err != nil {
 		return fmt.Errorf("build resend request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+s.apiKey)
+	req.Header.Set("Authorization", "Bearer "+s.cfg.ResendAPIKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 10 * time.Second}
@@ -103,7 +132,7 @@ func (s *Sender) send(ctx context.Context, toEmail, subject, html string) error 
 		return fmt.Errorf("resend API error %d: %s", resp.StatusCode, string(respBody))
 	}
 
-	log.Printf("[email] sent %q to %s", subject, toEmail)
+	log.Printf("[email] sent %q to %s via Resend", subject, toEmail)
 	return nil
 }
 

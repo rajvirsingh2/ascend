@@ -79,7 +79,7 @@ func (s *Server) Routes() http.Handler {
 	r.Route("/api/v1", func(r chi.Router) {
 
 		// auth — rate limited, no JWT required
-		emailSender := email.NewSender(s.cfg.ResendAPIKey, s.cfg.EmailFrom)
+		emailSender := email.NewSender(s.cfg)
 		authHandler := auth.NewHandler(
 			s.db, s.rdb,
 			s.cfg.JWTSecret,

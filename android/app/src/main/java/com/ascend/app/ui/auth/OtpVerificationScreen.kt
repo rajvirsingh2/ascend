@@ -86,7 +86,7 @@ fun OtpVerificationScreen(
         isVerifying = isVerifying,
         error = error,
         onVerifyClick = { otpCode ->
-            if (otpCode.length == 6) {
+            if (otpCode.length == 5) {
                 isVerifying = true
                 viewModel.verifyOtp(email, otpCode,
                     onSuccess = { onVerified() },
@@ -113,9 +113,9 @@ fun OtpVerificationScreenContent(
     onErrorCleared: () -> Unit,
     onBack: () -> Unit
 ) {
-    // 6 separate digit slots (web: array of 6 inputs)
-    val digits = remember { mutableStateListOf("", "", "", "", "", "") }
-    val focusRequesters = remember { List(6) { FocusRequester() } }
+    // 5 separate digit slots (web: array of 5 inputs)
+    val digits = remember { mutableStateListOf("", "", "", "", "") }
+    val focusRequesters = remember { List(5) { FocusRequester() } }
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Resend countdown (web: 42s)
@@ -130,12 +130,12 @@ fun OtpVerificationScreenContent(
     // Auto-submit when all filled
     val filled = digits.count { it.isNotEmpty() }
     val animatedProgress by animateFloatAsState(
-        targetValue = filled / 6f,
+        targetValue = filled / 5f,
         animationSpec = tween(durationMillis = 350),
         label = "OtpProgress"
     )
     LaunchedEffect(filled) {
-        if (filled == 6) {
+        if (filled == 5) {
             delay(350)
             onVerifyClick(digits.joinToString(""))
         }
@@ -196,7 +196,7 @@ fun OtpVerificationScreenContent(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "▸ 6-DIGIT KEY DISPATCHED TO",
+                    text = "▸ 5-DIGIT KEY DISPATCHED TO",
                     fontFamily = jetBrainsMono,
                     fontSize = 11.sp,
                     letterSpacing = 1.sp,
@@ -231,7 +231,7 @@ fun OtpVerificationScreenContent(
                             onValueChange = { newChar ->
                                 val clean = newChar.filter { it.isDigit() }.takeLast(1)
                                 digits[i] = clean
-                                if (clean.isNotEmpty() && i < 5) {
+                                if (clean.isNotEmpty() && i < 4) {
                                     focusRequesters[i + 1].requestFocus()
                                 }
                                 if (error != null) onErrorCleared()
