@@ -65,7 +65,8 @@ fun SplashScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToDashboard: () -> Unit,
     viewModel: SplashViewModel = hiltViewModel(),
-    onNavigateToInterests: () -> Unit
+    onNavigateToInterests: () -> Unit,
+    onNavigateToPhysiqueSetup: () -> Unit
 ) {
     val destination by viewModel.destination.collectAsStateWithLifecycle()
 
@@ -74,7 +75,7 @@ fun SplashScreen(
             is SplashDestination.Login -> onNavigateToLogin()
             is SplashDestination.Dashboard -> onNavigateToDashboard()
             is SplashDestination.InterestsOnboarding -> onNavigateToInterests()
-            is SplashDestination.PhysiqueSetup -> onNavigateToDashboard()
+            is SplashDestination.PhysiqueSetup -> onNavigateToPhysiqueSetup()
             null -> Unit
         }
     }

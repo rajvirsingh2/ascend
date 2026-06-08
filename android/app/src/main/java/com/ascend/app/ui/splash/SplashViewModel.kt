@@ -69,7 +69,11 @@ class SplashViewModel @Inject constructor(
                             }
                         }
                         is Result.Error ->{
-                            _destination.value= SplashDestination.Dashboard
+                            if (res.message.contains("404")) {
+                                _destination.value = SplashDestination.PhysiqueSetup
+                            } else {
+                                _destination.value = SplashDestination.Dashboard
+                            }
                         }
                         is Result.Loading ->{/*TODO*/}
                     }

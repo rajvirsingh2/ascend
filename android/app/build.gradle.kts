@@ -19,7 +19,7 @@ android {
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "BASE_URL", "\"http://13.48.43.172/api/v1/\"")
+        buildConfigField("String", "BASE_URL", "\"http://16.170.133.169/api/v1/\"")
         buildConfigField("String", "HMAC_SECRET", "\"${System.getenv("HMAC_SECRET")?: "dev_hmac_secret_32bytes_minimum"}\"")
     }
 
@@ -46,7 +46,7 @@ android {
         }
         create("ec2"){
             initWith(getByName("release"))
-            buildConfigField("String", "BASE_URL", "\"http://13.48.43.172/api/v1/\"")
+            buildConfigField("String", "BASE_URL", "\"http://16.170.133.169/api/v1/\"")
             signingConfig = signingConfigs.getByName("debug")
         }
         release {

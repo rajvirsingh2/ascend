@@ -137,6 +137,11 @@ fun AscendNavHost() {
                         navController.navigate(Routes.INTERESTS_ONBOARDING) {
                             popUpTo(Routes.SPLASH) { inclusive = true }
                         }
+                    },
+                    onNavigateToPhysiqueSetup = {
+                        navController.navigate(Routes.PHYSIQUE_SETUP_ONBOARDING) {
+                            popUpTo(Routes.SPLASH) { inclusive = true }
+                        }
                     }
                 )
             }
