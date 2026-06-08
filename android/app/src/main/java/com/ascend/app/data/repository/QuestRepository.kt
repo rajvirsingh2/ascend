@@ -78,7 +78,7 @@ class QuestRepository @Inject constructor(
         return try {
             val response = api.generateQuests()
             val quests = response.data ?: emptyList()
-            dao.clearAll()                          // wipe old quests before inserting generated ones
+            // Append new quests to the existing ones
             dao.upsertAll(quests.map { it.toEntity() })
             Result.Success(Unit)
         } catch (e: Exception) {

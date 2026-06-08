@@ -255,8 +255,6 @@ func (h *GenerateHandler) persistMLQuests(
 
 	var inserted []map[string]any
 	if len(toInsert) > 0 {
-		// Archive previous active quests so they don't come back on app restart
-		_, _ = h.db.Exec(ctx, `UPDATE quests SET status='expired', completed_at=NOW() WHERE user_id=$1 AND status='active'`, userID)
 
 		for _, q := range toInsert {
 			questID := uuid.NewString()
