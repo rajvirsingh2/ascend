@@ -44,33 +44,7 @@ type UserProfile struct {
 	RequestedWeekly int        `json:"requested_weekly"`
 }
 
-func buildPrompt(profile UserProfile) string {
-	b, _ := json.MarshalIndent(profile, "", "  ")
-	return fmt.Sprintf(`Given this user profile:
-%s
 
-Generate 3-5 unique real-world quests. Return ONLY a valid JSON array of objects. Do not include any other text, explanation, or markdown formatting. Each object must have:
-- title (short, engaging)
-- description (actionable)
-- type ("daily" or "weekly")
-- difficulty (1-5)
-- xp_reward (10-100)
-- skill_area (matching one of their interests)
-- is_ai_generated (true)
-
-Example output:
-[
-  {
-    "title": "Debug a small script",
-    "description": "Find and fix a bug in a local project or open source issue.",
-    "type": "daily",
-    "difficulty": 2,
-    "xp_reward": 25,
-    "skill_area": "coding",
-    "is_ai_generated": true
-  }
-]`, string(b))
-}
 
 func cleanJSONString(s string) string {
 	s = strings.TrimSpace(s)
@@ -80,9 +54,7 @@ func cleanJSONString(s string) string {
 			s = s[idx+1:]
 		}
 		s = strings.TrimSpace(s)
-		if strings.HasSuffix(s, "```") {
-			s = s[:len(s)-3]
-		}
+		s = strings.TrimSuffix(s, "```")
 	}
 	return strings.TrimSpace(s)
 }
