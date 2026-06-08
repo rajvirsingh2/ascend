@@ -4,14 +4,11 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"sort"
 	"strings"
 	"time"
 
@@ -108,24 +105,10 @@ func NewClient(cfg Config) *Client {
 }
 
 func (c *Client) GenerateQuests(ctx context.Context, profile UserProfile) ([]Quest, error) {
-	cacheKey := profileCacheKey(profile)
-	if c.redis != nil {
-		if cached, err := c.redis.Get(ctx, cacheKey).Result(); err == nil {
-			var quests []Quest
-			if jsonErr := json.Unmarshal([]byte(cached), &quests); jsonErr == nil {
-				return quests, nil
-			}
-		}
-	}
 
 	quests, err := c.callSpace(ctx, profile)
 	if err != nil {
 		return nil, err
-	}
-	if c.redis != nil {
-		if data, jsonErr := json.Marshal(quests); jsonErr == nil {
-			c.redis.Set(ctx, cacheKey, data, c.cacheTTL)
-		}
 	}
 
 	return quests, nil
@@ -279,25 +262,6 @@ func (c *Client) sendWithRetry(req *http.Request) (*http.Response, error) {
 
 	req2 := req.Clone(req.Context())
 	return c.httpClient.Do(req2)
-}
-
-func profileCacheKey(p UserProfile) string {
-	interests := make([]Interest, len(p.Interests))
-	copy(interests, p.Interests)
-	sort.Slice(interests, func(i, j int) bool {
-		return interests[i].Subcategory < interests[j].Subcategory
-	})
-
-	h := sha256.New()
-	fmt.Fprintf(h, "%d|%s|%s|%s|", p.Level, p.Rank, p.Archetype, p.Goal)
-	for _, i := range interests {
-		fmt.Fprintf(h, "%s/%s/%s|", i.Category, i.Subcategory, i.Priority)
-	}
-	if p.Physique != nil {
-		fmt.Fprintf(h, "phys:%v/%s/%s", p.Physique.BMI, p.Physique.Goal, p.Physique.ActivityLevel)
-	}
-
-	return "ml:quests:" + hex.EncodeToString(h.Sum(nil))[:16]
 }
 
 func (c *Client) Health(ctx context.Context) error {
