@@ -96,8 +96,8 @@ fun AscendNavHost() {
                 OtpVerificationScreen(
                     email = email,
                     onVerified = {
-                        // New registrant → go to physique onboarding, then interests, then dashboard
-                        navController.navigate(Routes.PHYSIQUE_SETUP_ONBOARDING) {
+                        // Registration complete → force them to login to get a valid JWT token
+                        navController.navigate(Routes.LOGIN) {
                             popUpTo(Routes.REGISTER) { inclusive = true }
                         }
                     }
