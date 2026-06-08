@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/mail"
 	"net/smtp"
 	"strings"
 	"time"
@@ -90,15 +91,19 @@ func (s *Sender) send(ctx context.Context, toEmail, subject, html string) error 
 func (s *Sender) sendSMTP(toEmail, subject, html string) error {
 	auth := smtp.PlainAuth("", s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPHost)
 
-	// Sanitize inputs to prevent CRLF email header injection
-	safeTo := strings.ReplaceAll(strings.ReplaceAll(toEmail, "\r", ""), "\n", "")
+	// Validate and format email to prevent CRLF injection (CodeQL)
+	addr, err := mail.ParseAddress(toEmail)
+	if err != nil {
+		return fmt.Errorf("invalid toEmail address: %w", err)
+	}
+	safeTo := addr.Address
 	safeSubject := strings.ReplaceAll(strings.ReplaceAll(subject, "\r", ""), "\n", "")
 
 	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s",
 		s.cfg.EmailFrom, safeTo, safeSubject, html)
 
-	addr := fmt.Sprintf("%s:%s", s.cfg.SMTPHost, s.cfg.SMTPPort)
-	err := smtp.SendMail(addr, auth, s.cfg.SMTPUser, []string{safeTo}, []byte(msg))
+	smtpAddr := fmt.Sprintf("%s:%s", s.cfg.SMTPHost, s.cfg.SMTPPort)
+	err = smtp.SendMail(smtpAddr, auth, s.cfg.SMTPUser, []string{safeTo}, []byte(msg))
 	if err != nil {
 		return fmt.Errorf("smtp send: %w", err)
 	}
