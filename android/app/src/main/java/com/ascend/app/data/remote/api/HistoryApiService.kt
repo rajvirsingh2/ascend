@@ -1,6 +1,5 @@
 package com.ascend.app.data.remote.api
 
-import com.ascend.app.data.remote.dto.AchievementResponse
 import com.ascend.app.data.remote.dto.ApiEnvelope
 import com.ascend.app.data.remote.dto.QuestResponse
 import com.squareup.moshi.Json
@@ -23,6 +22,4 @@ interface HistoryApiService {
     @GET("me/progress")
     suspend fun getProgressLog(): ApiEnvelope<List<ProgressLogEntry>>
 
-    @GET("me/achievements")
-    suspend fun getAchievements(): ApiEnvelope<List<AchievementResponse>>
 }

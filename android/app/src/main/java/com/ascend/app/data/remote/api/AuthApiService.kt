@@ -24,7 +24,7 @@ interface AuthApiService {
 
 
     @POST("auth/logout")
-    suspend fun logout(): Unit
+    suspend fun logout()
 
     @GET("me")
     suspend fun getMe(): ApiEnvelope<UserResponse>
@@ -40,9 +40,6 @@ interface AuthApiService {
 
     @POST("me/delete")
     suspend fun requestDeletion(@Body req: DeleteAccountRequest): ApiEnvelope<Map<String, Any>>
-
-    @POST("me/cancel-delete")
-    suspend fun cancelDeletion(): ApiEnvelope<Map<String, String>>
 
     @POST("auth/forgot-password")
     suspend fun forgotPassword(@Body req: ForgotPasswordRequest): ApiEnvelope<Map<String, String>>

@@ -8,8 +8,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -38,7 +36,6 @@ class WebSocketManager @Inject constructor(
     private val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
 
     private val _events = MutableSharedFlow<WsEvent>(extraBufferCapacity = 32)
-    val events: SharedFlow<WsEvent> = _events.asSharedFlow()
 
     private var webSocket: WebSocket? = null
     private var retryCount = 0
@@ -56,22 +53,22 @@ class WebSocketManager @Inject constructor(
                 .build()
 
             webSocket = client.newWebSocket(request, object : WebSocketListener() {
-                override fun onOpen(ws: WebSocket, response: Response) {
+                override fun onOpen(webSocket: WebSocket, response: Response) {
                     retryCount = 0
                     Log.i("WS", "connected")
                 }
 
-                override fun onMessage(ws: WebSocket, text: String) {
+                override fun onMessage(webSocket: WebSocket, text: String) {
                     parseAndEmit(text)
                 }
 
-                override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     Log.e("WS", "failure: ${t.message}")
                     _events.tryEmit(WsEvent.Disconnected)
                     scheduleReconnect(baseUrl)
                 }
 
-                override fun onClosed(ws: WebSocket, code: Int, reason: String) {
+                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     _events.tryEmit(WsEvent.Disconnected)
                 }
             })
@@ -84,7 +81,7 @@ class WebSocketManager @Inject constructor(
             val frame = adapter.fromJson(text) ?: return
             val type = frame["type"] as? String ?: return
             @Suppress("UNCHECKED_CAST")
-            val payload = frame["payload"] as? Map<String, Any> ?: emptyMap<String, Any>()
+            val payload = frame["payload"] as? Map<String, Any> ?: emptyMap()
 
             val event = when (type) {
                 "LEVEL_UP" -> WsEvent.LevelUp(
@@ -117,8 +114,4 @@ class WebSocketManager @Inject constructor(
         }
     }
 
-    fun disconnect() {
-        webSocket?.close(1000, "user logout")
-        webSocket = null
-    }
 }

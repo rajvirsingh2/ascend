@@ -17,7 +17,7 @@ interface GoalApiService {
     suspend fun createGoal(@Body request: CreateGoalRequest): ApiEnvelope<GoalResponse>
 
     @DELETE("goals/{id}")
-    suspend fun deleteGoal(@Path("id") id: String): Unit
+    suspend fun deleteGoal(@Path("id") id: String)
 
     @retrofit2.http.PATCH("goals/{id}")
     suspend fun updateGoal(

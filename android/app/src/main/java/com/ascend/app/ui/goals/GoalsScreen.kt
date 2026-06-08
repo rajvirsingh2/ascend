@@ -1,7 +1,14 @@
 package com.ascend.app.ui.goals
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.EaseInOutSine
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -10,16 +17,48 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -45,14 +84,20 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-
 import com.ascend.app.domain.model.Goal
 import com.ascend.app.ui.auth.jetBrainsMono
 import com.ascend.app.ui.auth.orbitron
-import com.ascend.app.ui.components.*
-import com.ascend.app.ui.theme.*
+import com.ascend.app.ui.theme.ReactCyan
+import com.ascend.app.ui.theme.ReactGold
+import com.ascend.app.ui.theme.ReactGreen
+import com.ascend.app.ui.theme.ReactInk
+import com.ascend.app.ui.theme.ReactInkDim
+import com.ascend.app.ui.theme.ReactInkFaint
+import com.ascend.app.ui.theme.ReactPanel
+import com.ascend.app.ui.theme.ReactPanelLine
+import com.ascend.app.ui.theme.ReactPurple
+import com.ascend.app.ui.theme.ReactRed
 import java.util.Locale
-
 
 
 /* ============================================================
@@ -159,13 +204,13 @@ fun GoalsScreenContent(
                             Text(
                                 "◈ ",
                                 fontFamily = orbitron,
-                                fontSize = 22.sp,
+                                fontSize = 20.sp,
                                 color = ReactCyan
                             )
                             Text(
                                 "LONG-TERM GOALS",
                                 fontFamily = orbitron,
-                                fontSize = 20.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 2.sp,
                                 color = ReactPurple,
@@ -214,7 +259,7 @@ fun GoalsScreenContent(
 }
 
 /* ============================================================
- *  GOAL CARD
+ *  GOAL CARD — premium styling
  * ============================================================ */
 @Composable
 fun GoalCard(goal: Goal, onToggleDone: () -> Unit) {
@@ -227,22 +272,19 @@ fun GoalCard(goal: Goal, onToggleDone: () -> Unit) {
     val glowColor = if (isDone) ReactGreen else skillCol.copy(alpha = 0.5f)
 
     val animProgress by animateFloatAsState(
-        (goal.progress / 100f).coerceIn(0f, 1f),
-        animationSpec = tween(700, easing = EaseOutCubic),
+        targetValue = (goal.progress / 100f).coerceIn(0f, 1f),
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 50f),
         label = "p"
     )
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .then(
-                if (isDone) Modifier.shadow(
-                    14.dp, RoundedCornerShape(10.dp),
-                    ambientColor = ReactGreen, spotColor = ReactGreen
-                ) else Modifier.shadow(
-                    8.dp, RoundedCornerShape(10.dp),
-                    ambientColor = glowColor, spotColor = glowColor
-                )
+            .shadow(
+                elevation = if (isDone) 14.dp else 8.dp,
+                shape = RoundedCornerShape(10.dp),
+                ambientColor = glowColor,
+                spotColor = glowColor
             )
             .clip(RoundedCornerShape(10.dp))
             .background(ReactPanel)
@@ -485,9 +527,10 @@ private fun NewGoalFab(onClick: () -> Unit) {
             .padding(end = 4.dp, bottom = 4.dp)
             .height(48.dp)
             .shadow(
-                (glow * 20).dp,
-                RoundedCornerShape(24.dp),
-                ambientColor = ReactPurple, spotColor = ReactCyan
+                elevation = (glow * 20).dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = ReactPurple,
+                spotColor = ReactCyan
             )
             .clip(RoundedCornerShape(24.dp))
             .background(Brush.horizontalGradient(listOf(ReactPurple, ReactCyan)))
@@ -569,9 +612,10 @@ private fun CreateGoalSheetContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .shadow(
-                        24.dp,
-                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                        ambientColor = ReactPurple, spotColor = ReactCyan
+                        elevation = 24.dp,
+                        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                        ambientColor = ReactPurple,
+                        spotColor = ReactCyan
                     )
                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                     .background(ReactPanel)
@@ -654,13 +698,15 @@ private fun CreateGoalSheetContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
+                            .alpha(if (title.isNotBlank()) 1f else 0.45f)
                             .shadow(
-                                14.dp, RoundedCornerShape(10.dp),
-                                ambientColor = ReactPurple, spotColor = ReactCyan
+                                elevation = 14.dp,
+                                shape = RoundedCornerShape(10.dp),
+                                ambientColor = ReactPurple,
+                                spotColor = ReactCyan
                             )
                             .clip(RoundedCornerShape(10.dp))
                             .background(Brush.horizontalGradient(listOf(ReactPurple, ReactCyan)))
-                            .alpha(if (title.isNotBlank()) 1f else 0.45f)
                             .clickable(enabled = title.isNotBlank()) {
                                 onCreate(
                                     title.ifBlank { "Untitled Goal" },
@@ -790,7 +836,50 @@ private fun FlowRowCategoryChips(
 /* ============================================================
  *  HELPERS
  * ============================================================ */
+fun Modifier.scanlineHorizontal(): Modifier = drawWithCache {
+    val spacing = 4f
+    onDrawWithContent {
+        drawContent()
+        var y = 0f
+        while (y < size.height) {
+            drawLine(
+                Color.Black.copy(alpha = 0.18f),
+                start = Offset(0f, y + 1.5f),
+                end = Offset(size.width, y + 1.5f),
+                strokeWidth = 2f
+            )
+            y += spacing
+        }
+    }
+}
 
+fun skillAreaColor(area: String): Color = when (area.lowercase(Locale.ROOT)) {
+    "fitness", "physical", "strength", "endurance"  -> ReactRed
+    "learning", "mental", "focus", "meditation"     -> ReactPurple
+    "mindfulness"                                   -> ReactCyan
+    "productivity", "coding", "tech", "technology"  -> ReactCyan
+    "social", "networking"                          -> ReactGold
+    "creativity"                                    -> ReactPurple
+    "finance", "investing"                          -> ReactGreen
+    else                                            -> ReactCyan
+}
+
+fun rankForPriority(priority: Int): String = when (priority) {
+    1 -> "S"
+    2 -> "A"
+    3 -> "B"
+    4 -> "C"
+    else -> "D"
+}
+
+fun rankColor(rank: String): Color = when (rank) {
+    "S"  -> ReactGold
+    "A"  -> ReactPurple
+    "B"  -> Color(0xFF8B5CF6)
+    "C"  -> ReactCyan
+    "D"  -> Color(0xFF7DB0E8)
+    else -> ReactInkDim
+}
 
 /* ============================================================
  *  PREVIEWS

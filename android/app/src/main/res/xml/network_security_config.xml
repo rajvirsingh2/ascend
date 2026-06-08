@@ -2,10 +2,11 @@
 <network-security-config>
     <!-- development: allow cleartext to local emulator host -->
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">localhost</domain>
-        <domain includeSubdomains="false">127.0.0.1</domain>
-        <domain includeSubdomains="false">10.125.9.14</domain>
-        <domain includeSubdomains="false">16.170.133.169</domain>
+        <domain includeSubdomains="true">[IP_ADDRESS]</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.125.9.14</domain>
+        <domain includeSubdomains="true">16.170.133.169</domain>
     </domain-config>
 
     <!-- production: HTTPS only, pin your server certificate -->

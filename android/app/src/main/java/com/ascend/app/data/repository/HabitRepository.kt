@@ -5,10 +5,10 @@ import com.ascend.app.data.local.entity.HabitEntity
 import com.ascend.app.data.remote.api.HabitApiService
 import com.ascend.app.data.remote.dto.CompletionResponse
 import com.ascend.app.data.remote.dto.HabitResponse
-import com.ascend.app.data.remote.dto.toDomain
 import com.ascend.app.domain.model.Habit
 import com.ascend.app.domain.model.Result
-import com.ascend.app.domain.model.Result.*
+import com.ascend.app.domain.model.Result.Error
+import com.ascend.app.domain.model.Result.Success
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject

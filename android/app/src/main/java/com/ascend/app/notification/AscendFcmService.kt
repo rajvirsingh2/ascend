@@ -1,6 +1,5 @@
 package com.ascend.app.notification
 
-import android.app.PendingIntent
 import android.content.Intent
 import android.net.Uri
 import com.google.firebase.messaging.FirebaseMessagingService

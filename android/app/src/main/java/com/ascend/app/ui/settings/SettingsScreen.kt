@@ -58,10 +58,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-
 import com.ascend.app.ui.auth.jetBrainsMono
 import com.ascend.app.ui.auth.orbitron
-
 import com.ascend.app.ui.theme.*
 
 // 1. Stateful Wrapper handling ViewModel and Effects

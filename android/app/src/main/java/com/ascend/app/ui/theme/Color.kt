@@ -34,15 +34,3 @@ val TextMuted        = Color(0xFF475569)
 
 val BorderGlow       = Color(0xFF2D2D4E)
 val SurfaceGlass     = Color(0x1AFFFFFF)
-
-// --- Standardized React Mapped Colors ---
-val ReactCyan = Color(0xFF00E5FF)
-val ReactGold = Color(0xFFFFD700)
-val ReactGreen = Color(0xFF00E676)
-val ReactPurple = Color(0xFFB388FF)
-val ReactRed = Color(0xFFFF3B30)
-val ReactPanel = Color(0xFF0C0C16)
-val ReactPanelLine = Color(0xFF2A2A35)
-val ReactInk = Color.White
-val ReactInkDim = Color.Gray
-val ReactInkFaint = Color(0xFF555555)

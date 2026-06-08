@@ -3,20 +3,15 @@ package com.ascend.app.ui.splash
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ascend.app.data.local.TokenDataStore
-import com.ascend.app.data.remote.api.PhysiqueApiService
 import com.ascend.app.data.repository.InterestsRepository
-import com.ascend.app.data.repository.UserRepository
 import com.ascend.app.domain.model.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.TimeoutCancellationException
 import javax.inject.Inject
 
 

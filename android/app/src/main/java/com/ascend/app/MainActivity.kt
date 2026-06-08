@@ -24,9 +24,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-
 import androidx.navigation.navDeepLink
-
+import com.ascend.app.notification.AscendToastHost
+import com.ascend.app.notification.NotificationsScreen
 import com.ascend.app.ui.auth.ForgotPasswordScreen
 import com.ascend.app.ui.auth.LoginScreen
 import com.ascend.app.ui.auth.OtpVerificationScreen
@@ -40,14 +40,11 @@ import com.ascend.app.ui.navigation.Routes
 import com.ascend.app.ui.physique.PhysiqueOnboardingScreen
 import com.ascend.app.ui.profile.ProfileScreen
 import com.ascend.app.ui.settings.SettingsScreen
-import com.ascend.app.ui.stats.StatsScreen
 import com.ascend.app.ui.splash.SplashScreen
+import com.ascend.app.ui.stats.StatsScreen
 import com.ascend.app.ui.theme.AscendTheme
 import com.ascend.app.ui.theme.DarkColors
-import com.ascend.app.notification.AscendToastHost
-import com.ascend.app.notification.NotificationsScreen
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
