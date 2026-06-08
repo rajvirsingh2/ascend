@@ -84,7 +84,8 @@ fun LoginScreen(
     onNavigateToDashboard: () -> Unit,
     onNavigateToRegister: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel(),
-    navController: NavController
+    navController: NavController,
+    message: String? = null
 ) {
     val state by viewModel.loginState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -96,6 +97,12 @@ fun LoginScreen(
                 is AuthEffect.NavigateToOtp -> navController.navigate("otp/${effect.email}")
                 is AuthEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
+        }
+    }
+
+    LaunchedEffect(message) {
+        if (!message.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(message)
         }
     }
 

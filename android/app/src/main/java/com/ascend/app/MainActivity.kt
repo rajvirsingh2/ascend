@@ -97,7 +97,7 @@ fun AscendNavHost() {
                     email = email,
                     onVerified = {
                         // Registration complete → force them to login to get a valid JWT token
-                        navController.navigate(Routes.LOGIN) {
+                        navController.navigate("${Routes.LOGIN}?message=Registration successful! Login to continue.") {
                             popUpTo(Routes.REGISTER) { inclusive = true }
                         }
                     }
@@ -146,7 +146,15 @@ fun AscendNavHost() {
                 )
             }
 
-            composable(Routes.LOGIN) {
+            composable(
+                route = "${Routes.LOGIN}?message={message}",
+                arguments = listOf(navArgument("message") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                })
+            ) { backStackEntry ->
+                val message = backStackEntry.arguments?.getString("message")
                 LoginScreen(
                     onNavigateToDashboard = {
                         navController.navigate(Routes.SPLASH) {
@@ -154,7 +162,8 @@ fun AscendNavHost() {
                         }
                     },
                     onNavigateToRegister = { navController.navigate(Routes.REGISTER) },
-                    navController = navController
+                    navController = navController,
+                    message = message
                 )
             }
             composable(Routes.REGISTER) {

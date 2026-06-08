@@ -13,13 +13,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -37,9 +41,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -49,10 +59,20 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-import com.ascend.app.ui.components.AscendButton
-import com.ascend.app.ui.components.AscendOutlinedButton
-import com.ascend.app.ui.theme.DarkColors
-import com.ascend.app.ui.theme.Gradients
+import com.ascend.app.ui.auth.jetBrainsMono
+import com.ascend.app.ui.auth.orbitron
+
+// --- Standardized React Mapped Colors ---
+val ReactCyan = Color(0xFF00E5FF)
+val ReactGold = Color(0xFFFFD700)
+val ReactGreen = Color(0xFF00E676)
+val ReactPurple = Color(0xFFB388FF)
+val ReactRed = Color(0xFFFF3B30)
+val ReactPanel = Color(0xFF0C0C16)
+val ReactPanelLine = Color(0xFF2A2A35)
+val ReactInk = Color.White
+val ReactInkDim = Color.Gray
+val ReactInkFaint = Color(0xFF555555)
 
 // 1. Stateful Wrapper handling ViewModel and Effects
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,137 +108,263 @@ fun SettingsScreenContent(
     onDeleteAccount: (String, () -> Unit) -> Unit
 ) {
     Scaffold(
-        containerColor = DarkColors.Void,
+        containerColor = Color(0xFF07070B),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        "Settings",
-                        color = DarkColors.TextPrimary,
-                        fontWeight = FontWeight.Medium
+                        "SYSTEM SETTINGS",
+                        fontFamily = orbitron,
+                        color = ReactPurple,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp,
+                        fontSize = 16.sp,
+                        style = TextStyle(shadow = Shadow(ReactPurple.copy(alpha = 0.5f), blurRadius = 10f))
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DarkColors.Abyss
+                    containerColor = Color(0xFF07070B).copy(alpha = 0.85f)
                 )
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color(0xFF07070B))
+                .scanlineOverlay()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
-
-
-            Spacer(Modifier.height(80.dp))
-
-            // Danger zone card
-            SectionCard(title = "DANGER ZONE") {
-                var showDeleteDialog by remember { mutableStateOf(false) }
-                var deletePassword by remember { mutableStateOf("") }
-                var isDeletingAccount by remember { mutableStateOf(false) }
-
-                Text(
-                    text = "Deleting your account schedules permanent removal in 30 days. You can cancel within that window.",
-                    fontSize = 12.sp, color = DarkColors.TextMuted, lineHeight = 18.sp
-                )
-                Spacer(Modifier.height(10.dp))
-                AscendButton(
-                    text     = "DELETE ACCOUNT",
-                    onClick  = { showDeleteDialog = true },
-                    gradient = listOf(Color(0xFF991111), Color(0xFFFF2D78)),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                if (showDeleteDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showDeleteDialog = false },
-                        containerColor   = DarkColors.Abyss,
-                        title = {
-                            Text("Confirm account deletion",
-                                color = DarkColors.TextPrimary, fontWeight = FontWeight.Medium)
-                        },
-                        text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text(
-                                    "Enter your password to schedule account deletion. Your data will be permanently removed after 30 days.",
-                                    fontSize = 13.sp, color = DarkColors.TextMuted
-                                )
-                                OutlinedTextField(
-                                    value = deletePassword,
-                                    onValueChange = { deletePassword = it },
-                                    label = { Text("Password") },
-                                    visualTransformation = PasswordVisualTransformation(),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true,
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor   = DarkColors.Ember,
-                                        unfocusedBorderColor = DarkColors.Dusk,
-                                        focusedTextColor     = DarkColors.TextPrimary,
-                                        unfocusedTextColor   = DarkColors.TextPrimary,
-                                    )
-                                )
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    isDeletingAccount = true
-                                    onDeleteAccount(deletePassword) {
-                                        showDeleteDialog = false
-                                        isDeletingAccount = false
-                                    }
-                                },
-                                enabled = deletePassword.isNotBlank() && !isDeletingAccount
-                            ) {
-                                Text("DELETE", color = DarkColors.Ember, fontWeight = FontWeight.Medium)
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showDeleteDialog = false }) {
-                                Text("CANCEL", color = DarkColors.TextMuted)
-                            }
-                        }
+            // Ambient Danger Radial Aura
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .height(280.dp)
+                    .blur(60.dp)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                ReactRed.copy(alpha = 0.05f),
+                                Color.Transparent
+                            )
+                        )
                     )
-                }
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Spacer(Modifier.height(8.dp))
+
+                // Danger zone card
+                DangerZoneCard(
+                    isDeletingKey = isDeletingKey,
+                    onDeleteAccount = onDeleteAccount
+                )
             }
         }
     }
 }
 
 @Composable
-private fun SectionCard(
-    title: String,
-    content: @Composable () -> Unit
+private fun DangerZoneCard(
+    isDeletingKey: Boolean,
+    onDeleteAccount: (String, () -> Unit) -> Unit
 ) {
-    Column(
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var deletePassword by remember { mutableStateOf("") }
+    var isDeletingAccount by remember { mutableStateOf(false) }
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = 14.dp,
+                shape = RoundedCornerShape(12.dp),
+                ambientColor = ReactRed.copy(alpha = 0.25f),
+                spotColor = ReactRed.copy(alpha = 0.25f)
+            )
             .clip(RoundedCornerShape(12.dp))
-            .background(DarkColors.Abyss)
-            .padding(16.dp)
+            .background(ReactPanel)
+            .border(1.dp, ReactRed.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+            .padding(20.dp)
     ) {
-        Text(
-            text = title,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            color = DarkColors.Arcane,
-            letterSpacing = 0.1.sp
-        )
-        Spacer(Modifier.height(14.dp))
-        content()
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.Warning,
+                    contentDescription = null,
+                    tint = ReactRed,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "DANGER ZONE",
+                    fontFamily = jetBrainsMono,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black,
+                    color = ReactRed,
+                    letterSpacing = 2.sp
+                )
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            Text(
+                text = "Deleting your account schedules permanent removal in 30 days. You can cancel within that window.",
+                fontFamily = jetBrainsMono,
+                fontSize = 12.sp,
+                color = ReactInkDim,
+                lineHeight = 18.sp
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            // Premium Refactored High-End Destructive CTA Button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(ReactRed.copy(alpha = 0.1f))
+                    .border(1.dp, ReactRed.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                    .clickable { showDeleteDialog = true },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "DELETE ACCOUNT",
+                    fontFamily = orbitron,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.5.sp,
+                    color = ReactRed,
+                    style = TextStyle(shadow = Shadow(ReactRed.copy(alpha = 0.5f), blurRadius = 8f))
+                )
+            }
+
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { if (!isDeletingAccount) showDeleteDialog = false },
+                    containerColor = ReactPanel,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.border(1.dp, ReactPanelLine, RoundedCornerShape(12.dp)),
+                    title = {
+                        Text(
+                            "CONFIRM SYSTEM REMOVAL",
+                            fontFamily = orbitron,
+                            color = ReactRed,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 16.sp,
+                            letterSpacing = 1.sp
+                        )
+                    },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Text(
+                                "Enter your password to schedule account deletion. Your data will be permanently removed after 30 days.",
+                                fontFamily = jetBrainsMono,
+                                fontSize = 12.sp,
+                                color = ReactInkDim,
+                                lineHeight = 18.sp
+                            )
+                            OutlinedTextField(
+                                value = deletePassword,
+                                onValueChange = { deletePassword = it },
+                                placeholder = {
+                                    Text("Password", fontFamily = jetBrainsMono, fontSize = 13.sp, color = ReactInkFaint)
+                                },
+                                visualTransformation = PasswordVisualTransformation(),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                textStyle = TextStyle(fontFamily = jetBrainsMono, fontSize = 14.sp, color = ReactInk),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = ReactRed,
+                                    unfocusedBorderColor = ReactPanelLine,
+                                    focusedContainerColor = Color(0xFF0C0C16),
+                                    unfocusedContainerColor = Color(0xFF0C0C16),
+                                    cursorColor = ReactRed
+                                ),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                isDeletingAccount = true
+                                onDeleteAccount(deletePassword) {
+                                    showDeleteDialog = false
+                                    isDeletingAccount = false
+                                    deletePassword = ""
+                                }
+                            },
+                            enabled = deletePassword.isNotBlank() && !isDeletingAccount
+                        ) {
+                            if (isDeletingAccount || isDeletingKey) {
+                                CircularProgressIndicator(
+                                    color = ReactRed,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            } else {
+                                Text(
+                                    "DELETE",
+                                    fontFamily = jetBrainsMono,
+                                    color = if (deletePassword.isNotBlank()) ReactRed else ReactInkFaint,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                )
+                            }
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showDeleteDialog = false },
+                            enabled = !isDeletingAccount
+                        ) {
+                            Text(
+                                "CANCEL",
+                                fontFamily = jetBrainsMono,
+                                color = ReactInkDim,
+                                letterSpacing = 1.sp
+                            )
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+/* ============================================================
+ * HELPERS
+ * ============================================================ */
+fun Modifier.scanlineOverlay(): Modifier = drawWithCache {
+    val lineSpacing = 4f
+    onDrawWithContent {
+        drawContent()
+        var y = 0f
+        while (y < size.height) {
+            drawLine(
+                Color.White.copy(alpha = 0.015f),
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = 1f
+            )
+            y += lineSpacing
+        }
     }
 }
 
 // --- PREVIEWS ---
-
-@Preview(showBackground = true, name = "1. Default Settings")
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "1. Default Settings")
 @Composable
 fun SettingsScreenPreview_Default() {
     androidx.compose.material3.MaterialTheme {
