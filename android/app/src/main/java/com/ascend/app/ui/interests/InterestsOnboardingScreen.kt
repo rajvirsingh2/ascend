@@ -1196,7 +1196,8 @@ fun InterestsPreview_CategoryPick() {
             pickedCategoryIds = setOf("technology")
         ),
         snackbarHostState = remember { SnackbarHostState() },
-        onIntent = {}
+        onIntent = {},
+        onBackExit = {}
     )
 }
 
@@ -1214,7 +1215,8 @@ fun InterestsPreview_FocusAreas() {
             )
         ),
         snackbarHostState = remember { SnackbarHostState() },
-        onIntent = {}
+        onIntent = {},
+        onBackExit = {}
     )
 }
 
@@ -1229,7 +1231,8 @@ fun InterestsPreview_Proficiency() {
             proficiencyByCategory = mapOf("technology" to "Intermediate")
         ),
         snackbarHostState = remember { SnackbarHostState() },
-        onIntent = {}
+        onIntent = {},
+        onBackExit = {}
     )
 }
 
@@ -1244,7 +1247,8 @@ fun InterestsPreview_GlobalGoal() {
             globalGoal = "Land a senior engineer role and run a half-marathon by Q4."
         ),
         snackbarHostState = remember { SnackbarHostState() },
-        onIntent = {}
+        onIntent = {},
+        onBackExit = {}
     )
 }
 
@@ -1263,6 +1267,7 @@ fun InterestsPreview_Review() {
             globalGoal = "Land a senior engineer role and run a half-marathon by Q4."
         ),
         snackbarHostState = remember { SnackbarHostState() },
-        onIntent = {}
+        onIntent = {},
+        onBackExit = {}
     )
 }
