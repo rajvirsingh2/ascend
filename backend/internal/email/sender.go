@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"log"
 	"net/http"
@@ -174,7 +175,7 @@ func buildOTPEmail(username, otp string) string {
     <p class="note">This code expires in <strong>10 minutes</strong>. Do not share it with anyone.<br>If you did not request this, you can safely ignore this email.</p>
   </div>
 </body>
-</html>`, username, otp)
+</html>`, html.EscapeString(username), html.EscapeString(otp))
 }
 
 func buildResetEmail(username, resetLink string) string {
@@ -203,7 +204,7 @@ func buildResetEmail(username, resetLink string) string {
     <p class="link">%s</p>
   </div>
 </body>
-</html>`, username, resetLink, resetLink)
+</html>`, html.EscapeString(username), html.EscapeString(resetLink), html.EscapeString(resetLink))
 }
 
 func buildWelcomeEmail(username string) string {
@@ -229,5 +230,5 @@ func buildWelcomeEmail(username string) string {
     <p style="color:#94A3B8; font-size:14px; line-height:1.6;">Your journey to rank S begins now. Complete daily quests, build habits, and watch your stats ascend.<br><br>The System is watching.</p>
   </div>
 </body>
-</html>`, username)
+</html>`, html.EscapeString(username))
 }
