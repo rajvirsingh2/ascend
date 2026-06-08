@@ -44,6 +44,49 @@ type UserProfile struct {
 	RequestedWeekly int        `json:"requested_weekly"`
 }
 
+func buildPrompt(profile UserProfile) string {
+	b, _ := json.MarshalIndent(profile, "", "  ")
+	return fmt.Sprintf(`Given this user profile:
+%s
+
+Generate 3-5 unique real-world quests. Return ONLY a valid JSON array of objects. Do not include any other text, explanation, or markdown formatting. Each object must have:
+- title (short, engaging)
+- description (actionable)
+- type ("daily" or "weekly")
+- difficulty (1-5)
+- xp_reward (10-100)
+- skill_area (matching one of their interests)
+- is_ai_generated (true)
+
+Example output:
+[
+  {
+    "title": "Debug a small script",
+    "description": "Find and fix a bug in a local project or open source issue.",
+    "type": "daily",
+    "difficulty": 2,
+    "xp_reward": 25,
+    "skill_area": "coding",
+    "is_ai_generated": true
+  }
+]`, string(b))
+}
+
+func cleanJSONString(s string) string {
+	s = strings.TrimSpace(s)
+	if strings.HasPrefix(s, "```") {
+		idx := strings.Index(s, "\n")
+		if idx != -1 {
+			s = s[idx+1:]
+		}
+		s = strings.TrimSpace(s)
+		if strings.HasSuffix(s, "```") {
+			s = s[:len(s)-3]
+		}
+	}
+	return strings.TrimSpace(s)
+}
+
 type Quest struct {
 	Title           string `json:"title"`
 	Description     string `json:"description"`
@@ -210,7 +253,8 @@ func (c *Client) callSpace(ctx context.Context, profile UserProfile) ([]Quest, e
 			var outputs []string
 			if err := json.Unmarshal([]byte(dataStr), &outputs); err == nil && len(outputs) > 0 {
 				var quests []Quest
-				if err := json.Unmarshal([]byte(outputs[0]), &quests); err == nil && len(quests) > 0 {
+				cleaned := cleanJSONString(outputs[0])
+				if err := json.Unmarshal([]byte(cleaned), &quests); err == nil && len(quests) > 0 {
 					return quests, nil
 				}
 			}
@@ -219,7 +263,8 @@ func (c *Client) callSpace(ctx context.Context, profile UserProfile) ([]Quest, e
 			var rawStr string
 			if err := json.Unmarshal([]byte(dataStr), &rawStr); err == nil {
 				var quests []Quest
-				if err := json.Unmarshal([]byte(rawStr), &quests); err == nil && len(quests) > 0 {
+				cleaned := cleanJSONString(rawStr)
+				if err := json.Unmarshal([]byte(cleaned), &quests); err == nil && len(quests) > 0 {
 					return quests, nil
 				}
 			}
@@ -228,7 +273,8 @@ func (c *Client) callSpace(ctx context.Context, profile UserProfile) ([]Quest, e
 			var gradioResp gradioResponse
 			if err := json.Unmarshal([]byte(dataStr), &gradioResp); err == nil && len(gradioResp.Data) > 0 {
 				var quests []Quest
-				if err := json.Unmarshal([]byte(gradioResp.Data[0]), &quests); err == nil && len(quests) > 0 {
+				cleaned := cleanJSONString(gradioResp.Data[0])
+				if err := json.Unmarshal([]byte(cleaned), &quests); err == nil && len(quests) > 0 {
 					return quests, nil
 				}
 			}
