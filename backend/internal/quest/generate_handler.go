@@ -244,50 +244,56 @@ func (h *GenerateHandler) persistMLQuests(
 		}
 	}
 
-	var inserted []map[string]any
+	var toInsert []mlservice.Quest
 	for _, q := range mlQuests {
-		// Dedup check
 		if existingTitles[strings.ToLower(strings.TrimSpace(q.Title))] {
 			continue
 		}
 		existingTitles[strings.ToLower(strings.TrimSpace(q.Title))] = true
+		toInsert = append(toInsert, q)
+	}
 
-		questID := uuid.NewString()
-		expires := time.Now().Add(24 * time.Hour)
+	var inserted []map[string]any
+	if len(toInsert) > 0 {
+		// Archive previous active quests so they don't come back on app restart
+		_, _ = h.db.Exec(ctx, `UPDATE quests SET status='expired', completed_at=NOW() WHERE user_id=$1 AND status='active'`, userID)
 
-		// map difficulty string → int (easy=1, medium=2, hard=3, etc.)
-		diff := mapDifficulty(q.Difficulty)
+		for _, q := range toInsert {
+			questID := uuid.NewString()
+			expires := time.Now().Add(24 * time.Hour)
+			diff := mapDifficulty(q.Difficulty)
 
-		questType := strings.ToLower(q.QuestType)
-		if questType != "daily" && questType != "weekly" {
-			questType = "daily"
+			questType := strings.ToLower(q.QuestType)
+			if questType != "daily" && questType != "weekly" {
+				questType = "daily"
+			}
+
+			_, dbErr := h.db.Exec(ctx,
+				`INSERT INTO quests
+				   (id, user_id, title, description, type, difficulty, xp_reward,
+				    status, is_ai_generated, skill_area, ai_prompt_hash, expires_at, created_at)
+				 VALUES ($1,$2,$3,$4,$5,$6,$7,'active',true,$8,$9,$10,$11)`,
+				questID, userID, q.Title, q.Description, questType,
+				diff, q.XPReward, q.SkillArea,
+				contextHash, expires, time.Now(),
+			)
+			if dbErr != nil {
+				slog.Error("insert ML quest failed", "error", dbErr)
+				continue
+			}
+			inserted = append(inserted, map[string]any{
+				"id":              questID,
+				"title":           q.Title,
+				"description":     q.Description,
+				"type":            questType,
+				"difficulty":      diff,
+				"xp_reward":       q.XPReward,
+				"skill_area":      q.SkillArea,
+				"status":          "active",
+				"is_ai_generated": true,
+				"source":          "ml-model",
+			})
 		}
-
-		_, dbErr := h.db.Exec(ctx,
-			`INSERT INTO quests
-			   (id, user_id, title, description, type, difficulty, xp_reward,
-			    status, is_ai_generated, skill_area, ai_prompt_hash, expires_at, created_at)
-			 VALUES ($1,$2,$3,$4,$5,$6,$7,'active',true,$8,$9,$10,$11)`,
-			questID, userID, q.Title, q.Description, questType,
-			diff, q.XPReward, q.SkillArea,
-			contextHash, expires, time.Now(),
-		)
-		if dbErr != nil {
-			slog.Error("insert ML quest failed", "error", dbErr)
-			continue
-		}
-		inserted = append(inserted, map[string]any{
-			"id":              questID,
-			"title":           q.Title,
-			"description":     q.Description,
-			"type":            questType,
-			"difficulty":      diff,
-			"xp_reward":       q.XPReward,
-			"skill_area":      q.SkillArea,
-			"status":          "active",
-			"is_ai_generated": true,
-			"source":          "ml-model",
-		})
 	}
 	return inserted
 }
