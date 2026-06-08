@@ -249,7 +249,8 @@ fun AscendNavHost() {
                         navController.navigate(Routes.DASHBOARD){
                             popUpTo(Routes.INTERESTS_ONBOARDING) { inclusive=true }
                         }
-                    }
+                    },
+                    onBackExit = { navController.popBackStack() }
                 )
             }
             
@@ -257,7 +258,8 @@ fun AscendNavHost() {
                 InterestsOnboardingScreen(
                     onComplete =  {
                         navController.popBackStack()
-                    }
+                    },
+                    onBackExit = { navController.popBackStack() }
                 )
             }
 

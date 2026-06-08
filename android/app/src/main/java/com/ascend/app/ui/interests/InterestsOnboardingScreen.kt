@@ -38,16 +38,26 @@ import com.ascend.app.domain.model.InterestSubcategory
 import com.ascend.app.domain.model.UserInterest
 import com.ascend.app.ui.auth.jetBrainsMono
 import com.ascend.app.ui.auth.orbitron
-import com.ascend.app.ui.components.SystemPanel
-import com.ascend.app.ui.theme.*
 import kotlinx.coroutines.flow.collectLatest
+import java.util.Locale
 
-import com.ascend.app.ui.components.*
+// --- Standardized React Mapped Colors ---
+val ReactCyan = Color(0xFF00E5FF)
+val ReactGold = Color(0xFFFFD700)
+val ReactGreen = Color(0xFF00E676)
+val ReactPurple = Color(0xFFB388FF)
+val ReactRed = Color(0xFFFF3B30)
+val ReactPanel = Color(0xFF0C0C16)
+val ReactPanelLine = Color(0xFF2A2A35)
+val ReactInk = Color.White
+val ReactInkDim = Color.Gray
+val ReactInkFaint = Color(0xFF555555)
 
 @Composable
 fun InterestsOnboardingScreen(
     viewModel: InterestsViewModel = hiltViewModel(),
-    onComplete: () -> Unit
+    onComplete: () -> Unit,
+    onBackExit: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -64,7 +74,8 @@ fun InterestsOnboardingScreen(
     InterestsOnboardingScreenContent(
         state = state,
         snackbarHostState = snackbarHostState,
-        onIntent = viewModel::onIntent
+        onIntent = viewModel::onIntent,
+        onBackExit = onBackExit
     )
 }
 
@@ -72,17 +83,22 @@ fun InterestsOnboardingScreen(
 fun InterestsOnboardingScreenContent(
     state: InterestsState,
     snackbarHostState: SnackbarHostState,
-    onIntent: (InterestsIntent) -> Unit
+    onIntent: (InterestsIntent) -> Unit,
+    onBackExit: () -> Unit
 ) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color(0xFF07070B),
         bottomBar = {
             OnboardingBottomBar(
+                isFirstStep = state.step== InterestsStep.CATEGORY_PICK,
                 isFinalStep = state.step == InterestsStep.REVIEW,
                 isLoading = state.isSaving,
                 proceedEnabled = canProceed(state),
-                onBack = { onIntent(InterestsIntent.GoBack) },
+                onBack = {
+                    if (state.step.ordinal == 0) onBackExit()
+                    else onIntent(InterestsIntent.GoBack)
+                },
                 onProceed = {
                     if (state.step == InterestsStep.REVIEW) onIntent(InterestsIntent.Save)
                     else onIntent(InterestsIntent.Continue)
@@ -94,7 +110,7 @@ fun InterestsOnboardingScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFF07070B))
-                .scanlineOverlay(isLight = true)
+                .scanlineOverlay()
                 .padding(padding)
         ) {
             // Top atmospheric halo
@@ -117,7 +133,10 @@ fun InterestsOnboardingScreenContent(
             Column(modifier = Modifier.fillMaxSize()) {
                 OnboardingHeader(
                     step = state.step,
-                    onBack = { onIntent(InterestsIntent.GoBack) }
+                    onBack = {
+                        if (state.step.ordinal == 0) onBackExit()
+                        else onIntent(InterestsIntent.GoBack)
+                    }
                 )
 
                 if (state.isLoading) {
@@ -189,8 +208,8 @@ fun InterestsOnboardingScreenContent(
                     Text("OK", color = ReactPurple)
                 }
             },
-            title = { Text("Error", color = ReactInk) },
-            text = { Text(state.error, color = ReactInkDim) },
+            title = { Text("ERROR", fontFamily = orbitron, color = ReactRed) },
+            text = { Text(state.error, fontFamily = jetBrainsMono, color = ReactInkDim) },
             containerColor = ReactPanel
         )
     }
@@ -215,11 +234,11 @@ fun OnboardingHeader(
     val total = InterestsStep.entries.size
     val current = step.ordinal + 1
     val title = when (step) {
-        InterestsStep.CATEGORY_PICK    -> "◈ CHOOSE YOUR PATHS"
-        InterestsStep.FOCUS_AREAS      -> "◈ SET FOCUS AREAS"
-        InterestsStep.PROFICIENCY_PICK -> "◈ SKILL CALIBRATION"
-        InterestsStep.GLOBAL_GOAL      -> "◈ DECLARE YOUR GOAL"
-        InterestsStep.REVIEW           -> "◈ CONFIRM AWAKENING"
+        InterestsStep.CATEGORY_PICK    -> "CHOOSE YOUR PATHS"
+        InterestsStep.FOCUS_AREAS      -> "SET FOCUS AREAS"
+        InterestsStep.PROFICIENCY_PICK -> "SKILL CALIBRATION"
+        InterestsStep.GLOBAL_GOAL      -> "DECLARE YOUR GOAL"
+        InterestsStep.REVIEW           -> "CONFIRM AWAKENING"
     }
     val sub = when (step) {
         InterestsStep.CATEGORY_PICK    -> "Select core domains. Each unlocks focus areas."
@@ -247,9 +266,15 @@ fun OnboardingHeader(
                     Spacer(Modifier.width(6.dp))
                 }
                 Text(
-                    text = title,
+                    text = "◈ ",
                     fontFamily = orbitron,
                     fontSize = 20.sp,
+                    color = ReactCyan
+                )
+                Text(
+                    text = title,
+                    fontFamily = orbitron,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 2.sp,
                     color = ReactPurple,
@@ -269,7 +294,7 @@ fun OnboardingHeader(
                 Text(
                     "SYSTEM CALIBRATION",
                     fontFamily = jetBrainsMono,
-                    fontSize = 9.5.sp, letterSpacing = 2.sp, color = ReactCyan
+                    fontSize = 9.sp, letterSpacing = 2.sp, color = ReactCyan
                 )
                 Spacer(Modifier.height(4.dp))
                 Box(
@@ -281,7 +306,7 @@ fun OnboardingHeader(
                     Text(
                         "STEP $current/$total",
                         fontFamily = jetBrainsMono,
-                        fontSize = 9.5.sp, letterSpacing = 2.sp, color = ReactInkDim,
+                        fontSize = 9.sp, letterSpacing = 2.sp, color = ReactInkDim,
                         maxLines = 1, softWrap = false
                     )
                 }
@@ -303,19 +328,36 @@ fun OnboardingHeader(
 @Composable
 fun SystemProgressBar(progress: Float) {
     val animProgress by animateFloatAsState(progress, tween(500), label = "p")
+    val infiniteTransition = rememberInfiniteTransition(label = "progEdge")
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 0.4f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(900, easing = EaseInOutSine), RepeatMode.Reverse),
+        label = "edge"
+    )
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(4.dp)
-            .background(Color.DarkGray)
+            .height(6.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(ReactPanelLine)
+            .border(1.dp, ReactPanelLine, RoundedCornerShape(3.dp))
     ) {
         Box(
             modifier = Modifier
                 .fillMaxHeight()
                 .fillMaxWidth(animProgress)
-                .background(ReactCyan)
-        )
+                .background(Brush.horizontalGradient(listOf(ReactPurple, ReactCyan)), RoundedCornerShape(3.dp))
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight()
+                    .width(20.dp)
+                    .blur(4.dp)
+                    .background(Color.White.copy(alpha = 0.5f * pulse))
+            )
+        }
     }
 }
 
@@ -370,7 +412,7 @@ private fun BentoCategoryCard(
     isWide: Boolean,
     onClick: () -> Unit
 ) {
-    val accent = try { Color(category.color.toColorInt()) } catch (_: Exception) { categoryColor(category.id) }
+    val accent = categoryColor(category.id)
 
     Box(
         modifier = Modifier
@@ -443,7 +485,7 @@ private fun BentoCategoryCard(
                     Text(
                         category.name.uppercase(),
                         fontFamily = orbitron,
-                        fontSize = if (isWide) 20.sp else 18.sp,
+                        fontSize = if (isWide) 20.sp else 16.sp,
                         fontWeight = FontWeight.Black, letterSpacing = 2.sp,
                         color = if (isSelected) accent else ReactInk
                     )
@@ -504,12 +546,12 @@ fun FocusAreasStep(
             )
         }
         pickedCategories.forEach { cat ->
-            val accent = try { Color(cat.color.toColorInt()) } catch (_: Exception) { categoryColor(cat.id) }
+            val accent = categoryColor(cat.id)
             item(key = "header_${cat.id}") {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    modifier = Modifier.padding(bottom = 4.dp, top = 8.dp)
                 ) {
                     Box(
                         modifier = Modifier
@@ -650,7 +692,7 @@ fun ProficiencyPickStep(
             )
         }
         items(pickedCategories, key = { it.id }) { cat ->
-            val accent = try { Color(cat.color.toColorInt()) } catch (_: Exception) { categoryColor(cat.id) }
+            val accent = categoryColor(cat.id)
             val selected = proficiencyMap[cat.id] ?: ""
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -689,7 +731,7 @@ fun ProficiencyPickStep(
                                 .weight(1f)
                                 .reactStyleCard(selected = active, glowColor = color, cornerRadius = 10.dp)
                                 .clickable { onSetProficiency(cat.id, level) }
-                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                                .padding(vertical = 12.dp, horizontal = 4.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
@@ -736,7 +778,7 @@ fun GlobalGoalStep(
             color = ReactInkDim,
             lineHeight = 18.sp
         )
-        SystemPanel(glowColor = ReactPanelLine) {
+        ReactPanel(glowColor = ReactPanelLine) {
             Text(
                 "▸ EXAMPLE DIRECTIVES",
                 fontFamily = jetBrainsMono, fontSize = 10.sp,
@@ -827,7 +869,7 @@ fun ConfirmAwakeningStep(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            SystemPanel(glowColor = ReactPurple) {
+            ReactPanel(glowColor = ReactPurple) {
                 Text(
                     "◈ FOCUS AREAS · ${selectedInterests.size}",
                     fontFamily = jetBrainsMono, fontSize = 11.sp,
@@ -839,9 +881,7 @@ fun ConfirmAwakeningStep(
                     selectedInterests.forEachIndexed { idx, interest ->
                         val cat = catMap[interest.category]
                         val sub = cat?.subcategories?.find { it.id == interest.subcategory }
-                        val catColor = try {
-                            Color((cat?.color ?: "#7C3AED").toColorInt())
-                        } catch (_: Exception) { categoryColor(interest.category) }
+                        val catColor = categoryColor(interest.category)
                         val (prioLabel, prioColor) = when (interest.priority) {
                             1 -> "PRIMARY" to ReactGold
                             2 -> "SECONDARY" to ReactPurple
@@ -893,7 +933,7 @@ fun ConfirmAwakeningStep(
             }
         }
         item {
-            SystemPanel(glowColor = ReactPanelLine) {
+            ReactPanel(glowColor = ReactPanelLine) {
                 Text(
                     "▸ DIRECTIVE",
                     fontFamily = jetBrainsMono, fontSize = 10.sp,
@@ -917,6 +957,7 @@ fun ConfirmAwakeningStep(
  * ============================================================ */
 @Composable
 fun OnboardingBottomBar(
+    isFirstStep: Boolean,
     isFinalStep: Boolean,
     isLoading: Boolean = false,
     proceedEnabled: Boolean = true,
@@ -935,40 +976,42 @@ fun OnboardingBottomBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(24.dp)
             .zIndex(100f)
             .background(Color(0xFF07070B).copy(alpha = 0.92f))
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .width(96.dp)
-                .height(48.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .border(1.dp, ReactPanelLine, RoundedCornerShape(10.dp))
-                .clickable { onBack() },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "← BACK",
-                fontFamily = jetBrainsMono, fontSize = 11.sp,
-                letterSpacing = 2.sp, fontWeight = FontWeight.Black,
-                color = ReactInkDim
-            )
+        if (!isFirstStep) {
+            Box(
+                modifier = Modifier
+                    .width(96.dp)
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(1.dp, ReactPanelLine, RoundedCornerShape(10.dp))
+                    .clickable { onBack() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "← BACK",
+                    fontFamily = jetBrainsMono, fontSize = 11.sp,
+                    letterSpacing = 2.sp, fontWeight = FontWeight.Black,
+                    color = ReactInkDim
+                )
+            }
         }
+
         Box(
             modifier = Modifier
                 .weight(1f)
                 .height(48.dp)
+                .alpha(if (proceedEnabled) 1f else 0.45f)
                 .shadow(
                     proceedElev, RoundedCornerShape(10.dp),
                     ambientColor = ReactPurple, spotColor = ReactCyan
                 )
                 .clip(RoundedCornerShape(10.dp))
                 .background(Brush.horizontalGradient(listOf(ReactPurple, ReactCyan)))
-                .alpha(if (proceedEnabled) 1f else 0.45f)
                 .clickable(enabled = proceedEnabled && !isLoading) { onProceed() },
             contentAlignment = Alignment.Center
         ) {
@@ -999,7 +1042,54 @@ fun OnboardingBottomBar(
  * HELPERS — reactCard modifier, corner ticks, scanlines
  * ============================================================ */
 
+fun Modifier.reactStyleCard(selected: Boolean, glowColor: Color, cornerRadius: Dp = 12.dp): Modifier {
+    return this
+        .alpha(if (selected) 1f else 0.7f)
+        .then(
+            if (selected) Modifier.shadow(
+                elevation = 14.dp,
+                shape = RoundedCornerShape(cornerRadius),
+                ambientColor = glowColor,
+                spotColor = glowColor
+            ) else Modifier
+        )
+        .clip(RoundedCornerShape(cornerRadius))
+        .background(ReactPanel)
+        .border(
+            width = if (selected) 1.5.dp else 1.dp,
+            color = if (selected) glowColor else ReactPanelLine,
+            shape = RoundedCornerShape(cornerRadius)
+        )
+}
 
+@Composable
+fun ReactPanel(
+    glowColor: Color? = null,
+    modifier: Modifier = Modifier,
+    padding: PaddingValues = PaddingValues(16.dp),
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .then(
+                if (glowColor != null && glowColor != ReactPanelLine) Modifier.shadow(
+                    elevation = 14.dp,
+                    shape = RoundedCornerShape(8.dp),
+                    ambientColor = glowColor, spotColor = glowColor
+                ) else Modifier
+            )
+            .clip(RoundedCornerShape(8.dp))
+            .background(ReactPanel)
+            .border(
+                width = 1.dp,
+                color = glowColor ?: ReactPanelLine,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .padding(padding)
+    ) {
+        Column(content = content)
+    }
+}
 
 private enum class Corner { TopRight, BottomLeft, TopLeft, BottomRight }
 
@@ -1029,6 +1119,41 @@ private fun CornerTick(modifier: Modifier, color: Color, corner: Corner) {
             }
         }
     }
+}
+
+fun Modifier.scanlineOverlay(): Modifier = drawWithCache {
+    val lineSpacing = 4f
+    onDrawWithContent {
+        drawContent()
+        var y = 0f
+        while (y < size.height) {
+            drawLine(
+                Color.White.copy(alpha = 0.015f),
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = 1f
+            )
+            y += lineSpacing
+        }
+    }
+}
+
+fun categoryIcon(id: String): ImageVector = when (id) {
+    "technology", "tech" -> Icons.Filled.Memory
+    "physical"           -> Icons.Filled.FitnessCenter
+    "mental"             -> Icons.Filled.Psychology
+    "social"             -> Icons.Filled.Groups
+    "finance"            -> Icons.Filled.AccountBalance
+    else                 -> Icons.Filled.Star
+}
+
+fun categoryColor(id: String): Color = when (id) {
+    "technology", "tech" -> ReactCyan
+    "physical"           -> Color(0xFFFFB4AB)
+    "mental"             -> ReactPurple
+    "social"             -> ReactGold
+    "finance"             -> ReactGreen
+    else                 -> ReactPurple
 }
 
 /* ============================================================
@@ -1061,7 +1186,7 @@ private val mockCategories = listOf(
     )
 )
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000, name = "Step 1: Category Pick")
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "Step 1: Category Pick")
 @Composable
 fun InterestsPreview_CategoryPick() {
     InterestsOnboardingScreenContent(
@@ -1075,7 +1200,7 @@ fun InterestsPreview_CategoryPick() {
     )
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000, name = "Step 2: Focus Areas")
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "Step 2: Focus Areas")
 @Composable
 fun InterestsPreview_FocusAreas() {
     InterestsOnboardingScreenContent(
@@ -1093,7 +1218,7 @@ fun InterestsPreview_FocusAreas() {
     )
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000, name = "Step 3: Proficiency")
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "Step 3: Proficiency")
 @Composable
 fun InterestsPreview_Proficiency() {
     InterestsOnboardingScreenContent(
@@ -1108,7 +1233,7 @@ fun InterestsPreview_Proficiency() {
     )
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000, name = "Step 4: Global Goal")
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "Step 4: Global Goal")
 @Composable
 fun InterestsPreview_GlobalGoal() {
     InterestsOnboardingScreenContent(
@@ -1123,7 +1248,7 @@ fun InterestsPreview_GlobalGoal() {
     )
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000, name = "Step 5: Review")
+@Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "Step 5: Review")
 @Composable
 fun InterestsPreview_Review() {
     InterestsOnboardingScreenContent(
