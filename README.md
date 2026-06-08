@@ -99,6 +99,7 @@ A core technical pillar of Ascend is its independent AI infrastructure. Rather t
 | Cache & streams | Redis 7 · Redis Streams (async event processing) |
 | Containerisation | Docker · Docker Compose |
 | Cloud | AWS EC2 (free tier) · Nginx · GitHub Actions CD |
+| Email | Standard SMTP (e.g. Gmail App Passwords) for free, reliable OTP delivery |
 
 ---
 
