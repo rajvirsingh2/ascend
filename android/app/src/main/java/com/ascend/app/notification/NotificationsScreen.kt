@@ -45,27 +45,29 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ascend.app.ui.auth.jetBrainsMono
 import com.ascend.app.ui.auth.orbitron
-import com.ascend.app.ui.theme.BorderGlow
-import com.ascend.app.ui.theme.CyanAccent
-import com.ascend.app.ui.theme.DangerRed
-import com.ascend.app.ui.theme.GoldAccent
-import com.ascend.app.ui.theme.PanelMid
-import com.ascend.app.ui.theme.PurpleLight
-import com.ascend.app.ui.theme.PurplePrimary
-import com.ascend.app.ui.theme.SystemBlack
-import com.ascend.app.ui.theme.TextMuted
-import com.ascend.app.ui.theme.TextPrimary
-import com.ascend.app.ui.theme.TextSecondary
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+
+// --- Standardized React Mapped Colors ---
+val ReactCyan = Color(0xFF00E5FF)
+val ReactGold = Color(0xFFFFD700)
+val ReactGreen = Color(0xFF00E676)
+val ReactPurple = Color(0xFFB388FF)
+val ReactRed = Color(0xFFFF3B30)
+val ReactPanel = Color(0xFF0C0C16)
+val ReactPanelLine = Color(0xFF2A2A35)
+val ReactInk = Color.White
+val ReactInkDim = Color.Gray
+val ReactInkFaint = Color(0xFF555555)
 
 @Composable
 fun NotificationsScreen(
@@ -107,13 +109,14 @@ fun NotificationsScreenContent(
     }
     val grouped = remember(filtered) { groupByDay(filtered) }
 
-    Scaffold(containerColor = SystemBlack) { padding ->
+    Scaffold(containerColor = Color(0xFF07070B)) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(SystemBlack)
+                .background(Color(0xFF07070B))
                 .padding(padding)
         ) {
+            // Ambient Radial Glow
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -122,7 +125,7 @@ fun NotificationsScreenContent(
                     .blur(50.dp)
                     .background(
                         Brush.radialGradient(
-                            listOf(PurplePrimary.copy(alpha = 0.10f), Color.Transparent)
+                            listOf(ReactPurple.copy(alpha = 0.10f), Color.Transparent)
                         )
                     )
             )
@@ -143,7 +146,7 @@ fun NotificationsScreenContent(
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 80.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         grouped.forEach { (dayLabel, dayItems) ->
                             item(key = "h_$dayLabel") { DayHeader(label = dayLabel) }
@@ -172,22 +175,22 @@ private fun NotificationsTopBar(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextSecondary)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = ReactInkDim)
             }
             Spacer(Modifier.width(4.dp))
             Text(
                 "◈ NOTIFICATIONS",
                 fontFamily = orbitron, fontSize = 18.sp,
                 fontWeight = FontWeight.Black, letterSpacing = 2.sp,
-                color = PurpleLight,
-                style = TextStyle(shadow = Shadow(PurpleLight.copy(alpha = 0.4f), blurRadius = 8f))
+                color = ReactPurple,
+                style = TextStyle(shadow = Shadow(ReactPurple.copy(alpha = 0.4f), blurRadius = 8f))
             )
             if (unreadCount > 0) {
                 Spacer(Modifier.width(8.dp))
                 Box(
                     modifier = Modifier
-                        .clip(CircleShape).background(DangerRed)
-                        .shadow(8.dp, CircleShape, ambientColor = DangerRed, spotColor = DangerRed)
+                        .clip(CircleShape).background(ReactRed)
+                        .shadow(8.dp, CircleShape, ambientColor = ReactRed, spotColor = ReactRed)
                         .padding(horizontal = 7.dp, vertical = 2.dp)
                 ) {
                     Text(
@@ -200,10 +203,10 @@ private fun NotificationsTopBar(
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IconButton(onClick = onMarkAllRead, modifier = Modifier.size(34.dp)) {
-                Icon(Icons.Filled.DoneAll, null, tint = CyanAccent, modifier = Modifier.size(18.dp))
+                Icon(Icons.Filled.DoneAll, null, tint = ReactCyan, modifier = Modifier.size(18.dp))
             }
             IconButton(onClick = onClearAll, modifier = Modifier.size(34.dp)) {
-                Icon(Icons.Filled.DeleteSweep, null, tint = TextMuted, modifier = Modifier.size(18.dp))
+                Icon(Icons.Filled.DeleteSweep, null, tint = ReactInkDim, modifier = Modifier.size(18.dp))
             }
         }
     }
@@ -219,7 +222,7 @@ private fun FilterChipRow(selected: NotifType?, onChange: (NotifType?) -> Unit) 
             .padding(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(7.dp)
     ) {
-        FilterPill("ALL", TextPrimary, selected == null) { onChange(null) }
+        FilterPill("ALL", ReactInk, selected == null) { onChange(null) }
         NotifType.entries.forEach { type ->
             FilterPill(type.displayLabel, type.accentColor, selected == type) { onChange(type) }
         }
@@ -231,13 +234,7 @@ private fun FilterPill(label: String, color: Color, active: Boolean, onClick: ()
     Box(
         modifier = Modifier
             .height(30.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (active) color.copy(alpha = 0.15f) else Color.Transparent)
-            .border(1.dp, if (active) color else BorderGlow, RoundedCornerShape(8.dp))
-            .then(
-                if (active) Modifier.shadow(8.dp, RoundedCornerShape(8.dp),
-                    ambientColor = color, spotColor = color) else Modifier
-            )
+            .reactStyleCard(selected = active, glowColor = color, cornerRadius = 8.dp)
             .clickable { onClick() }
             .padding(horizontal = 11.dp),
         contentAlignment = Alignment.Center
@@ -246,7 +243,7 @@ private fun FilterPill(label: String, color: Color, active: Boolean, onClick: ()
             label,
             fontFamily = jetBrainsMono, fontSize = 10.sp,
             letterSpacing = 1.2.sp, fontWeight = FontWeight.Black,
-            color = if (active) color else TextMuted
+            color = if (active) color else ReactInkDim
         )
     }
 }
@@ -258,80 +255,117 @@ private fun DayHeader(label: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Box(Modifier.size(6.dp).background(CyanAccent))
-        Text(label.uppercase(Locale.ROOT),
+        Box(Modifier.size(6.dp).background(ReactCyan))
+        Text(
+            label.uppercase(Locale.ROOT),
             fontFamily = jetBrainsMono, fontSize = 10.sp,
-            letterSpacing = 2.sp, fontWeight = FontWeight.Bold, color = TextMuted)
-        Box(modifier = Modifier.weight(1f).height(1.dp).background(BorderGlow.copy(alpha = 0.3f)))
+            letterSpacing = 2.sp, fontWeight = FontWeight.Bold, color = ReactInkDim
+        )
+        Box(modifier = Modifier.weight(1f).height(1.dp).background(ReactPanelLine))
     }
 }
 
 @Composable
 fun NotificationCard(item: NotifItem, onClick: () -> Unit) {
     val accent = item.type.accentColor
-    val bg = if (!item.isRead) accent.copy(alpha = 0.06f) else PanelMid.copy(alpha = 0.5f)
-    val border = if (!item.isRead) accent.copy(alpha = 0.5f) else BorderGlow.copy(alpha = 0.3f)
+    val isUnread = !item.isRead
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(bg)
-            .border(if (!item.isRead) 1.5.dp else 1.dp, border, RoundedCornerShape(10.dp))
+            .reactStyleCard(selected = isUnread, glowColor = accent, cornerRadius = 10.dp)
             .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 11.dp)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(11.dp)) {
+            // Left Icon Badge
             Box(
                 modifier = Modifier
                     .size(38.dp)
+                    // 1. Shadow goes FIRST so it casts behind the component
+                    .then(
+                        if (isUnread) Modifier.shadow(
+                            elevation = 8.dp,
+                            shape = RoundedCornerShape(9.dp),
+                            ambientColor = accent,
+                            spotColor = accent
+                        ) else Modifier
+                    )
+                    // 2. Clip the shape
                     .clip(RoundedCornerShape(9.dp))
-                    .background(accent.copy(alpha = 0.15f))
-                    .border(1.dp, accent.copy(alpha = 0.4f), RoundedCornerShape(9.dp))
-                    .then(if (!item.isRead) Modifier.shadow(8.dp, RoundedCornerShape(9.dp),
-                        ambientColor = accent, spotColor = accent) else Modifier),
+                    // 3. Apply background
+                    .background(accent.copy(alpha = if (isUnread) 0.15f else 0.05f))
+                    // 4. Apply border
+                    .border(
+                        width = 1.dp,
+                        color = if (isUnread) accent.copy(alpha = 0.4f) else ReactPanelLine,
+                        shape = RoundedCornerShape(9.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(item.type.icon, null, tint = accent, modifier = Modifier.size(18.dp))
             }
+
+            // Text Content
             Column(modifier = Modifier.weight(1f)) {
+                // Header (Type + Status Dot + Time)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(item.type.displayLabel,
+                    Text(
+                        item.type.displayLabel,
                         fontFamily = jetBrainsMono, fontSize = 9.sp,
-                        letterSpacing = 1.5.sp, fontWeight = FontWeight.Black, color = accent)
-                    if (!item.isRead) {
-                        Box(modifier = Modifier
-                            .size(6.dp).clip(CircleShape).background(accent)
-                            .shadow(6.dp, CircleShape, ambientColor = accent, spotColor = accent))
+                        letterSpacing = 1.5.sp, fontWeight = FontWeight.Black, color = accent
+                    )
+                    if (isUnread) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp).clip(CircleShape).background(accent)
+                                .shadow(6.dp, CircleShape, ambientColor = accent, spotColor = accent)
+                        )
                     }
                     Spacer(Modifier.weight(1f))
-                    Text(formatRelative(item.timestamp),
+                    Text(
+                        formatRelative(item.timestamp),
                         fontFamily = jetBrainsMono, fontSize = 9.sp,
-                        color = TextMuted.copy(alpha = 0.6f))
+                        color = ReactInkDim.copy(alpha = 0.6f)
+                    )
                 }
+
                 Spacer(Modifier.height(4.dp))
-                Text(item.title,
+
+                // Title
+                Text(
+                    item.title,
                     fontFamily = orbitron, fontSize = 13.sp,
                     fontWeight = FontWeight.Bold, letterSpacing = 0.3.sp,
-                    color = if (item.isRead) TextSecondary else TextPrimary)
+                    color = if (isUnread) ReactInk else ReactInkDim
+                )
+
                 Spacer(Modifier.height(2.dp))
-                Text(item.body,
+
+                // Body
+                Text(
+                    item.body,
                     fontFamily = jetBrainsMono, fontSize = 11.5.sp,
-                    color = TextSecondary.copy(alpha = if (item.isRead) 0.6f else 0.85f),
-                    lineHeight = 16.sp)
+                    color = if (isUnread) ReactInkDim else ReactInkFaint,
+                    lineHeight = 16.sp
+                )
+
+                // Optional XP Reward Chip
                 item.xpDelta?.let { xp ->
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(8.dp))
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .background(GoldAccent.copy(alpha = 0.12f))
-                            .border(1.dp, GoldAccent.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                            .background(ReactGold.copy(alpha = 0.12f))
+                            .border(1.dp, ReactGold.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        Text("+${xp} XP",
+                        Text(
+                            "+${xp} XP",
                             fontFamily = jetBrainsMono, fontSize = 9.5.sp,
                             fontWeight = FontWeight.Black, letterSpacing = 1.sp,
-                            color = GoldAccent)
+                            color = ReactGold
+                        )
                     }
                 }
             }
@@ -347,13 +381,39 @@ private fun EmptyNotifications(filter: NotifType?) {
             Text(
                 if (filter == null) "NO TRANSMISSIONS" else "NO ${filter.displayLabel} TRANSMISSIONS",
                 fontFamily = orbitron, fontSize = 14.sp,
-                fontWeight = FontWeight.Black, letterSpacing = 2.sp, color = TextMuted
+                fontWeight = FontWeight.Black, letterSpacing = 2.sp, color = ReactInkDim
             )
-            Text("The System is quiet for now.",
+            Text(
+                "The System is quiet for now.",
                 fontFamily = jetBrainsMono, fontSize = 11.sp,
-                color = TextSecondary.copy(alpha = 0.6f))
+                color = ReactInkFaint
+            )
         }
     }
+}
+
+/* ============================================================
+ * HELPERS
+ * ============================================================ */
+
+fun Modifier.reactStyleCard(selected: Boolean, glowColor: Color, cornerRadius: Dp = 12.dp): Modifier {
+    return this
+        .alpha(if (selected) 1f else 0.6f)
+        .then(
+            if (selected) Modifier.shadow(
+                elevation = 14.dp,
+                shape = RoundedCornerShape(cornerRadius),
+                ambientColor = glowColor,
+                spotColor = glowColor
+            ) else Modifier
+        )
+        .clip(RoundedCornerShape(cornerRadius))
+        .background(ReactPanel)
+        .border(
+            width = if (selected) 1.5.dp else 1.dp,
+            color = if (selected) glowColor.copy(alpha = 0.5f) else ReactPanelLine,
+            shape = RoundedCornerShape(cornerRadius)
+        )
 }
 
 private fun groupByDay(items: List<NotifItem>): List<Pair<String, List<NotifItem>>> {
@@ -387,6 +447,10 @@ private fun formatRelative(ts: Long): String {
         else -> SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(ts))
     }
 }
+
+/* ============================================================
+ * PREVIEWS
+ * ============================================================ */
 
 @Preview(showBackground = true, backgroundColor = 0xFF07070B, name = "Populated")
 @Composable

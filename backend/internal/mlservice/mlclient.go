@@ -54,6 +54,30 @@ func cleanJSONString(s string) string {
 	return strings.TrimSpace(s)
 }
 
+func parseTruncatedJSONList(raw string) ([]Quest, error) {
+	raw = cleanJSONString(raw)
+
+	var quests []Quest
+	if err := json.Unmarshal([]byte(raw), &quests); err == nil && len(quests) > 0 {
+		return quests, nil
+	}
+
+	// Try to salvage truncated JSON by finding the last closing brace
+	lastBrace := strings.LastIndex(raw, "}")
+	if lastBrace == -1 {
+		return nil, errors.New("no valid objects found in truncated JSON")
+	}
+
+	truncated := raw[:lastBrace+1] + "]"
+	
+	var truncatedQuests []Quest
+	if err := json.Unmarshal([]byte(truncated), &truncatedQuests); err == nil && len(truncatedQuests) > 0 {
+		return truncatedQuests, nil
+	}
+
+	return nil, errors.New("failed to salvage truncated JSON")
+}
+
 type Quest struct {
 	Title           string `json:"title"`
 	Description     string `json:"description"`
@@ -234,7 +258,20 @@ func (c *Client) callSpace(ctx context.Context, profile UserProfile) ([]Quest, e
 
 			return nil, fmt.Errorf("failed to parse complete event data: %s", dataStr)
 		} else if strings.HasPrefix(line, "data: ") && lastEvent == "error" {
-			return nil, fmt.Errorf("model error: %s", strings.TrimPrefix(line, "data: "))
+			dataStr := strings.TrimPrefix(line, "data: ")
+
+			// Try to salvage partial JSON if the model generated some quests but errored out at the end
+			var errResp struct {
+				Error string `json:"error"`
+				Raw   string `json:"raw"`
+			}
+			if err := json.Unmarshal([]byte(dataStr), &errResp); err == nil && errResp.Raw != "" {
+				if quests, parseErr := parseTruncatedJSONList(errResp.Raw); parseErr == nil && len(quests) > 0 {
+					return quests, nil
+				}
+			}
+
+			return nil, fmt.Errorf("model error: %s", dataStr)
 		}
 	}
 
