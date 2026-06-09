@@ -15,5 +15,7 @@ data class UserEntity(
     val strength: Int = 0,
     val agility: Int = 0,
     val mana: Int = 0,
+    val hp: Int = 100,
+    val maxHp: Int = 100,
     val cachedAt: Long = System.currentTimeMillis()
 )

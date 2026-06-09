@@ -58,6 +58,8 @@ private fun UserResponse.toEntity() = UserEntity(
     strength   = strength,
     agility    = agility,
     mana       = mana,
+    hp         = hp,
+    maxHp      = maxHp,
 )
 
 private fun UserEntity.toDomain() = User(
@@ -72,4 +74,6 @@ private fun UserEntity.toDomain() = User(
     strength  = strength,
     agility   = agility,
     mana      = mana,
+    hp        = hp,
+    maxHp     = maxHp,
 )

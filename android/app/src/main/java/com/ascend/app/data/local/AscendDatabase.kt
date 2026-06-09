@@ -11,7 +11,7 @@ import com.ascend.app.data.local.entity.UserEntity
 
 @Database(
     entities = [QuestEntity::class, HabitEntity::class, UserEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AscendDatabase: RoomDatabase(){
