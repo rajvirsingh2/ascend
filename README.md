@@ -2,8 +2,6 @@
 
 > **An Offline-First Android RPG powered by a Custom Fine-Tuned LLM and a Go Microservices Backend.**
 
-[![Android Build](https://github.com/rajvirsingh2/ascend/actions/workflows/android-ci.yml/badge.svg)](https://github.com/rajvirsingh2/ascend/actions)
-[![Backend Build](https://github.com/rajvirsingh2/ascend/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/rajvirsingh2/ascend/actions)
 ![Kotlin](https://img.shields.io/badge/Kotlin-100%25-blue?logo=kotlin)
 ![Go](https://img.shields.io/badge/Go-1.23-00ADD8?logo=go)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
@@ -39,8 +37,6 @@ Ascend is fully live and hosted on AWS! **[Download the latest APK Release here]
     <td align="center"><img src="docs/images/recover.png" width="100%" /><br><b>HP Recovery</b></td>
   </tr>
 </table>
-
-*(Note: Add demo.gif here)*
 
 ---
 
