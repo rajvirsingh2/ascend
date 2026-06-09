@@ -69,7 +69,7 @@ func parseTruncatedJSONList(raw string) ([]Quest, error) {
 	}
 
 	truncated := raw[:lastBrace+1] + "]"
-	
+
 	var truncatedQuests []Quest
 	if err := json.Unmarshal([]byte(truncated), &truncatedQuests); err == nil && len(truncatedQuests) > 0 {
 		return truncatedQuests, nil
