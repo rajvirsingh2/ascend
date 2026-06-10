@@ -92,6 +92,9 @@ Ascend is animation-heavy and UI-dense. To keep recompositions cheap:
 - Data passed to Composables relies on immutable Domain Models (`@Immutable`).
 - Complex screens, such as the **GitHub-Style Heatmap**, use calculated grid layouts with heavily localized state to ensure that scrolling through a year's worth of activity doesn't stutter the main thread.
 
+### Push Notifications (FCM)
+A dedicated `AscendFcmService` handles incoming Firebase Cloud Messaging data payloads. It constructs Android system tray notifications dynamically and intercepts deep-link routing. Crucially, it integrates with the `QuestRefreshWorker` to silently pre-fetch "Midnight Quest Drops", ensuring new daily quests are cached in the Room database before the user even opens the app.
+
 ### Resilient WebSocket Management
 A global `WebSocketManager` maintains a persistent WSS connection with the Go API, automatically handling exponential backoff and reconnection if the device drops Wi-Fi. It streams real-time `LEVEL_UP` and `XP_AWARDED` events directly to the UI, bypassing the standard polling cycle.
 
@@ -116,7 +119,7 @@ A core technical pillar of Ascend is its independent AI infrastructure. Rather t
 
 | Layer | Technology |
 |---|---|
-| Android client | Kotlin · Jetpack Compose · MVI · Room · Retrofit · WorkManager (offline sync) |
+| Android client | Kotlin · Jetpack Compose · MVI · Room · Retrofit · WorkManager (offline sync) · Firebase Cloud Messaging (FCM) |
 | Go API | Go 1.25 · Chi router · JWT · stdlib WebSocket (RFC 6455) |
 | Database | PostgreSQL 16 (pgvector) |
 | Cache & streams | Redis 7 · Redis Streams (async events) · Redis Pub/Sub (realtime push) |
@@ -193,7 +196,16 @@ All endpoints are prefixed with `/api/v1`.
 | GET | `/quests` | JWT | List active quests |
 | POST | `/quests/:id/complete` | JWT | Complete a quest |
 | POST | `/quests/:id/skip` | JWT | Skip a quest |
-| POST | `/quests/generate` | JWT | AI-generate new quests |
+| POST | `/quests/generate` | JWT | AI-generate new quests (Rate Limited: 5/day) |
+
+### Notifications
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/notifications` | JWT | Get user's notification inbox |
+| PUT | `/notifications/{id}/read` | JWT | Mark a single notification as read |
+| PUT | `/notifications/read-all` | JWT | Mark all notifications as read |
+| DELETE | `/notifications/{id}` | JWT | Delete a notification |
+| DELETE | `/notifications/clear-all` | JWT | Delete all notifications |
 
 ### WebSocket
 | Endpoint | Auth | Description |
@@ -213,6 +225,7 @@ All endpoints are prefixed with `/api/v1`.
 - **Authentication flow**: Register → email OTP sent → verify OTP → account active → login → JWT + refresh cookie
 - Access tokens: 15 minutes, HS256. Refresh tokens: 7 days, stored as SHA-256 hash in Redis.
 - **Account protection**: 5 failed attempts within 15 minutes → account locked for 30 minutes. OTP rate limit max 3 per 15-minute window.
+- **Rate Limiting**: Auth endpoints are restricted to 10 requests per 15 minutes. AI Quest Generation is strictly limited to 5 requests per day per user to prevent abuse and API exhaustion.
 - **CORS & CSRF**: Exact allow-list only. `HttpOnly`, `Secure`, `SameSite=Strict` cookies.
 - **HMAC request signing**: Every mutating request includes `X-Timestamp` and `X-Signature` validated by the backend.
 
