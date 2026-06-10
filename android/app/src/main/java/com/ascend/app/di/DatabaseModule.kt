@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.ascend.app.data.local.AscendDatabase
 import com.ascend.app.data.local.dao.HabitDao
+import com.ascend.app.data.local.dao.PendingOperationDao
 import com.ascend.app.data.local.dao.QuestDao
 import com.ascend.app.data.local.dao.UserDao
 import dagger.Module
@@ -26,5 +27,6 @@ object DatabaseModule {
     @Provides fun provideQuestDao(db: AscendDatabase): QuestDao = db.questDao()
     @Provides fun provideHabitDao(db: AscendDatabase): HabitDao = db.habitDao()
     @Provides fun provideUserDao(db: AscendDatabase): UserDao = db.userDao()
+    @Provides fun providePendingOperationDao(db: AscendDatabase): PendingOperationDao = db.pendingOperationDao()
 
 }

@@ -9,6 +9,7 @@ import (
 
 	"ascend-backend/internal/achievements"
 	"ascend-backend/internal/notifications"
+	"ascend-backend/internal/realtime"
 	pgstore "ascend-backend/internal/store/postgres"
 	"ascend-backend/pkg/config"
 
@@ -165,9 +166,34 @@ func processXPEvent(ctx context.Context, cfg XPWorkerConfig, event XPEvent) erro
 		}
 	}
 
+	// 6. Realtime push over WebSocket (fire-and-forget via Redis Pub/Sub —
+	// the API instance holding the user's socket relays it).
+	publishRealtime(ctx, cfg.Redis, event.UserID, didLevelUp, newLevel, event.Amount)
+
 	log.Printf("[xp-worker] user=%s +%d XP → total=%d level=%d level_up=%v achievements=%d",
 		event.UserID, event.Amount, newXP, newLevel, didLevelUp, len(awarded))
 	return nil
+}
+
+// publishRealtime emits the WS frame the Android client expects:
+// {"type":"LEVEL_UP","payload":{"new_level":N,"xp_awarded":N}} or
+// {"type":"XP_AWARDED","payload":{"amount":N}}.
+func publishRealtime(ctx context.Context, rdb *redis.Client, userID string, didLevelUp bool, newLevel, amount int) {
+	var frame []byte
+	if didLevelUp {
+		frame, _ = json.Marshal(map[string]any{
+			"type":    "LEVEL_UP",
+			"payload": map[string]any{"new_level": newLevel, "xp_awarded": amount},
+		})
+	} else {
+		frame, _ = json.Marshal(map[string]any{
+			"type":    "XP_AWARDED",
+			"payload": map[string]any{"amount": amount},
+		})
+	}
+	if err := rdb.Publish(ctx, realtime.ChannelPrefix+userID, frame).Err(); err != nil {
+		log.Printf("[xp-worker] realtime publish error: %v", err)
+	}
 }
 
 // runPunishmentWorker deducts HP when compulsory quests/habits expire unfinished.

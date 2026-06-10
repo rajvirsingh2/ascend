@@ -81,7 +81,7 @@ class UserRepositoryTest {
     @Test
     fun `logout clears token and database`() = runTest {
         // Arrange
-        coEvery { api.logout() } returns retrofit2.Response.success(null)
+        coEvery { api.logout() } returns Unit
 
         // Act
         repository.logout()

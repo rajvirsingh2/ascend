@@ -23,5 +23,7 @@ class AscendApplication: Application(), Configuration.Provider {
         super.onCreate()
         // Initialize periodic local notifications
         NotificationScheduler.scheduleLocalNotifications(this)
+        // Replay any writes queued while offline in a previous session.
+        com.ascend.app.workers.SyncWorker.requestSync(this)
     }
 }

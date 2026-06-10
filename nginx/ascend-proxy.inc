@@ -70,6 +70,13 @@ location = /api/v1/quests/generate {
     proxy_read_timeout    600s;
 }
 
+# ── Internal-only: Prometheus metrics ────────────────────
+# Scrape directly from the host (backend binds 127.0.0.1:8080), never via
+# the public proxy.
+location = /metrics {
+    return 404;
+}
+
 # ── All other API endpoints ──────────────────────────────
 location / {
     limit_req zone=api burst=40 nodelay;

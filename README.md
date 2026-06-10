@@ -3,7 +3,7 @@
 > **An Offline-First Android RPG powered by a Custom Fine-Tuned LLM and a Go Microservices Backend.**
 
 ![Kotlin](https://img.shields.io/badge/Kotlin-100%25-blue?logo=kotlin)
-![Go](https://img.shields.io/badge/Go-1.23-00ADD8?logo=go)
+![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
 
 **Ascend** is a production-ready, gamified personal development application that turns real-world habits and goals into a high-stakes RPG. 
@@ -77,7 +77,8 @@ While the backend powers the logic, the Android app is engineered to provide an 
 ### Offline-First & Room Syncing
 The app treats the **Room Database as the single source of truth**. 
 - **Reads**: The UI strictly observes `Flow` streams directly from Room DAOs. When the database updates, the UI instantly reacts.
-- **Writes**: Network interactions (like completing a quest) follow an optimistic pattern—they hit the Retrofit API first, and upon success, immediately update the local Room cache to trigger the UI recomposition.
+- **Writes**: Network interactions (like completing a quest) update the Room cache optimistically. When the device is online, the Retrofit API is hit first and the cache is updated on success.
+- **Offline Write Queue**: If the device is offline, the write still applies locally and is recorded in a `pending_operations` Room table. A WorkManager `SyncWorker` (network-constrained, exponential backoff) replays the queue in order once connectivity returns. Server-rejected operations (e.g. an expired quest) are dropped rather than retried, and the queue is cleared on logout so one user's actions are never replayed under another's token.
 - **Background Sync**: Network requests are managed asynchronously, ensuring the app remains fully functional and snappy even under degraded network conditions.
 
 ### MVI Architecture
@@ -94,6 +95,8 @@ Ascend is animation-heavy and UI-dense. To keep recompositions cheap:
 ### Resilient WebSocket Management
 A global `WebSocketManager` maintains a persistent WSS connection with the Go API, automatically handling exponential backoff and reconnection if the device drops Wi-Fi. It streams real-time `LEVEL_UP` and `XP_AWARDED` events directly to the UI, bypassing the standard polling cycle.
 
+On the server side, the `/api/v1/ws` endpoint is a dependency-free RFC 6455 implementation (`internal/realtime`) built directly on the Go standard library: JWT-guarded upgrade, a per-user connection hub with multi-device fan-out, and server-side ping keepalive. The XP worker publishes events through Redis Pub/Sub (`ascend:rt:<user>`), so whichever API instance holds the user's socket relays the frame — the worker and the API can scale independently.
+
 ---
 
 ## Custom Quest Generation Model
@@ -101,7 +104,7 @@ A global `WebSocketManager` maintains a persistent WSS connection with the Go AP
 A core technical pillar of Ascend is its independent AI infrastructure. Rather than relying heavily on generic third-party AI APIs (which are expensive and rigid), Ascend features a **custom fine-tuned LLM** dedicated entirely to generating personalized RPG quests.
 
 ### The Machine Learning Journey
-- **Synthetic Dataset Generation:** The process began with no real user data. A synthetic dataset of 100,000 instruction-tuning pairs was built using a custom script and Gemini, ensuring proper ChatML formatting, train/validation splits, and balanced domains.
+- **Synthetic Dataset Generation:** The process began with no real user data. A synthetic dataset of 10,000 instruction-tuning pairs was built using a custom script and Gemini, ensuring proper ChatML formatting, train/validation splits, and balanced domains.
 - **Fine-tuning on Colab:** Using a free Colab GPU, Microsoft's **Phi-3 Mini** was fine-tuned from a base state using LoRA/QLoRA techniques via `SFTTrainer`.
 - **Serverless Deployment:** The resulting model was merged, quantized to GGUF format, and deployed on a free Hugging Face Space running `llama-cpp-python` and Gradio for API access.
 - **Fault-Tolerant Parsing:** LLMs occasionally truncate JSON due to token limits. The Go Backend features a custom "salvage" parsing algorithm that safely intercepts Hugging Face truncation errors and successfully rescues all valid JSON objects parsed up to the cutoff.
@@ -113,10 +116,11 @@ A core technical pillar of Ascend is its independent AI infrastructure. Rather t
 
 | Layer | Technology |
 |---|---|
-| Android client | Kotlin · Jetpack Compose · MVI · Room · Retrofit |
-| Go API | Go 1.23 · Chi router · JWT |
+| Android client | Kotlin · Jetpack Compose · MVI · Room · Retrofit · WorkManager (offline sync) |
+| Go API | Go 1.25 · Chi router · JWT · stdlib WebSocket (RFC 6455) |
 | Database | PostgreSQL 16 (pgvector) |
-| Cache & streams | Redis 7 · Redis Streams (async event processing) |
+| Cache & streams | Redis 7 · Redis Streams (async events) · Redis Pub/Sub (realtime push) |
+| Observability | Prometheus-format `/metrics` (request counts, latency histograms, live WS connections) |
 | Containerisation | Docker · Docker Compose |
 | Cloud | AWS EC2 (free tier) · Nginx · GitHub Actions CD |
 
@@ -128,10 +132,11 @@ Android app (Kotlin/Compose)
 Nginx Reverse Proxy (port 80/443)
     │
     ▼
-Go API Gateway (port 8080)
+Go API Gateway (port 8080) ──► /metrics (Prometheus, internal-only)
     │  validates, persists, publishes
-    ├──► Redis Streams ──► XP Worker (Go) ──► PostgreSQL
-    │
+    ├──► Redis queues ──► XP Worker (Go) ──► PostgreSQL
+    │                          │
+    │                          └──► Redis Pub/Sub ──► WS Hub ──► connected devices
     ├──► PostgreSQL (users, quests, habits, goals, progress_logs)
     │
     └──► Python LLM Quest Generation Service (port 8001)
@@ -142,10 +147,17 @@ Go API Gateway (port 8080)
 ## Testing & Quality Assurance
 
 Ascend maintains a test-driven foundation to ensure the RPG mechanics and data syncing remain bug-free:
-- **Frameworks**: Tests are built using **JUnit 4/5**, **MockK** (for robust Kotlin object mocking), and `kotlinx-coroutines-test` for deterministic async testing.
-- **Domain Coverage**: Core RPG logic (like XP scaling, level thresholds, and rank evaluation) is thoroughly covered in the Domain layer.
-- **Repository Fakes/Mocks**: The offline-first synchronization logic within Repositories (e.g., `UserRepository`, `QuestRepository`) is tested by mocking the Retrofit APIs (`AuthApiService`, `QuestApiService`) to ensure the Room cache interacts perfectly with network payloads. 
-- *Check the `android/app/src/test` directory to review the test suites.*
+
+**Android** (`android/app/src/test`)
+- **Frameworks**: **JUnit 4**, **MockK** (Kotlin object mocking), and `kotlinx-coroutines-test` for deterministic async testing.
+- **Repository Mocks**: Repositories (`UserRepository`, `QuestRepository`, `HabitRepository`) are tested by mocking the Retrofit APIs to ensure the Room cache interacts correctly with network payloads.
+- **Offline Queue Coverage**: Tests assert that transport failures enqueue replay operations and apply optimistic local updates, while server rejections do not — and that logout clears the queue.
+
+**Go backend** (`go test ./...`)
+- **WebSocket protocol** (`internal/realtime`): RFC 6455 handshake vectors, frame encode/decode (7/16-bit lengths), masked ping→pong, close echo, dead-connection pruning, multi-device fan-out, and concurrent-write integrity — all run with the race detector.
+- **Metrics** (`internal/metrics`): counter/histogram exposition format and live gauges.
+- **ML parsing** (`internal/mlservice`): the truncated-JSON "salvage" algorithm, including markdown-fenced and garbage LLM output.
+- **Game math** (`internal/game`): XP curve monotonicity and difficulty-scaled reward floors.
 
 ---
 
@@ -156,7 +168,10 @@ Ascend maintains a test-driven foundation to ensure the RPG mechanics and data s
 | **APK Size** | **~15MB** | Optimized via R8 code shrinking and WebP vector assets. |
 | **Cold Start Time** | **<600ms** | Hilt Dependency Injection optimized; lazy database initialization. |
 | **Backend Latency** | **<15ms** | Non-blocking Go REST endpoints. |
-| **Worker Processing** | **Async** | XP calculations pushed to Redis Streams; UI is never blocked by complex game logic. |
+| **Worker Processing** | **Async** | XP calculations pushed to Redis queues; UI is never blocked by complex game logic. |
+
+### Observability
+The Go API exposes Prometheus-format metrics at `/metrics` — per-route request counts, latency histograms (bucketed by chi route pattern, so `/quests/{id}/complete` is one series), uptime, and a live WebSocket connection gauge. The endpoint is blocked at the nginx layer (`404`) and the backend binds to `127.0.0.1`, so metrics are scrapeable only from inside the host.
 
 ---
 
@@ -183,7 +198,7 @@ All endpoints are prefixed with `/api/v1`.
 ### WebSocket
 | Endpoint | Auth | Description |
 |---|---|---|
-| `ws://host/api/v1/ws` | JWT header | Real-time event stream |
+| `wss://host/api/v1/ws` | JWT header | Real-time event stream (server: `internal/realtime`, stdlib RFC 6455) |
 
 **WebSocket frame types:**
 ```json
@@ -209,6 +224,11 @@ All endpoints are prefixed with `/api/v1`.
 ascend/
 ├── .github/workflows/        CI/CD pipelines (backend, android, lint, release)
 ├── backend/                   Go API server & workers
+│   └── internal/
+│       ├── realtime/          stdlib WebSocket server (hub, RFC 6455 framing) + tests
+│       ├── metrics/           dependency-free Prometheus exposition + tests
+│       ├── workers/           XP / punishment / quest workers (Redis queues)
+│       └── store/postgres/    data access layer & migrations
 ├── android/                   Kotlin/Compose app
 │   └── app/src/
 │       ├── main/java/com/ascend/app/
@@ -226,6 +246,6 @@ ascend/
 
 ### Author
 Designed and Engineered by **Rajvir Singh**  
-[LinkedIn](https://linkedin.com/in/rajvirsingh2) | [GitHub](https://github.com/rajvirsingh2)
+[LinkedIn](https://www.linkedin.com/in/vir-singh31/) | [GitHub](https://github.com/rajvirsingh2)
 
 *Ascend — Level up your real life.*

@@ -1,9 +1,11 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"ascend-backend/internal/achievements"
@@ -14,11 +16,13 @@ import (
 	"ascend-backend/internal/goal"
 	"ascend-backend/internal/habit"
 	"ascend-backend/internal/interests"
+	"ascend-backend/internal/metrics"
 	"ascend-backend/internal/middleware"
 	"ascend-backend/internal/mlservice"
 	"ascend-backend/internal/notifications"
 	"ascend-backend/internal/physique"
 	"ascend-backend/internal/quest"
+	"ascend-backend/internal/realtime"
 	pgstore "ascend-backend/internal/store/postgres"
 	"ascend-backend/internal/user"
 
@@ -37,6 +41,9 @@ type Server struct {
 	rdb      *redis.Client
 	mlClient *mlservice.Client
 	pub      *events.Publisher
+	hub      *realtime.Hub
+	metrics  *metrics.HTTPMetrics
+	profiles *pgstore.UserProfileStore
 }
 
 func New(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *Server {
@@ -50,11 +57,39 @@ func New(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *Server {
 		slog.Info("ML model client initialised", "url", cfg.MLServiceURL)
 	}
 
-	return &Server{
+	s := &Server{
 		cfg:      cfg,
 		db:       db,
 		rdb:      rdb,
 		mlClient: mlClient,
+		hub:      realtime.NewHub(),
+		metrics:  metrics.New(),
+		profiles: pgstore.NewUserProfileStore(db),
+	}
+	s.metrics.RegisterGauge("ascend_ws_connections", func() float64 {
+		return float64(s.hub.ConnCount())
+	})
+	go s.runRealtimeBridge(context.Background())
+	return s
+}
+
+// runRealtimeBridge relays Redis Pub/Sub realtime events (published by the
+// XP worker, which may live in another process) to local WebSocket clients.
+func (s *Server) runRealtimeBridge(ctx context.Context) {
+	for {
+		sub := s.rdb.PSubscribe(ctx, realtime.ChannelPrefix+"*")
+		for msg := range sub.Channel() {
+			userID := strings.TrimPrefix(msg.Channel, realtime.ChannelPrefix)
+			s.hub.SendToUser(userID, []byte(msg.Payload))
+		}
+		// Channel closed (redis hiccup) — back off and resubscribe.
+		_ = sub.Close()
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(2 * time.Second):
+			slog.Warn("realtime bridge resubscribing to redis pub/sub")
+		}
 	}
 }
 
@@ -65,6 +100,7 @@ func (s *Server) Routes() http.Handler {
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
 	r.Use(middleware.RequestLogger)
+	r.Use(middleware.Metrics(s.metrics))
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.CORS(s.cfg.AllowedOrigins))
@@ -74,6 +110,10 @@ func (s *Server) Routes() http.Handler {
 		response.JSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 	r.Get("/ready", s.readyHandler())
+
+	// Prometheus scrape target. Deliberately not proxied by nginx — reachable
+	// only from inside the docker network / localhost.
+	r.Handle("/metrics", s.metrics.Handler())
 
 	// API v1
 	r.Route("/api/v1", func(r chi.Router) {
@@ -110,6 +150,11 @@ func (s *Server) Routes() http.Handler {
 		// protected routes — JWT required
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.JWTGuard(s.cfg.JWTSecret))
+
+			// realtime events (LEVEL_UP / XP_AWARDED). No timeout middleware:
+			// the connection is long-lived by design.
+			r.Get("/ws", realtime.ServeWS(s.hub, middleware.GetUserID))
+
 			userHandler := user.NewHandler(s.db)
 			avatarUploader := user.NewAvatarUploader(
 				s.db,
@@ -211,30 +256,24 @@ func (s *Server) readyHandler() http.HandlerFunc {
 func (s *Server) meHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := middleware.GetUserID(r)
-		var email, username string
-		var level, currentXP, totalXP, hp, maxHp, strength, agility, mana int
-		err := s.db.QueryRow(r.Context(),
-			`SELECT email, username, level, current_xp, total_xp, hp, max_hp, strength, agility, mana FROM users WHERE id = $1`,
-			userID,
-		).Scan(&email, &username, &level, &currentXP, &totalXP, &hp, &maxHp, &strength, &agility, &mana)
+		p, err := s.profiles.GetProfile(r.Context(), userID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, "user not found")
 			return
 		}
-		xpToNext := game.XPForLevel(level + 1)
 		response.JSON(w, http.StatusOK, map[string]any{
 			"id":         userID,
-			"email":      email,
-			"username":   username,
-			"level":      level,
-			"current_xp": currentXP,
-			"total_xp":   totalXP,
-			"xp_to_next": xpToNext,
-			"hp":         hp,
-			"max_hp":     maxHp,
-			"strength":   strength,
-			"agility":    agility,
-			"mana":       mana,
+			"email":      p.Email,
+			"username":   p.Username,
+			"level":      p.Level,
+			"current_xp": p.CurrentXP,
+			"total_xp":   p.TotalXP,
+			"xp_to_next": game.XPForLevel(p.Level + 1),
+			"hp":         p.HP,
+			"max_hp":     p.MaxHP,
+			"strength":   p.Strength,
+			"agility":    p.Agility,
+			"mana":       p.Mana,
 		})
 	}
 }
@@ -246,37 +285,21 @@ func (s *Server) Addr() string {
 func (s *Server) progressHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := middleware.GetUserID(r)
-		rows, err := s.db.Query(r.Context(),
-			`SELECT event_type, xp_delta, level_before, level_after, created_at
-			 FROM progress_logs
-			 WHERE user_id=$1
-			 ORDER BY created_at DESC LIMIT 30`,
-			userID,
-		)
+		entries, err := s.profiles.ListProgress(r.Context(), userID, 30)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, "failed to fetch progress")
 			return
 		}
-		defer rows.Close()
 
-		var logs []map[string]any
-		for rows.Next() {
-			var eventType string
-			var xpDelta, levelBefore, levelAfter int
-			var createdAt time.Time
-			if err := rows.Scan(&eventType, &xpDelta, &levelBefore, &levelAfter, &createdAt); err != nil {
-				continue
-			}
+		logs := make([]map[string]any, 0, len(entries))
+		for _, l := range entries {
 			logs = append(logs, map[string]any{
-				"event_type":   eventType,
-				"xp_delta":     xpDelta,
-				"level_before": levelBefore,
-				"level_after":  levelAfter,
-				"created_at":   createdAt,
+				"event_type":   l.EventType,
+				"xp_delta":     l.XPDelta,
+				"level_before": l.LevelBefore,
+				"level_after":  l.LevelAfter,
+				"created_at":   l.CreatedAt,
 			})
-		}
-		if logs == nil {
-			logs = []map[string]any{}
 		}
 		response.JSON(w, http.StatusOK, logs)
 	}
@@ -285,25 +308,10 @@ func (s *Server) progressHandler() http.HandlerFunc {
 func (s *Server) achievementsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := middleware.GetUserID(r)
-		rows, err := s.db.Query(r.Context(),
-			`SELECT achievement_key, earned_at
-			 FROM user_achievements
-			 WHERE user_id=$1
-			 ORDER BY earned_at DESC`,
-			userID,
-		)
+		earnedMap, err := s.profiles.ListEarnedAchievements(r.Context(), userID)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, "failed to fetch achievements")
 			return
-		}
-		defer rows.Close()
-
-		// build full list with earned status
-		earnedMap := map[string]string{}
-		for rows.Next() {
-			var key, earnedAt string
-			_ = rows.Scan(&key, &earnedAt)
-			earnedMap[key] = earnedAt
 		}
 
 		type achievementResp struct {

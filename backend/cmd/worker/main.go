@@ -7,12 +7,16 @@ import (
 	"os/signal"
 	"syscall"
 
-	"ascend-backend/internal/events"
+	"ascend-backend/internal/notifications"
 	"ascend-backend/internal/store/postgres"
 	redisstore "ascend-backend/internal/store/redis"
+	"ascend-backend/internal/workers"
 
 	"ascend-backend/pkg/config"
 	"ascend-backend/pkg/logger"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -42,20 +46,32 @@ func main() {
 	}
 	defer rdb.Close()
 
-	publisher := events.NewPublisher(rdb)
 	workerType := os.Getenv("WORKER_TYPE")
 	slog.Info("worker starting", "type", workerType)
 
 	switch workerType {
 	case "xp":
-		runXPWorker(ctx, rdb, db, publisher)
+		runXPWorker(ctx, cfg, rdb, db)
 	default:
 		slog.Error("unknown WORKER_TYPE", "value", workerType)
 		os.Exit(1)
 	}
 }
 
-func runXPWorker(ctx context.Context, rdb interface { /* redis.Client */
-}, db interface{}, publisher *events.Publisher) {
-	// implemented in Step 1.7 below
+func runXPWorker(ctx context.Context, cfg *config.Config, rdb *redis.Client, db *pgxpool.Pool) {
+	notifier, err := notifications.NewFCMNotifier(ctx, cfg, db)
+	if err != nil {
+		slog.Warn("FCM notifier unavailable in worker, continuing without push", "error", err)
+		notifier = nil
+	}
+
+	// Blocks until ctx is cancelled. The same queue may also be drained by the
+	// in-process worker inside the API server; BLPOP guarantees each event is
+	// consumed exactly once regardless of how many consumers run.
+	workers.RunXPWorker(ctx, workers.XPWorkerConfig{
+		Redis:    rdb,
+		DB:       db,
+		Notifier: notifier,
+		Config:   cfg,
+	})
 }

@@ -1,12 +1,18 @@
 package com.ascend.app.data.repository
 
+import android.content.Context
+import com.ascend.app.data.local.dao.PendingOperationDao
 import com.ascend.app.data.local.dao.QuestDao
+import com.ascend.app.data.local.entity.PendingOperationEntity
 import com.ascend.app.data.local.entity.QuestEntity
 import com.ascend.app.data.remote.api.QuestApiService
 import com.ascend.app.data.remote.dto.CompletionResponse
 import com.ascend.app.data.remote.dto.toDomain
 import com.ascend.app.domain.model.Quest
 import com.ascend.app.domain.model.Result
+import com.ascend.app.workers.SyncWorker
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -15,7 +21,9 @@ import javax.inject.Singleton
 @Singleton
 class QuestRepository @Inject constructor(
     private val api: QuestApiService,
-    private val dao: QuestDao
+    private val dao: QuestDao,
+    private val pendingDao: PendingOperationDao,
+    @ApplicationContext private val context: Context
 ) {
     // UI observes this — always from Room
     fun observeActiveQuests(): Flow<List<Quest>> =
@@ -37,7 +45,11 @@ class QuestRepository @Inject constructor(
     }
 
     // call on logout to prevent stale data appearing for next user
-    suspend fun clearLocalCache() = dao.clearAll()
+    suspend fun clearLocalCache() {
+        dao.clearAll()
+        // Never replay the previous user's queued writes under a new token.
+        pendingDao.clearAll()
+    }
 
 
     suspend fun completeQuest(id: String): Result<CompletionResponse> {
@@ -49,9 +61,26 @@ class QuestRepository @Inject constructor(
             } else {
                 Result.Error(response.error ?: "Failed")
             }
+        } catch (e: IOException) {
+            // Offline: apply optimistically, queue for replay when network
+            // returns. XP/level data arrives later via sync + WS events.
+            dao.updateStatus(id, "completed")
+            enqueue(PendingOperationEntity.TYPE_COMPLETE_QUEST, id)
+            Result.Success(CompletionResponse())
         } catch (e: Exception) {
             Result.Error(e.message ?: "Network error")
         }
+    }
+
+    private suspend fun enqueue(type: String, targetId: String) {
+        pendingDao.insert(
+            PendingOperationEntity(
+                type = type,
+                targetId = targetId,
+                createdAt = System.currentTimeMillis()
+            )
+        )
+        SyncWorker.requestSync(context)
     }
 
     suspend fun skipQuest(id: String): Result<com.ascend.app.data.remote.api.SkipResponse> {
@@ -69,6 +98,10 @@ class QuestRepository @Inject constructor(
             } else {
                 Result.Error("Failed to skip: ${response.code()}")
             }
+        } catch (e: IOException) {
+            dao.updateStatus(id, "skipped")
+            enqueue(PendingOperationEntity.TYPE_SKIP_QUEST, id)
+            Result.Success(com.ascend.app.data.remote.api.SkipResponse())
         } catch (e: Exception) {
             Result.Error(e.message ?: "Network error")
         }
