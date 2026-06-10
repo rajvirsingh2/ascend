@@ -26,7 +26,7 @@ func TestQuestXPReward(t *testing.T) {
 	base := QuestXPReward(4, 1)
 	mid := QuestXPReward(4, 10)
 	floor := QuestXPReward(4, 100)
-	if !(base > mid && mid > floor) {
+	if base <= mid || mid <= floor {
 		t.Errorf("penalty not applied: base=%d mid=%d floor=%d", base, mid, floor)
 	}
 	if floor != int(float64(4*25)*0.4) {

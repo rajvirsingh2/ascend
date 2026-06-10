@@ -2,6 +2,7 @@ package realtime
 
 import (
 	"bufio"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -27,7 +28,8 @@ func TestUpgradeRejectsNonWebSocket(t *testing.T) {
 	srv := httptest.NewServer(ServeWS(hub, func(*http.Request) string { return "u1" }))
 	defer srv.Close()
 
-	resp, err := http.Get(srv.URL)
+	req, _ := http.NewRequestWithContext(context.Background(), "GET", srv.URL, nil)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +44,8 @@ func TestUnauthenticatedRejected(t *testing.T) {
 	srv := httptest.NewServer(ServeWS(hub, func(*http.Request) string { return "" }))
 	defer srv.Close()
 
-	resp, err := http.Get(srv.URL)
+	req, _ := http.NewRequestWithContext(context.Background(), "GET", srv.URL, nil)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +58,8 @@ func TestUnauthenticatedRejected(t *testing.T) {
 // dial performs a raw client handshake and returns the TCP conn.
 func dial(t *testing.T, srv *httptest.Server) net.Conn {
 	t.Helper()
-	conn, err := net.Dial("tcp", strings.TrimPrefix(srv.URL, "http://"))
+	var d net.Dialer
+	conn, err := d.DialContext(context.Background(), "tcp", strings.TrimPrefix(srv.URL, "http://"))
 	if err != nil {
 		t.Fatal(err)
 	}

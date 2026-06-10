@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"io"
 	"net/http/httptest"
 	"strings"
@@ -10,7 +11,7 @@ import (
 func scrape(t *testing.T, m *HTTPMetrics) string {
 	t.Helper()
 	rec := httptest.NewRecorder()
-	m.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/metrics", nil))
+	m.Handler().ServeHTTP(rec, httptest.NewRequestWithContext(context.Background(), "GET", "/metrics", nil))
 	body, _ := io.ReadAll(rec.Body)
 	return string(body)
 }
@@ -64,7 +65,7 @@ func TestGauge(t *testing.T) {
 func TestContentType(t *testing.T) {
 	m := New()
 	rec := httptest.NewRecorder()
-	m.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/metrics", nil))
+	m.Handler().ServeHTTP(rec, httptest.NewRequestWithContext(context.Background(), "GET", "/metrics", nil))
 	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/plain; version=0.0.4") {
 		t.Errorf("content type = %q", ct)
 	}
