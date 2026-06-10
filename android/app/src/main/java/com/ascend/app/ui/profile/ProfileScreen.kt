@@ -812,4 +812,6 @@ fun ProfileScreenPreview_Success() {
             onNavigateToStats = {},
             onNavigateToAttributes = {},
             onIntent = {}
- 
+        )
+    }
+}

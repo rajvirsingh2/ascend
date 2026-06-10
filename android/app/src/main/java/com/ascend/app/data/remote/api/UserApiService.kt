@@ -43,4 +43,5 @@ data class StatsResponse(
     val quest_distribution: List<SkillCountResponse>,
     val quests_this_week: Int,
     val quests_skipped: Int,
-  
+    val on_time_percentage: Float
+)

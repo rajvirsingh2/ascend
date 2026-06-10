@@ -104,4 +104,9 @@ class ProfileViewModel @Inject constructor(
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
-               
+                _isUploadingAvatar.value = false
+            }
+        }
+    }
+}
+

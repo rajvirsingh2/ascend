@@ -78,4 +78,16 @@ class AscendFcmService : FirebaseMessagingService() {
         runCatching { return NotifType.valueOf(raw.uppercase()) }
         return when (raw.lowercase()) {
             "level_up" -> NotifType.LEVEL_UP
-      
+            "xp_gain" -> NotifType.QUEST_COMPLETE
+            "achievement" -> NotifType.GOAL_MILESTONE
+            "hp_loss" -> NotifType.STREAK_BROKEN
+            "quest_expiring", "daily_reminder" -> NotifType.DAILY_QUEST
+            else -> NotifType.SYSTEM
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        job.cancel()
+    }
+}

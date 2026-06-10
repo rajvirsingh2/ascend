@@ -26,10 +26,6 @@
           </targets>
         </DialogSelection>
       </SelectionState>
-      <SelectionState runConfigName="SplashScreenPreview">
-        <option name="selectionMode" value="DROPDOWN" />
-        <DialogSelection />
-      </SelectionState>
       <SelectionState runConfigName="Standard Level Up - LevelUpModalPreview_Standard">
         <option name="selectionMode" value="DROPDOWN" />
         <DialogSelection />
