@@ -2,7 +2,6 @@ package com.ascend.app.data.realtime
 
 import android.util.Log
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,10 +29,11 @@ sealed interface WsEvent {
 @Singleton
 class WebSocketManager @Inject constructor(
     private val client: OkHttpClient,
-    private val tokenDataStore: com.ascend.app.data.local.TokenDataStore
+    private val tokenDataStore: com.ascend.app.data.local.TokenDataStore,
+    // Shared singleton from NetworkModule — don't build a second Moshi.
+    private val moshi: Moshi
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
 
     private val _events = MutableSharedFlow<WsEvent>(extraBufferCapacity = 32)
 

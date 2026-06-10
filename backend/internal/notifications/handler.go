@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"ascend-backend/internal/middleware"
 	"ascend-backend/internal/models"
 	"ascend-backend/internal/store/postgres"
 
@@ -29,7 +30,7 @@ func (h *Handler) Routes() chi.Router {
 }
 
 func (h *Handler) GetNotifications(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(string)
+	userID := middleware.GetUserID(r)
 
 	notifs, err := h.store.GetByUser(r.Context(), userID)
 	if err != nil {
@@ -45,7 +46,7 @@ func (h *Handler) GetNotifications(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) MarkRead(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(string)
+	userID := middleware.GetUserID(r)
 	id := chi.URLParam(r, "id")
 
 	if err := h.store.MarkRead(r.Context(), id, userID); err != nil {
@@ -57,7 +58,7 @@ func (h *Handler) MarkRead(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) MarkAllRead(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(string)
+	userID := middleware.GetUserID(r)
 
 	if err := h.store.MarkAllRead(r.Context(), userID); err != nil {
 		http.Error(w, "Failed to mark all read", http.StatusInternalServerError)
@@ -68,7 +69,7 @@ func (h *Handler) MarkAllRead(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteNotification(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(string)
+	userID := middleware.GetUserID(r)
 	id := chi.URLParam(r, "id")
 
 	if err := h.store.Delete(r.Context(), id, userID); err != nil {
@@ -80,7 +81,7 @@ func (h *Handler) DeleteNotification(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ClearAll(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(string)
+	userID := middleware.GetUserID(r)
 
 	if err := h.store.DeleteAll(r.Context(), userID); err != nil {
 		http.Error(w, "Failed to clear notifications", http.StatusInternalServerError)

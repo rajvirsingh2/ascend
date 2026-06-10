@@ -2,6 +2,7 @@ package user
 
 import (
 	"net/http"
+	"time"
 
 	"ascend-backend/internal/middleware"
 	"ascend-backend/pkg/response"
@@ -23,6 +24,7 @@ type StatsResponse struct {
 	TotalQuests       int              `json:"total_quests"`
 	HabitsCompleted   int              `json:"habits_completed"`
 	StreakFreezes     int              `json:"streak_freezes"`
+	CurrentStreak     int              `json:"current_streak"`
 	BestStreak        int              `json:"best_streak"`
 	XpHistory         []XpHistoryPoint `json:"xp_history"`
 	QuestDistribution []SkillCount     `json:"quest_distribution"`
@@ -71,15 +73,42 @@ func (h *Handler) GetStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Best Streak
-	err = h.db.QueryRow(r.Context(),
+	// 1. Streaks — based on daily ACTIVITY (any quest/habit/physique
+	// completion logs an xp_event), not just habits. Completing a quest
+	// today counts toward the streak.
+	var activityDays []time.Time
+	dRows, err := h.db.Query(r.Context(),
+		`SELECT DISTINCT (created_at AT TIME ZONE $2)::date AS d
+		 FROM xp_events
+		 WHERE user_id = $1
+		 ORDER BY d DESC
+		 LIMIT 400`,
+		userID, h.loc.String(),
+	)
+	if err == nil {
+		for dRows.Next() {
+			var d time.Time
+			if dRows.Scan(&d) == nil {
+				activityDays = append(activityDays, d)
+			}
+		}
+		dRows.Close()
+	}
+	now := time.Now().In(h.loc)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	current, activityBest := CalcStreaks(activityDays, today)
+	stats.CurrentStreak = current
+
+	// best_streak keeps its old habit-based floor for users whose habit
+	// history predates xp_events.
+	var habitBest int
+	_ = h.db.QueryRow(r.Context(),
 		`SELECT COALESCE(MAX(longest_streak), 0) FROM habits WHERE user_id = $1`,
 		userID,
-	).Scan(&stats.BestStreak)
-
-	if err != nil {
-		response.Error(w, http.StatusInternalServerError, "failed to get best streak")
-		return
+	).Scan(&habitBest)
+	stats.BestStreak = activityBest
+	if habitBest > stats.BestStreak {
+		stats.BestStreak = habitBest
 	}
 
 	// 2. XP History (last 30 days)

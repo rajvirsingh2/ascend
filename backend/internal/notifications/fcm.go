@@ -131,43 +131,35 @@ func (n *FCMNotifier) RegisterToken(ctx context.Context, userID, token string) e
 
 type fcmMessage struct {
 	Message struct {
-		Token        string            `json:"token"`
-		Notification *fcmNotification  `json:"notification,omitempty"`
-		Data         map[string]string `json:"data,omitempty"`
-		Android      *fcmAndroid       `json:"android,omitempty"`
+		Token   string            `json:"token"`
+		Data    map[string]string `json:"data,omitempty"`
+		Android *fcmAndroid       `json:"android,omitempty"`
 	} `json:"message"`
 }
 
-type fcmNotification struct {
-	Title string `json:"title"`
-	Body  string `json:"body"`
-}
-
 type fcmAndroid struct {
-	Priority     string           `json:"priority"`
-	Notification *fcmAndroidNotif `json:"notification,omitempty"`
+	Priority string `json:"priority"`
 }
 
-type fcmAndroidNotif struct {
-	Sound       string `json:"sound"`
-	ClickAction string `json:"click_action"`
-}
-
+// sendToToken sends a DATA-ONLY message. No "notification" block: data-only
+// messages always invoke the app's FirebaseMessagingService (foreground AND
+// background), so AscendFcmService builds the system notification itself with
+// a working deep-link PendingIntent. A "notification" block would let the FCM
+// SDK auto-display in background with a click_action no activity handles —
+// which made taps do nothing.
 func (n *FCMNotifier) sendToToken(ctx context.Context, token string, notif Notification) error {
 	var msg fcmMessage
 	msg.Message.Token = token
-	msg.Message.Notification = &fcmNotification{
-		Title: notif.Title,
-		Body:  notif.Body,
+
+	data := make(map[string]string, len(notif.Data)+2)
+	for k, v := range notif.Data {
+		data[k] = v
 	}
-	msg.Message.Data = notif.Data
-	msg.Message.Android = &fcmAndroid{
-		Priority: "high",
-		Notification: &fcmAndroidNotif{
-			Sound:       "default",
-			ClickAction: "FLUTTER_NOTIFICATION_CLICK",
-		},
-	}
+	data["title"] = notif.Title
+	data["body"] = notif.Body
+	msg.Message.Data = data
+
+	msg.Message.Android = &fcmAndroid{Priority: "high"}
 
 	payload, err := json.Marshal(msg)
 	if err != nil {

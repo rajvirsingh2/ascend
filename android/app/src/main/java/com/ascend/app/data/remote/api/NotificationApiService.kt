@@ -1,14 +1,10 @@
 package com.ascend.app.data.remote.api
 
-import com.ascend.app.notification.NotifItem
+import com.ascend.app.data.remote.dto.NotificationListResponse
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PUT
 import retrofit2.http.Path
-
-data class NotificationListResponse(
-    val data: List<NotifItem>
-)
 
 interface NotificationApiService {
     @GET("notifications")

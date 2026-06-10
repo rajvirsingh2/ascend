@@ -59,12 +59,18 @@ class AscendNotificationManager @Inject constructor(
         deepLinkIntent: Intent? = null,
         smallIconRes: Int  // pass R.drawable.ic_notification (or your bolt icon)
     ) {
-        val pending = deepLinkIntent?.let {
-            PendingIntent.getActivity(
-                context, item.id.hashCode(), it,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
+        // Every notification must open the app on tap. If the caller didn't
+        // supply an intent, deep-link to the item's route (or the in-app
+        // notification screen) via the ascend:// scheme MainActivity handles.
+        val intent = deepLinkIntent ?: Intent(Intent.ACTION_VIEW).apply {
+            data = android.net.Uri.parse("ascend://${item.actionRoute ?: "notifications"}")
+            setPackage(context.packageName)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
+        val pending = PendingIntent.getActivity(
+            context, item.id.hashCode(), intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
         val accent = item.type.accentColor.toArgb()
         val largeIcon = buildLargeIcon(item)
@@ -95,9 +101,7 @@ class AscendNotificationManager @Inject constructor(
             .setShowWhen(true)
             .setWhen(item.timestamp)
             .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
-            .apply {
-                if (pending != null) setContentIntent(pending)
-            }
+            .setContentIntent(pending)
 
         nm.notify(item.id.hashCode(), builder.build())
     }

@@ -92,7 +92,7 @@ fun ProfileScreen(
         completedQuestCount = state.completedQuestCount,
         achievements = state.achievements,
         isUploadingAvatar = isUploadingAvatar,
-        bestStreak = state.bestStreak,
+        currentStreak = state.currentStreak,
         onNavigateToPhysiqueSetup = onNavigateToPhysiqueSetup,
         onNavigateToInterests = onNavigateToInterests,
         onNavigateToStats = onNavigateToStats,
@@ -109,7 +109,7 @@ fun ProfileScreenContent(
     completedQuestCount: Int,
     achievements: List<Achievement>,
     isUploadingAvatar: Boolean,
-    bestStreak: Int,
+    currentStreak: Int,
     onNavigateToPhysiqueSetup: () -> Unit,
     onNavigateToInterests: () -> Unit,
     onNavigateToStats: () -> Unit,
@@ -200,7 +200,7 @@ fun ProfileScreenContent(
                             level = user.level,
                             totalXp = if (user.totalXp > 0) user.totalXp else user.currentXp,
                             quests = completedQuestCount,
-                            streak = bestStreak
+                            streak = currentStreak
                         )
                     }
 
@@ -230,7 +230,7 @@ fun ProfileScreenContent(
         ShareCardSheet(
             user = user,
             completedQuests = completedQuestCount,
-            streak = bestStreak,
+            streak = currentStreak,
             onDismiss = { showShareSheet = false }
         )
     }
@@ -806,12 +806,10 @@ fun ProfileScreenPreview_Success() {
                 Achievement("a3", "Iron Will",    "IRON",     "shield", false, null)
             ),
             isUploadingAvatar = false,
-            bestStreak = 7,
+            currentStreak = 7,
             onNavigateToPhysiqueSetup = {},
             onNavigateToInterests = {},
             onNavigateToStats = {},
             onNavigateToAttributes = {},
             onIntent = {}
-        )
-    }
-}
+ 

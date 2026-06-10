@@ -259,7 +259,7 @@ func (h *GenerateHandler) persistMLQuests(
 		for _, q := range toInsert {
 			questID := uuid.NewString()
 			expires := time.Now().Add(24 * time.Hour)
-			diff := mapDifficulty(q.Difficulty)
+			diff := mlservice.MapDifficulty(q.Difficulty)
 
 			questType := strings.ToLower(q.QuestType)
 			if questType != "daily" && questType != "weekly" {
@@ -294,22 +294,4 @@ func (h *GenerateHandler) persistMLQuests(
 		}
 	}
 	return inserted
-}
-
-// mapDifficulty converts a string difficulty label to an integer.
-func mapDifficulty(s string) int {
-	switch s {
-	case "easy", "1":
-		return 1
-	case "medium", "2":
-		return 2
-	case "hard", "3":
-		return 3
-	case "expert", "4":
-		return 4
-	case "legendary", "5":
-		return 5
-	default:
-		return 1
-	}
 }

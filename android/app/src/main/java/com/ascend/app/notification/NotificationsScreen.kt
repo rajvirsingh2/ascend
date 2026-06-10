@@ -175,7 +175,7 @@ private fun NotificationsTopBar(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = ReactInkDim)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = ReactInkDim)
             }
             Spacer(Modifier.width(4.dp))
             Text(
@@ -203,10 +203,10 @@ private fun NotificationsTopBar(
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IconButton(onClick = onMarkAllRead, modifier = Modifier.size(34.dp)) {
-                Icon(Icons.Filled.DoneAll, null, tint = ReactCyan, modifier = Modifier.size(18.dp))
+                Icon(Icons.Filled.DoneAll, contentDescription = "Mark all read", tint = ReactCyan, modifier = Modifier.size(18.dp))
             }
             IconButton(onClick = onClearAll, modifier = Modifier.size(34.dp)) {
-                Icon(Icons.Filled.DeleteSweep, null, tint = ReactInkDim, modifier = Modifier.size(18.dp))
+                Icon(Icons.Filled.DeleteSweep, contentDescription = "Clear all", tint = ReactInkDim, modifier = Modifier.size(18.dp))
             }
         }
     }
@@ -485,8 +485,4 @@ fun NotificationsPreview_Empty() {
         NotificationsScreenContent(
             items = emptyList(), unreadCount = 0, selectedFilter = null,
             onBack = {}, onFilterChange = {},
-            onMarkAllRead = {}, onClearAll = {},
-            onItemClick = {}, onSwipeDelete = {}
-        )
-    }
-}
+            onMarkAllRead = {}, 
