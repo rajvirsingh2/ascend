@@ -33,3 +33,17 @@ cookies.txt
 # OS
 .DS_Store
 Thumbs.db
+
+graphify-out/
+.graphifyignore
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# Android specific
+*.jks
+*.keystore
+
+.claude

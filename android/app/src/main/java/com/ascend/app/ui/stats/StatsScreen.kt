@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -441,7 +442,8 @@ fun QuestDistributionPanel(dist: List<Triple<String, Int, Color>>) {
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = col,
-                        modifier = Modifier.width(80.dp)
+                        maxLines = 1,
+                        modifier = Modifier.width(80.dp).basicMarquee()
                     )
                     Box(
                         modifier = Modifier
