@@ -31,49 +31,48 @@ class ProfileViewModel @Inject constructor(
     val isUploadingAvatar = _isUploadingAvatar.asStateFlow()
 
     init {
+        // Launch database observation in a single job tied to the ViewModel's lifecycle
+        viewModelScope.launch {
+            userRepo.observeUser().collect { user ->
+                _state.update { it.copy(isLoading = false, user = user) }
+                viewModelScope.launch { fetchRemoteData() }
+            }
+        }
         loadProfile()
     }
 
     private fun loadProfile() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+            if (_state.value.user == null) {
+                _state.update { it.copy(isLoading = true) }
+            }
 
             try {
                 // Fetch fresh data from network
                 userRepo.refresh()
             } catch (e: Exception) {
                 e.printStackTrace()
-            }
-
-            // Launch database observation in a separate job so it doesn't block remaining work
-            viewModelScope.launch {
-                userRepo.observeUser().collect { user ->
-                    _state.update { it.copy(isLoading = false, user = user) }
-                }
-            }
-
-            try {
-                val achResp = userApi.getAchievements().data ?: emptyList()
-                val statsResp = userApi.getStats().data
-
-                _state.update { currentState ->
-                    currentState.copy(
-                        achievements = achResp.map {
-                            Achievement(it.key, it.title, it.tag, it.icon, it.earned, it.earnedAt)
-                        },
-                        currentStreak = statsResp?.current_streak ?: 0,
-                        bestStreak = statsResp?.best_streak ?: 0
-                    )
-                }
-
-                // OPTIONAL: Fetch completed quest statistics if managed by separate endpoint
-                // val questStats = userApi.getQuestStats().data
-                // _state.update { it.copy(completedQuestCount = questStats.completedTotal) }
-
-            } catch (e: Exception) {
-                e.printStackTrace()
                 _state.update { it.copy(isLoading = false) }
             }
+        }
+    }
+
+    private suspend fun fetchRemoteData() {
+        try {
+            val achResp = userApi.getAchievements().data ?: emptyList()
+            val statsResp = userApi.getStats().data
+
+            _state.update { currentState ->
+                currentState.copy(
+                    achievements = achResp.map {
+                        Achievement(it.key, it.title, it.tag, it.icon, it.earned, it.earnedAt)
+                    },
+                    currentStreak = statsResp?.current_streak ?: 0,
+                    bestStreak = statsResp?.best_streak ?: 0
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
