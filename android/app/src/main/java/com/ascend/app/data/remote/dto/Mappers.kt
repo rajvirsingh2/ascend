@@ -27,7 +27,7 @@ fun NotificationResponse.toDomain() = Notification(
     xpDelta = xpDelta,
     actionRoute = actionRoute,
     isRead = isRead,
-    createdAt = createdAt
+    createdAt = createdAt ?: ""
 )
 
 fun QuestResponse.toDomain() = Quest(

@@ -155,7 +155,7 @@ func (s *Server) Routes() http.Handler {
 			// the connection is long-lived by design.
 			r.Get("/ws", realtime.ServeWS(s.hub, middleware.GetUserID))
 
-			userHandler := user.NewHandler(s.db)
+			userHandler := user.NewHandler(s.db, s.cfg.GetLocalLocation())
 			avatarUploader := user.NewAvatarUploader(
 				s.db,
 				s.cfg.CloudinaryCloudName,
@@ -183,6 +183,7 @@ func (s *Server) Routes() http.Handler {
 				})
 				r.Group(func(r chi.Router) {
 					r.Use(chimiddleware.Timeout(10 * time.Minute))
+					r.Use(middleware.UserRateLimit(s.rdb, 5, 24*time.Hour, "daily limit of 5 AI generations reached"))
 					r.Post("/generate-quests", s.physiqueQuestHandler())
 				})
 			})
@@ -221,6 +222,7 @@ func (s *Server) Routes() http.Handler {
 				})
 				r.Group(func(r chi.Router) {
 					r.Use(chimiddleware.Timeout(10 * time.Minute))
+					r.Use(middleware.UserRateLimit(s.rdb, 5, 24*time.Hour, "daily limit of 5 AI generations reached"))
 					generateHandler := quest.NewGenerateHandler(s.db, s.rdb, s.mlClient, interestsStore, tracker)
 					r.Post("/generate", generateHandler.Generate)
 				})

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"ascend-backend/internal/events"
@@ -146,7 +147,25 @@ func (s *QuestStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 	}
 
 	// award XP synchronously
-	return game.AwardXP(ctx, s.db, userID, "quest", id, "quest_completed", q.SkillArea, q.XPReward, 0)
+	res, err := game.AwardXP(ctx, s.db, userID, "quest", id, "quest_completed", q.SkillArea, q.XPReward, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	// async side effects (achievements, history, notifications, realtime)
+	if qerr := events.EnqueueXP(ctx, s.rdb, events.XPEvent{
+		UserID:     userID,
+		Amount:     q.XPReward,
+		Source:     "quest",
+		SourceID:   id,
+		SkillArea:  q.SkillArea,
+		NewLevel:   res.LevelAfter,
+		DidLevelUp: res.LeveledUp,
+	}); qerr != nil {
+		// Non-fatal: XP is already applied; only side effects are delayed.
+		slog.Warn("enqueue xp event failed", "user_id", userID, "error", qerr)
+	}
+	return res, nil
 }
 
 func (s *QuestStore) Skip(ctx context.Context, id, userID string) (*store.SkipResult, error) {
@@ -194,6 +213,16 @@ func (s *QuestStore) Skip(ctx context.Context, id, userID string) (*store.SkipRe
 		result.HPAfter = xpResult.HPAfter
 		result.Died = xpResult.Died
 		result.StatDeltas = xpResult.StatDeltas
+
+		// async HP-loss notification (HP already deducted above)
+		if qerr := events.EnqueuePunishment(ctx, s.rdb, events.PunishmentEvent{
+			UserID:  userID,
+			HPLoss:  xpResult.HPDamage,
+			HPAfter: xpResult.HPAfter,
+			Reason:  "Skipped quest beyond free limit",
+		}); qerr != nil {
+			slog.Warn("enqueue punishment event failed", "user_id", userID, "error", qerr)
+		}
 	} else {
 		var hp int
 		_ = s.db.QueryRow(ctx, "SELECT hp FROM users WHERE id=$1", userID).Scan(&hp)

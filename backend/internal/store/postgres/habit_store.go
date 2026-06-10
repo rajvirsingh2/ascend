@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"log/slog"
 	"math"
 	"time"
 
@@ -211,5 +212,22 @@ func (s *HabitStore) Complete(ctx context.Context, id, userID string) (*game.XPR
 	}
 
 	hpRestored := newStreak * 2
-	return game.AwardXP(ctx, s.db, userID, "habit", id, "habit_completed", "General", h.XPReward, hpRestored)
+	res, err := game.AwardXP(ctx, s.db, userID, "habit", id, "habit_completed", "General", h.XPReward, hpRestored)
+	if err != nil {
+		return nil, err
+	}
+
+	// async side effects (achievements, history, notifications, realtime)
+	if qerr := events.EnqueueXP(ctx, s.rdb, events.XPEvent{
+		UserID:     userID,
+		Amount:     h.XPReward,
+		Source:     "habit",
+		SourceID:   id,
+		SkillArea:  "General",
+		NewLevel:   res.LevelAfter,
+		DidLevelUp: res.LeveledUp,
+	}); qerr != nil {
+		slog.Warn("enqueue xp event failed", "user_id", userID, "error", qerr)
+	}
+	return res, nil
 }

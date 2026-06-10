@@ -63,21 +63,26 @@ func main() {
 	go quest.StartExpiryWorker(ctx, questStore, tracker)
 	go user.PurgeScheduled(ctx, db)
 
-	// Quest Generation Worker
+	// Quest Generation Worker — ALWAYS runs. Without ML_SERVICE_URL (or when
+	// the model fails) it falls back to seeded quests, so the midnight drop
+	// can never be silently disabled by a missing env var.
+	var workerMLClient *mlservice.Client
 	if cfg.MLServiceURL != "" {
-		workerMLClient := mlservice.NewClient(mlservice.Config{
+		workerMLClient = mlservice.NewClient(mlservice.Config{
 			SpaceURL: cfg.MLServiceURL,
 			Redis:    rdb,
 			HFToken:  cfg.HFToken,
 		})
-		interestsStore := interests.NewStore(db)
-		go workers.StartQuestGenerationWorker(ctx, workers.QuestGenerationWorkerConfig{
-			DB:             db,
-			MLClient:       workerMLClient,
-			InterestsStore: interestsStore,
-			Loc:            cfg.GetLocalLocation(),
-		})
+	} else {
+		log.Println("[quest-generation-worker] ML_SERVICE_URL not set — midnight drops will use seeded quests")
 	}
+	go workers.StartQuestGenerationWorker(ctx, workers.QuestGenerationWorkerConfig{
+		DB:             db,
+		MLClient:       workerMLClient,
+		InterestsStore: interests.NewStore(db),
+		Notifier:       fcmNotifier,
+		Loc:            cfg.GetLocalLocation(),
+	})
 	go notifications.RunDailyReminder(ctx, db, fcmNotifier, cfg.GetLocalLocation())
 	go workers.RunXPWorker(ctx, workers.XPWorkerConfig{
 		Redis:    rdb,

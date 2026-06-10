@@ -61,6 +61,7 @@ class ProfileViewModel @Inject constructor(
                         achievements = achResp.map {
                             Achievement(it.key, it.title, it.tag, it.icon, it.earned, it.earnedAt)
                         },
+                        currentStreak = statsResp?.current_streak ?: 0,
                         bestStreak = statsResp?.best_streak ?: 0
                     )
                 }
@@ -103,9 +104,4 @@ class ProfileViewModel @Inject constructor(
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
-                _isUploadingAvatar.value = false
-            }
-        }
-    }
-}
-
+               

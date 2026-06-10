@@ -14,11 +14,17 @@ import (
 )
 
 type Handler struct {
-	db *pgxpool.Pool
+	db  *pgxpool.Pool
+	loc *time.Location
 }
 
-func NewHandler(db *pgxpool.Pool) *Handler {
-	return &Handler{db: db}
+// NewHandler creates the user handler. loc is the app timezone used for
+// day-boundary calculations (streaks); nil falls back to UTC.
+func NewHandler(db *pgxpool.Pool, loc *time.Location) *Handler {
+	if loc == nil {
+		loc = time.UTC
+	}
+	return &Handler{db: db, loc: loc}
 }
 
 func (h *Handler) RequestDeletion(w http.ResponseWriter, r *http.Request) {

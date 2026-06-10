@@ -34,13 +34,13 @@ class AscendFcmService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
-        // Only handle data payloads to maintain full control (no standard title/body keys)
-        var data = message.data
+        // Backend sends data-only messages, so this runs in foreground AND
+        // background and we control the tray notification + tap intent.
+        val data = message.data
         if (data.isEmpty()) return
 
         val id = data["id"] ?: System.currentTimeMillis().toString()
-        val typeStr = data["type"] ?: "SYSTEM"
-        val type = runCatching { NotifType.valueOf(typeStr) }.getOrDefault(NotifType.SYSTEM)
+        val type = parseNotifType(data["type"])
         val title = data["title"] ?: "Ascend"
         val body = data["body"] ?: ""
         val route = data["action_route"]
@@ -57,22 +57,25 @@ class AscendFcmService : FirebaseMessagingService() {
             xpDelta = xpDelta
         )
 
-        scope.launch {
-            // 1. Persist it locally
-            // repo.insert(item)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setData(Uri.parse("ascend://${route ?: "notifications"}"))
+            setPackage(packageName)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        notifManager.post(item, intent, com.ascend.app.R.drawable.ic_notification)
 
-            // 2. Post to system tray (if app is in background, or even foreground depending on preference)
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                data = Uri.parse("ascend://${route ?: "notifications"}") as Map<String?, String?>
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            }
-            // Use your vector drawable for smallIconRes
-            notifManager.post(item, intent, android.R.drawable.ic_popup_reminder)
+        // Midnight quest drop: pull the new quests into Room immediately so
+        // they're already on the dashboard when the user opens the app.
+        // WorkManager survives this service being killed mid-request.
+        if (type == NotifType.DAILY_QUEST) {
+            com.ascend.app.workers.QuestRefreshWorker.enqueue(applicationContext)
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        job.cancel()
-    }
-}
+    /** Accepts NotifType enum names plus legacy backend strings. */
+    private fun parseNotifType(raw: String?): NotifType {
+        if (raw == null) return NotifType.SYSTEM
+        runCatching { return NotifType.valueOf(raw.uppercase()) }
+        return when (raw.lowercase()) {
+            "level_up" -> NotifType.LEVEL_UP
+      
