@@ -59,7 +59,7 @@ jobs:
                 "oauth_client": [],
                 "api_key": [
                   {
-                    "current_key": "mock-api-key"
+                    "current_key": "AIzaSyA_abcdefghijklmnopqrstuvwxyz012345"
                   }
                 ],
                 "services": {
@@ -144,7 +144,7 @@ jobs:
                 "oauth_client": [],
                 "api_key": [
                   {
-                    "current_key": "mock-api-key"
+                    "current_key": "AIzaSyA_abcdefghijklmnopqrstuvwxyz012345"
                   }
                 ],
                 "services": {
