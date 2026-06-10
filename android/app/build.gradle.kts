@@ -36,7 +36,7 @@ android {
         debug {
             isDebuggable = true
             buildConfigField("String", "BASE_URL",
-                "\"http://10.0.2.2:8080/api/v1/\"")
+                "\"http://16.170.133.169/api/v1/\"")
         }
         create("ngrok"){
             initWith(getByName("debug"))

@@ -485,4 +485,8 @@ fun NotificationsPreview_Empty() {
         NotificationsScreenContent(
             items = emptyList(), unreadCount = 0, selectedFilter = null,
             onBack = {}, onFilterChange = {},
-            onMarkAllRead = {}, 
+            onMarkAllRead = {}, onClearAll = {},
+            onItemClick = {}, onSwipeDelete = {}
+        )
+    }
+}

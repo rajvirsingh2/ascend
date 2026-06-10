@@ -19,4 +19,5 @@ sealed interface ProfileIntent {
 }
 
 sealed interface ProfileEffect {
-    data object N
+    data object NavigateToLogin : ProfileEffect
+}
