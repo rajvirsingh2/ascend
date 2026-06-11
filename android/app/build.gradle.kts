@@ -138,10 +138,22 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.11")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation("androidx.test:core-ktx:1.7.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
     implementation(libs.coil.compose)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
+}
+
+configurations.all{
+    resolutionStrategy{
+        force("androidx.test.espresso:espresso-core:3.7.0")
+        force("androidx.test:runner:1.7.0")
+        force("androidx.test:core:1.7.0")
+        force("androidx.test:core-ktx:1.7.0")
+    }
 }

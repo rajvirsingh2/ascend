@@ -123,7 +123,52 @@ fun HistoryScreenContent(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(10.dp))
+
+                // Dot color legend
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(SuccessGreen)
+                        )
+                        Text(
+                            if (selectedTab == 0) "COMPLETED" else "XP GAINED",
+                            fontFamily = jetBrainsMono,
+                            fontSize = 9.sp,
+                            color = TextMuted,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(DangerRed)
+                        )
+                        Text(
+                            if (selectedTab == 0) "SKIPPED" else "XP LOST",
+                            fontFamily = jetBrainsMono,
+                            fontSize = 9.sp,
+                            color = TextMuted,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
 
                 // Content
                 if (isLoading) {
@@ -217,7 +262,7 @@ private fun XpLogTab(logs: List<ProgressLogEntry>) {
         verticalArrangement = Arrangement.spacedBy(9.dp)
     ) {
         items(logs) { entry ->
-            val isPositive = entry.xpDelta >= 0
+            val isPositive = entry.xpDelta > 0
             val typeLabel = entry.eventType.replace("_", " ").uppercase(Locale.ROOT)
 
             // Format title intelligently depending on event type

@@ -97,7 +97,8 @@ fun AscendNavHost() {
                         navController.navigate("${Routes.LOGIN}?message=Registration successful! Login to continue.") {
                             popUpTo(Routes.REGISTER) { inclusive = true }
                         }
-                    }
+                    },
+                    onBack = { navController.popBackStack() }
                 )
             }
 
@@ -220,7 +221,13 @@ fun AscendNavHost() {
                 route = Routes.SETTINGS,
                 deepLinks = listOf(navDeepLink { uriPattern = "ascend://${Routes.SETTINGS}" })
             ) {
-                SettingsScreen()
+                SettingsScreen(
+                    onLogout = {
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
             }
             composable(
                 route = Routes.HISTORY,

@@ -97,11 +97,13 @@ class ProfileViewModel @Inject constructor(
             _isUploadingAvatar.value = true
             try {
                 val response = userApi.uploadAvatar(AvatarUploadRequest(base64Image))
-                if (response.data != null) {
-                    userRepo.refresh()
+                if (response.error != null) {
+                    _effects.send(ProfileEffect.ShowError(response.error))
                 }
+                userRepo.refresh()
             } catch (e: Exception) {
                 e.printStackTrace()
+                _effects.send(ProfileEffect.ShowError("Upload failed: ${e.message ?: "unknown error"}"))
             } finally {
                 _isUploadingAvatar.value = false
             }

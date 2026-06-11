@@ -65,7 +65,10 @@ import com.ascend.app.ui.theme.*
 // 1. Stateful Wrapper handling ViewModel and Effects
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    onLogout: () -> Unit = {},
+    viewModel: SettingsViewModel = hiltViewModel()
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -74,6 +77,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             when (effect) {
                 is SettingsEffect.ShowSnackbar ->
                     snackbarHostState.showSnackbar(effect.message)
+                is SettingsEffect.NavigateToLogin -> onLogout()
             }
         }
     }
@@ -82,6 +86,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         isDeletingKey = state.isDeleting,
         error = state.error,
         snackbarHostState = snackbarHostState,
+        onLogout = { viewModel.onIntent(SettingsIntent.Logout) },
         onDeleteAccount = { password, onComplete -> viewModel.deleteAccount(password, onComplete) }
     )
 }
@@ -93,6 +98,7 @@ fun SettingsScreenContent(
     isDeletingKey: Boolean,
     error: String?,
     snackbarHostState: SnackbarHostState,
+    onLogout: () -> Unit,
     onDeleteAccount: (String, () -> Unit) -> Unit
 ) {
     Scaffold(
@@ -150,10 +156,68 @@ fun SettingsScreenContent(
             ) {
                 Spacer(Modifier.height(8.dp))
 
+                // System logout card
+                LogoutCard(onLogout = onLogout)
+
                 // Danger zone card
                 DangerZoneCard(
                     isDeletingKey = isDeletingKey,
                     onDeleteAccount = onDeleteAccount
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LogoutCard(onLogout: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(12.dp),
+                ambientColor = ReactPurple.copy(alpha = 0.15f),
+                spotColor = ReactPurple.copy(alpha = 0.15f)
+            )
+            .clip(RoundedCornerShape(12.dp))
+            .background(ReactPanel)
+            .border(1.dp, ReactPurple.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+            .padding(20.dp)
+    ) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.width(2.dp))
+                Text(
+                    text = "SYSTEM",
+                    fontFamily = jetBrainsMono,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black,
+                    color = ReactPurple,
+                    letterSpacing = 2.sp
+                )
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(ReactPurple.copy(alpha = 0.1f))
+                    .border(1.dp, ReactPurple.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                    .clickable { onLogout() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "LOGOUT",
+                    fontFamily = orbitron,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.5.sp,
+                    color = ReactPurple,
+                    style = TextStyle(shadow = Shadow(ReactPurple.copy(alpha = 0.5f), blurRadius = 8f))
                 )
             }
         }
@@ -360,6 +424,7 @@ fun SettingsScreenPreview_Default() {
             isDeletingKey = false,
             error = null,
             snackbarHostState = remember { SnackbarHostState() },
+            onLogout = {},
             onDeleteAccount = { _, _ -> }
         )
     }

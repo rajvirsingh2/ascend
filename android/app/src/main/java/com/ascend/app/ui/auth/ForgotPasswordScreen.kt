@@ -172,7 +172,7 @@ fun ForgotPasswordScreenContent(
                     text = if (step == 0)
                         "▸ ENTER EMAIL TO DISPATCH RESET KEY"
                     else
-                        "▸ 6-DIGIT KEY SENT TO ${email.uppercase()}",
+                        "▸ 5-DIGIT KEY SENT TO ${email.uppercase()}",
                     fontFamily = jetBrainsMono,
                     fontSize = 10.5.sp,
                     letterSpacing = 1.sp,
@@ -225,8 +225,8 @@ fun ForgotPasswordScreenContent(
                     LabeledField(
                         label = "RESET CODE",
                         value = otp,
-                        onValueChange = { if (it.length <= 6) otp = it.filter { c -> c.isDigit() } },
-                        placeholder = "6-DIGIT KEY",
+                        onValueChange = { if (it.length <= 5) otp = it.filter { c -> c.isDigit() } },
+                        placeholder = "5-DIGIT KEY",
                         keyboardType = KeyboardType.NumberPassword
                     )
                     Spacer(Modifier.height(14.dp))

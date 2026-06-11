@@ -213,7 +213,7 @@ fun OtpVerificationScreenContent(
                 )
             }
 
-            // ---------- PANEL with 6 digit boxes + progress ----------
+            // ---------- PANEL with 5 digit boxes + progress ----------
             SystemPanel(
                 glowColor = PurplePrimary,
                 modifier = Modifier.fillMaxWidth()
@@ -249,7 +249,7 @@ fun OtpVerificationScreenContent(
 
                 Spacer(Modifier.height(20.dp))
 
-                // Progress bar (filled / 6)
+                // Progress bar (filled / 5)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

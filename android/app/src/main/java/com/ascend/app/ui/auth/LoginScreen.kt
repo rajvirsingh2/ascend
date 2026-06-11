@@ -310,7 +310,7 @@ fun LoginScreenContent(
                                     tint = TextPrimary,
                                     modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(Modifier.run { width(8.dp) })
+                                Spacer(Modifier.width(8.dp))
                                 Text(
                                     text = "ENTER THE SYSTEM",
                                     fontFamily = orbitron,

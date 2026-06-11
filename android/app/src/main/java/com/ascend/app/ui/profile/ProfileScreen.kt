@@ -53,6 +53,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.ascend.app.domain.model.Achievement
 import com.ascend.app.util.ImageUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.ascend.app.domain.model.User
 import com.ascend.app.ui.auth.jetBrainsMono
 import com.ascend.app.ui.auth.orbitron
@@ -61,6 +63,7 @@ import java.util.Locale
 
 import com.ascend.app.ui.components.*
 import com.ascend.app.ui.theme.*
+import kotlinx.coroutines.launch
 
 /* ============================================================
  *  ROOT
@@ -77,11 +80,13 @@ fun ProfileScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val isUploadingAvatar by viewModel.isUploadingAvatar.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 is ProfileEffect.NavigateToLogin -> onNavigateToLogin()
+                is ProfileEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
         }
     }
@@ -93,6 +98,7 @@ fun ProfileScreen(
         achievements = state.achievements,
         isUploadingAvatar = isUploadingAvatar,
         currentStreak = state.currentStreak,
+        snackbarHostState = snackbarHostState,
         onNavigateToPhysiqueSetup = onNavigateToPhysiqueSetup,
         onNavigateToInterests = onNavigateToInterests,
         onNavigateToStats = onNavigateToStats,
@@ -110,6 +116,7 @@ fun ProfileScreenContent(
     achievements: List<Achievement>,
     isUploadingAvatar: Boolean,
     currentStreak: Int,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onNavigateToPhysiqueSetup: () -> Unit,
     onNavigateToInterests: () -> Unit,
     onNavigateToStats: () -> Unit,
@@ -120,6 +127,7 @@ fun ProfileScreenContent(
 
     Scaffold(
         containerColor = Color(0xFF07070B),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -185,11 +193,15 @@ fun ProfileScreenContent(
                 ) {
                     // ── HERO PANEL ──
                     item {
+                        val scope = rememberCoroutineScope()
                         HeroPanel(
                             user = user,
                             isUploadingAvatar = isUploadingAvatar,
                             onAvatarSelected = { base64 ->
                                 onIntent(ProfileIntent.UploadAvatar(base64))
+                            },
+                            onAvatarError = { message ->
+                                scope.launch { snackbarHostState.showSnackbar(message) }
                             }
                         )
                     }
@@ -243,19 +255,27 @@ fun ProfileScreenContent(
 private fun HeroPanel(
     user: User,
     isUploadingAvatar: Boolean,
-    onAvatarSelected: (String) -> Unit
+    onAvatarSelected: (String) -> Unit,
+    onAvatarError: (String) -> Unit = {}
 ) {
     val rank = rankForLevel(user.level)
     val rankCol = rankColor(rank)
 
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
             if (uri != null) {
-                val base64 = ImageUtils.uriToBase64(context, uri)
-                if (base64 != null) {
-                    onAvatarSelected(base64)
+                scope.launch {
+                    val base64 = withContext(Dispatchers.IO) {
+                        ImageUtils.uriToBase64(context, uri)
+                    }
+                    if (base64 != null) {
+                        onAvatarSelected(base64)
+                    } else {
+                        onAvatarError("Could not read image. Try a different photo.")
+                    }
                 }
             }
         }

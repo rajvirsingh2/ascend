@@ -29,6 +29,14 @@ class SettingsViewModel @Inject constructor(
     fun onIntent(intent: SettingsIntent) {
         when (intent) {
             is SettingsIntent.Load -> { /* no-op for now */ }
+            is SettingsIntent.Logout -> logout()
+        }
+    }
+
+    private fun logout() {
+        viewModelScope.launch {
+            tokenDataStore.clearToken()
+            _effects.send(SettingsEffect.NavigateToLogin)
         }
     }
 

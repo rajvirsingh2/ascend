@@ -116,12 +116,25 @@ class AuthViewModel @Inject constructor(
 
     private fun submitRegister() {
         val state = _registerState.value
+        if (state.username.isBlank() || state.username.length < 3 || state.username.length > 20 ||
+            !state.username.all { it.isLetterOrDigit() || it == '_' }) {
+            _registerState.update { it.copy(error = "Username must be 3–20 alphanumeric characters") }
+            return
+        }
         if (state.email.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(state.email).matches()) {
             _registerState.update { it.copy(error = "Invalid email address") }
             return
         }
         if (state.password.length < 8) {
             _registerState.update { it.copy(error = "Password must be at least 8 characters") }
+            return
+        }
+        if (!state.password.any { it.isDigit() }) {
+            _registerState.update { it.copy(error = "Password must contain at least 1 number") }
+            return
+        }
+        if (!state.password.any { !it.isLetterOrDigit() }) {
+            _registerState.update { it.copy(error = "Password must contain at least 1 symbol") }
             return
         }
 

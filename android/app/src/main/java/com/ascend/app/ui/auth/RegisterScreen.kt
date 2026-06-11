@@ -77,10 +77,8 @@ fun RegisterScreen(
                 is AuthEffect.NavigateToOtp -> {
                     navController.navigate("otp/${effect.email}")
                 }
-                is AuthEffect.NavigateToSplash -> {
-                    navController.navigate("otp/${state.email}")
-                }
                 is AuthEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
+                else -> {}
             }
         }
     }
