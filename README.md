@@ -10,8 +10,6 @@
 
 Built to showcase end-to-end full-stack engineering, Ascend features a resilient **Offline-First Android App** (Kotlin, Jetpack Compose, Room), a highly concurrent **Go API Gateway**, and a **Custom Fine-Tuned AI Engine** (Phi-3 Mini + LoRA) that dynamically generates personalized RPG quests based on a user's goals and biometric data.
 
-### 🎮 Live Demo
-Ascend is fully live and hosted on AWS! **[Download the latest APK Release here](../../releases)** to install it on your Android device and start playing.
 
 ---
 
